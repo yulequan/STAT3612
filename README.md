@@ -22,3 +22,5 @@ The demo supports:
 - One-parameter and two-parameter optimization
 - Interactive 3D loss landscape
 - Adjustable learning rate, playback speed, initialization, and sample size
+- GD and SGD paths on a 3D logistic-loss surface with contour projections
+- Adjustable SGD batch size, total sample count, and playback up to 20x
