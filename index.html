@@ -3,27 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gradient Descent, Step by Step</title>
+  <meta name="description" content="Interactive demonstrations for STAT3612." />
+  <title>STAT3612 Interactive Demos</title>
   <style>
     :root {
       --navy: #073763;
       --blue: #2f6da1;
       --teal: #167c80;
       --coral: #d95f4d;
-      --green: #478c5c;
       --ink: #17212b;
       --muted: #607080;
       --line: #d7e0e7;
-      --panel: #ffffff;
       --page: #f3f6f8;
+      --panel: #ffffff;
       --soft-blue: #eaf2f8;
       --soft-teal: #e7f3f2;
-      --soft-coral: #fbecea;
-      --shadow: 0 10px 28px rgba(25, 50, 74, 0.08);
+      --shadow: 0 8px 24px rgba(25, 50, 74, 0.08);
     }
 
     * { box-sizing: border-box; }
-
     html, body { min-height: 100%; }
 
     body {
@@ -34,1771 +32,275 @@
       letter-spacing: 0;
     }
 
-    button, input, select { font: inherit; }
+    a { color: inherit; }
 
-    button:focus-visible,
-    input:focus-visible,
-    select:focus-visible {
-      outline: 3px solid rgba(47, 109, 161, 0.28);
-      outline-offset: 2px;
+    a:focus-visible {
+      outline: 3px solid rgba(47, 109, 161, 0.3);
+      outline-offset: 3px;
     }
 
-    .app {
-      width: min(1480px, 100%);
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 24px;
-      padding: 4px 2px 18px;
-    }
-
-    .title-block h1 {
-      margin: 0;
-      color: var(--navy);
-      font-size: 30px;
-      line-height: 1.15;
-      font-weight: 700;
-    }
-
-    .title-block p {
-      margin: 7px 0 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.5;
-    }
-
-    .iteration-badge {
-      flex: 0 0 auto;
-      min-width: 150px;
-      padding: 10px 14px;
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--teal);
-      border-radius: 6px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .iteration-badge span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .iteration-badge strong {
-      display: block;
-      margin-top: 2px;
-      color: var(--navy);
-      font-size: 23px;
-    }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: minmax(410px, 1fr) auto;
-      gap: 18px;
-      align-items: center;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .experiment-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 18px;
-      margin-top: 10px;
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .experiment-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .experiment-label {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .mode-switch {
-      display: inline-grid;
-      grid-template-columns: 1fr 1fr;
-      padding: 3px;
-      border: 1px solid var(--line);
-      border-radius: 5px;
-      background: #f5f7f9;
-    }
-
-    .mode-button {
-      min-width: 112px;
-      height: 34px;
-      padding: 0 12px;
-      border: 0;
-      border-radius: 3px;
-      background: transparent;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .mode-button.active {
-      background: var(--navy);
-      color: white;
-    }
-
-    .case-select {
-      width: min(300px, 38vw);
-      height: 36px;
-      padding: 0 34px 0 10px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      background: white;
-      color: var(--ink);
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .sample-stepper {
-      display: grid;
-      grid-template-columns: 36px 52px 36px;
-      align-items: center;
-      overflow: hidden;
-      height: 36px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      background: white;
-    }
-
-    .sample-button {
-      width: 36px;
-      height: 34px;
-      padding: 0;
-      border: 0;
-      background: #f5f7f9;
-      color: var(--navy);
-      font-size: 19px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .sample-button:hover { background: var(--soft-blue); }
-
-    .sample-button:disabled {
-      color: #aeb8c1;
-      cursor: default;
-    }
-
-    .sample-count {
-      color: var(--ink);
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 14px;
-      font-weight: 800;
-      text-align: center;
-    }
-
-    .step-rail {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 6px;
-    }
-
-    .step-chip {
-      position: relative;
-      min-height: 46px;
-      padding: 7px 8px 7px 34px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      background: #f8fafb;
-      color: var(--muted);
-      text-align: left;
-      cursor: pointer;
-    }
-
-    .step-chip::before {
-      content: attr(data-index);
-      position: absolute;
-      left: 9px;
-      top: 50%;
-      width: 18px;
-      height: 18px;
-      transform: translateY(-50%);
-      border-radius: 50%;
-      background: #dfe7ed;
-      color: #536372;
-      font-size: 11px;
-      font-weight: 800;
-      line-height: 18px;
-      text-align: center;
-    }
-
-    .step-chip.active {
-      border-color: var(--blue);
-      background: var(--soft-blue);
-      color: var(--navy);
-      font-weight: 700;
-    }
-
-    .step-chip.active::before {
-      background: var(--blue);
-      color: white;
-    }
-
-    .step-chip.complete {
-      color: var(--green);
-      border-color: #bfd5c5;
-      background: #f1f8f3;
-    }
-
-    .step-chip.complete::before {
-      content: "✓";
-      background: var(--green);
-      color: white;
-    }
-
-    .control-cluster {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .icon-button,
-    .command-button {
-      height: 40px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      background: white;
-      color: var(--navy);
-      cursor: pointer;
-    }
-
-    .icon-button {
-      width: 40px;
-      padding: 0;
-      font-size: 19px;
-      font-weight: 700;
-    }
-
-    .command-button {
-      padding: 0 15px;
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .command-button.primary {
-      border-color: var(--navy);
-      background: var(--navy);
-      color: white;
-    }
-
-    .icon-button:hover,
-    .command-button:hover { border-color: var(--blue); }
-
-    .command-button.primary:hover { background: #0c477d; }
-
-    .charts {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .chart-panel {
-      min-width: 0;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .panel-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 62px;
-      padding: 13px 16px;
+    .site-header {
       border-bottom: 1px solid var(--line);
-    }
-
-    .panel-heading h2 {
-      margin: 0;
-      color: var(--navy);
-      font-size: 17px;
-      line-height: 1.25;
-    }
-
-    .panel-heading p {
-      margin: 3px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-    }
-
-    .mini-value {
-      flex: 0 0 auto;
-      padding: 7px 9px;
-      border-left: 3px solid var(--coral);
-      background: var(--soft-coral);
-      color: #843b31;
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .canvas-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      min-height: 300px;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    .loss-3d {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      background: #f8fbfc;
-      cursor: grab;
-      touch-action: none;
-    }
-
-    .loss-3d:active { cursor: grabbing; }
-
-    .loss-3d[hidden] { display: none; }
-
-    .loss-3d canvas {
-      position: absolute;
-      inset: 0;
-    }
-
-    .axis-label-3d {
-      position: absolute;
-      z-index: 2;
-      padding: 3px 6px;
-      background: rgba(255, 255, 255, 0.86);
-      color: var(--navy);
-      font-size: 11px;
-      font-weight: 800;
-      pointer-events: none;
-    }
-
-    .axis-label-3d.loss-axis { left: 10px; top: 10px; }
-    .axis-label-3d.slope-axis { left: 50%; bottom: 8px; transform: translateX(-50%); }
-    .axis-label-3d.intercept-axis { left: 10px; bottom: 8px; }
-
-    .loss-3d-legend {
-      position: absolute;
-      z-index: 2;
-      right: 10px;
-      top: 10px;
-      display: flex;
-      gap: 10px;
-      padding: 4px 7px;
-      background: rgba(255, 255, 255, 0.86);
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      pointer-events: none;
-    }
-
-    .loss-3d-legend span { display: inline-flex; align-items: center; gap: 4px; }
-
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--coral);
-    }
-
-    .legend-dot.minimum { background: var(--green); }
-    .legend-line { width: 13px; border-top: 2px solid var(--teal); }
-
-    .three-fallback {
-      display: grid;
-      place-items: center;
-      height: 100%;
-      padding: 30px;
-      color: var(--muted);
-      font-size: 14px;
-      text-align: center;
-    }
-
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 1px;
-      margin-top: 16px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--line);
-      box-shadow: var(--shadow);
-    }
-
-    .metric {
-      min-width: 0;
-      padding: 14px 16px;
       background: var(--panel);
     }
 
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 11px;
+    .header-inner,
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      gap: 20px;
+    }
+
+    .course-mark {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .course-code {
+      color: var(--navy);
+      font-size: 20px;
       font-weight: 800;
+    }
+
+    .course-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
       text-transform: uppercase;
     }
 
-    .metric strong {
-      display: block;
-      margin-top: 5px;
-      overflow-wrap: anywhere;
-      color: var(--ink);
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 17px;
+    .repository-link {
+      color: var(--blue);
+      font-size: 13px;
       font-weight: 700;
+      text-decoration: none;
     }
 
-    .lesson-band {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
-      gap: 16px;
-      margin-top: 16px;
-    }
+    .repository-link:hover { text-decoration: underline; }
+    .page { padding: 54px 0 70px; }
 
-    .narration,
-    .settings {
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .narration {
-      min-height: 138px;
-      padding: 18px 20px;
-      border-left: 5px solid var(--teal);
+    .intro {
+      max-width: 760px;
+      padding-bottom: 38px;
     }
 
     .eyebrow {
+      margin: 0 0 8px;
       color: var(--teal);
       font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
     }
 
-    .narration h3 {
-      margin: 5px 0 6px;
+    h1 {
+      margin: 0;
       color: var(--navy);
-      font-size: 20px;
+      font-size: 34px;
+      line-height: 1.18;
+      font-weight: 750;
+    }
+
+    .intro p:last-child {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 17px;
       line-height: 1.3;
     }
 
-    .narration p {
-      margin: 0;
-      color: #394a59;
-      font-size: 15px;
-      line-height: 1.6;
+    .section-heading::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--line);
     }
 
-    .formula-line {
-      margin-top: 10px;
-      color: var(--navy);
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .settings {
+    .demo-list {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      align-items: center;
-      padding: 18px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
     }
 
-    .setting label {
+    .demo-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      min-height: 246px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .demo-content {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 12px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 32px;
+    }
+
+    .demo-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 8px;
+      border-left: 3px solid var(--teal);
+      background: var(--soft-teal);
+      color: #125f62;
+      font-size: 11px;
       font-weight: 800;
       text-transform: uppercase;
     }
 
-    .setting output {
+    .demo-content h3 {
+      margin: 14px 0 8px;
       color: var(--navy);
-      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 23px;
+      line-height: 1.3;
     }
 
-    input[type="range"] {
-      width: 100%;
-      margin: 12px 0 0;
-      accent-color: var(--teal);
-      cursor: pointer;
+    .demo-content p {
+      max-width: 630px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
     }
 
-    .bridge-note {
-      display: flex;
+    .demo-link {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      margin-top: 16px;
-      padding: 13px 16px;
-      border-left: 4px solid var(--coral);
-      background: #fff9f7;
-      color: #583d37;
+      gap: 8px;
+      min-height: 40px;
+      margin-top: 22px;
+      padding: 0 15px;
+      border: 1px solid var(--navy);
+      border-radius: 4px;
+      background: var(--navy);
+      color: white;
+      font-size: 14px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .demo-link:hover { background: #0c477d; }
+
+    .demo-visual {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 22px;
+      border-left: 1px solid var(--line);
+      background: var(--soft-blue);
+    }
+
+    .demo-visual svg {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+    }
+
+    .future-note {
+      margin: 18px 0 0;
+      color: var(--muted);
       font-size: 13px;
       line-height: 1.5;
     }
 
-    .bridge-note strong { color: #8b3e32; }
+    @media (max-width: 760px) {
+      .header-inner,
+      .page { width: min(100% - 28px, 1120px); }
+      .header-inner { min-height: 58px; }
+      .course-label { display: none; }
+      .page { padding-top: 38px; }
+      h1 { font-size: 29px; }
+      .demo-card { grid-template-columns: 1fr; }
+      .demo-content { padding: 25px 22px; }
 
-    @media (max-width: 1050px) {
-      .toolbar { grid-template-columns: 1fr; }
-      .control-cluster { justify-content: flex-start; }
-      .lesson-band { grid-template-columns: 1fr; }
-      .experiment-bar { align-items: flex-start; flex-direction: column; }
-    }
-
-    @media (max-width: 820px) {
-      .app { padding: 14px; }
-      .topbar { align-items: stretch; }
-      .title-block h1 { font-size: 25px; }
-      .iteration-badge { min-width: 120px; }
-      .charts { grid-template-columns: 1fr; }
-      .step-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .metrics { grid-template-columns: 1fr 1fr; }
-      .canvas-wrap { min-height: 260px; }
-      .experiment-group { width: 100%; }
-      .case-select { width: 100%; }
-      .experiment-group.samples { width: auto; }
-    }
-
-    @media (max-width: 560px) {
-      .topbar { flex-direction: column; }
-      .iteration-badge { width: 100%; }
-      .step-rail { grid-template-columns: 1fr 1fr; }
-      .control-cluster { flex-wrap: wrap; }
-      .settings { grid-template-columns: 1fr; }
-      .metrics { grid-template-columns: 1fr; }
-      .panel-heading { align-items: flex-start; }
-      .mini-value { max-width: 44%; }
-      .canvas-wrap { min-height: 240px; }
-      .bridge-note { align-items: flex-start; flex-direction: column; }
-      .experiment-group { align-items: flex-start; flex-direction: column; }
-      .mode-switch { width: 100%; }
-      .mode-button { min-width: 0; }
-      .experiment-group.samples { width: 100%; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-        animation-duration: 0.01ms !important;
+      .demo-visual {
+        min-height: 210px;
+        border-top: 1px solid var(--line);
+        border-left: 0;
       }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div class="title-block">
-        <h1>Gradient Descent, Step by Step</h1>
-        <p id="modeDescription">1D mode fixes the slope at 0.64 and uses gradient descent to learn the intercept.</p>
-      </div>
-      <div class="iteration-badge" aria-live="polite">
-        <span>Iteration</span>
-        <strong id="iterationValue">0</strong>
-      </div>
-    </header>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="course-mark" href="./" aria-label="STAT3612 demo overview">
+        <span class="course-code">STAT3612</span>
+        <span class="course-label">Interactive Demos</span>
+      </a>
+      <a class="repository-link" href="https://github.com/yulequan/STAT3612">GitHub repository</a>
+    </div>
+  </header>
 
-    <section class="toolbar" aria-label="Animation controls">
-      <div class="step-rail" id="stepRail">
-        <button class="step-chip active" data-step="0" data-index="1">Initialize</button>
-        <button class="step-chip" data-step="1" data-index="2">Predict</button>
-        <button class="step-chip" data-step="2" data-index="3">Residuals</button>
-        <button class="step-chip" data-step="3" data-index="4">Loss</button>
-        <button class="step-chip" data-step="4" data-index="5">Gradient</button>
-        <button class="step-chip" data-step="5" data-index="6">Update</button>
-      </div>
-      <div class="control-cluster">
-        <button class="icon-button" id="resetButton" type="button" title="Reset">↻</button>
-        <button class="icon-button" id="backButton" type="button" title="Previous step">←</button>
-        <button class="command-button primary" id="playButton" type="button">▶ Auto play</button>
-        <button class="command-button" id="nextButton" type="button">Next step →</button>
-      </div>
+  <main class="page">
+    <section class="intro">
+      <p class="eyebrow">Course learning lab</p>
+      <h1>STAT3612 Interactive Demos</h1>
+      <p>Explore statistical learning concepts through focused, interactive demonstrations used alongside the course lectures.</p>
     </section>
 
-    <section class="experiment-bar" aria-label="Experiment setup">
-      <div class="experiment-group">
-        <span class="experiment-label">Optimization space</span>
-        <div class="mode-switch" role="group" aria-label="Optimization mode">
-          <button class="mode-button active" id="mode1d" type="button">1D · intercept</button>
-          <button class="mode-button" id="mode2d" type="button">2D · intercept + slope</button>
-        </div>
+    <section aria-labelledby="optimization-heading">
+      <div class="section-heading">
+        <h2 id="optimization-heading">Optimization</h2>
       </div>
-      <div class="experiment-group">
-        <label class="experiment-label" for="initialCase">Starting case</label>
-        <select class="case-select" id="initialCase">
-          <option value="origin">A · Origin / simple start</option>
-          <option value="low">B · Low line</option>
-          <option value="high">C · High and steep line</option>
-          <option value="reverse">D · Wrong-direction slope</option>
-          <option value="near">E · Near the optimum</option>
-          <option value="random">Random start</option>
-        </select>
-        <button class="command-button" id="randomButton" type="button">New random case</button>
-      </div>
-      <div class="experiment-group samples">
-        <span class="experiment-label">Training samples</span>
-        <div class="sample-stepper" role="group" aria-label="Number of training samples">
-          <button class="sample-button" id="sampleMinus" type="button" aria-label="Remove training samples">−</button>
-          <output class="sample-count" id="sampleCount" aria-live="polite">3</output>
-          <button class="sample-button" id="samplePlus" type="button" aria-label="Add training samples">+</button>
-        </div>
-      </div>
-    </section>
 
-    <section class="charts">
-      <article class="chart-panel">
-        <div class="panel-heading">
-          <div>
-            <h2>1. Model space</h2>
-            <p>Observed data, prediction line, and vertical residuals</p>
+      <div class="demo-list">
+        <article class="demo-card">
+          <div class="demo-content">
+            <span class="demo-tag">Gradient-based learning</span>
+            <h3>Gradient Descent Step by Step</h3>
+            <p>Follow prediction, residual, loss, gradient, and parameter-update calculations in 1D or 2D, with an interactive 3D loss landscape.</p>
+            <a class="demo-link" href="gradient-descent-step-by-step.html">Open demo <span aria-hidden="true">→</span></a>
           </div>
-          <div class="mini-value" id="modelEquation">ŷ = 0.000 + 0.64x</div>
-        </div>
-        <div class="canvas-wrap">
-          <canvas id="modelCanvas" aria-label="Linear regression chart"></canvas>
-        </div>
-      </article>
 
-      <article class="chart-panel">
-        <div class="panel-heading">
-          <div>
-            <h2 id="lossHeading">2. Loss landscape</h2>
-            <p id="lossSubtitle">RSS as a function of the intercept b₀</p>
+          <div class="demo-visual" aria-hidden="true">
+            <svg viewBox="0 0 360 210" role="img">
+              <rect x="1" y="1" width="358" height="208" rx="5" fill="#ffffff" stroke="#c9d6df" />
+              <path d="M38 28V174H329" fill="none" stroke="#7990a2" stroke-width="1.5" />
+              <path d="M48 46C92 61 115 139 177 158C232 174 268 78 321 38" fill="none" stroke="#073763" stroke-width="4" />
+              <path d="M76 58L113 98L151 133L183 156" fill="none" stroke="#167c80" stroke-width="2.5" stroke-dasharray="6 5" />
+              <circle cx="76" cy="58" r="7" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="113" cy="98" r="6" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="151" cy="133" r="6" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="183" cy="156" r="7" fill="#478c5c" stroke="#ffffff" stroke-width="3" />
+              <path d="M92 72L104 90L96 87" fill="#167c80" />
+              <text x="178" y="195" text-anchor="middle" fill="#607080" font-size="12" font-family="Inter, sans-serif">parameter value</text>
+              <text x="15" y="104" text-anchor="middle" fill="#607080" font-size="12" font-family="Inter, sans-serif" transform="rotate(-90 15 104)">loss</text>
+            </svg>
           </div>
-          <div class="mini-value" id="lossValue">RSS = 3.156</div>
-        </div>
-        <div class="canvas-wrap" id="lossCanvasWrap">
-          <canvas id="lossCanvas" aria-label="Loss curve chart"></canvas>
-          <div class="loss-3d" id="loss3d" aria-label="Interactive three-dimensional loss surface" hidden>
-            <span class="axis-label-3d loss-axis">RSS loss</span>
-            <span class="axis-label-3d slope-axis">Slope b₁</span>
-            <span class="axis-label-3d intercept-axis">Intercept b₀</span>
-            <div class="loss-3d-legend" aria-hidden="true">
-              <span><i class="legend-dot"></i>Current</span>
-              <span><i class="legend-dot minimum"></i>Minimum</span>
-              <span><i class="legend-line"></i>Path</span>
-            </div>
-          </div>
-        </div>
-      </article>
+        </article>
+      </div>
+
+      <p class="future-note">Additional course demonstrations will appear here as they are released.</p>
     </section>
-
-    <section class="metrics" aria-label="Current calculation">
-      <div class="metric">
-        <span>Intercept b₀</span>
-        <strong id="metricIntercept">0.000</strong>
-      </div>
-      <div class="metric">
-        <span>Slope b₁</span>
-        <strong id="metricSlope">0.640 fixed</strong>
-      </div>
-      <div class="metric">
-        <span>RSS loss</span>
-        <strong id="metricLoss">3.156</strong>
-      </div>
-      <div class="metric">
-        <span>Gradient ∂RSS/∂b₀</span>
-        <strong id="metricGradient">−5.704</strong>
-      </div>
-      <div class="metric">
-        <span>Update Δb₀</span>
-        <strong id="metricUpdate">+0.456</strong>
-      </div>
-    </section>
-
-    <section class="lesson-band">
-      <article class="narration" aria-live="polite">
-        <span class="eyebrow" id="stepLabel">Step 1 of 6</span>
-        <h3 id="stepTitle">Choose an initial parameter</h3>
-        <p id="stepText">Start with an intercept of b₀ = 0. The slope stays fixed at 0.64 so that we can see one-dimensional gradient descent clearly.</p>
-        <div class="formula-line" id="formulaLine">ŷᵢ = b₀ + 0.64xᵢ</div>
-      </article>
-
-      <aside class="settings" aria-label="Animation settings">
-        <div class="setting">
-          <label for="learningRate">
-            Learning rate η
-            <output id="learningRateValue">0.080</output>
-          </label>
-          <input id="learningRate" type="range" min="0.01" max="0.8" step="0.01" value="0.08" />
-        </div>
-        <div class="setting">
-          <label for="speed">
-            Playback speed
-            <output id="speedValue">2.0×</output>
-          </label>
-          <input id="speed" type="range" min="1" max="5" step="0.5" value="2" />
-        </div>
-      </aside>
-    </section>
-
-    <footer class="bridge-note">
-      <span><strong>Bridge to classification:</strong> logistic regression uses the same optimization loop, but changes the prediction rule and the loss function.</span>
-      <span id="convergenceText">Target intercept: 0.951</span>
-    </footer>
   </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-  <script>
-    (() => {
-      const seedData = [
-        { x: 0.5, y: 1.4 },
-        { x: 2.3, y: 1.9 },
-        { x: 2.9, y: 3.2 }
-      ];
-      const fixedSlope = 0.64;
-      const minSamples = 3;
-      const maxSamples = 30;
-      const sampleChoices = [3, 5, 10, 20, 30];
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      const colors = {
-        navy: "#073763",
-        blue: "#2f6da1",
-        teal: "#167c80",
-        coral: "#d95f4d",
-        green: "#478c5c",
-        ink: "#17212b",
-        muted: "#607080",
-        grid: "#dfe6eb"
-      };
-
-      function buildSamplePool() {
-        const pool = seedData.map(point => ({ ...point }));
-        let seed = 3612;
-        const random = () => {
-          seed = (1664525 * seed + 1013904223) >>> 0;
-          return seed / 4294967296;
-        };
-        while (pool.length < maxSamples) {
-          const x = 0.25 + 2.8 * random();
-          const noise = (random() - 0.5) * 0.9;
-          pool.push({ x, y: 0.95 + fixedSlope * x + noise });
-        }
-        return pool;
-      }
-
-      const samplePool = buildSamplePool();
-      let sampleSize = minSamples;
-      let data = samplePool.slice(0, sampleSize);
-      let optima;
-      let initialCases;
-
-      function recomputeDataStats() {
-        data = samplePool.slice(0, sampleSize);
-        const meanX = data.reduce((sum, p) => sum + p.x, 0) / data.length;
-        const meanY = data.reduce((sum, p) => sum + p.y, 0) / data.length;
-        const denominator = data.reduce((sum, p) => sum + (p.x - meanX) ** 2, 0);
-        const optimumSlope = data.reduce((sum, p) => sum + (p.x - meanX) * (p.y - meanY), 0) / denominator;
-        optima = {
-          "1d": {
-            b0: data.reduce((sum, p) => sum + p.y - fixedSlope * p.x, 0) / data.length,
-            b1: fixedSlope
-          },
-          "2d": {
-            b0: meanY - optimumSlope * meanX,
-            b1: optimumSlope
-          }
-        };
-        initialCases = {
-          origin: { b0: 0, b1: 0 },
-          low: { b0: -0.6, b1: 0.15 },
-          high: { b0: 1.6, b1: 1.1 },
-          reverse: { b0: 2.2, b1: -0.35 },
-          near: { b0: optima["2d"].b0 + 0.15, b1: optima["2d"].b1 - 0.1 }
-        };
-      }
-
-      recomputeDataStats();
-
-      const phaseCopy = {
-        "1d": [
-          ["Choose an initial intercept", "Start from the selected b₀. The slope stays fixed at 0.64 so the optimization path has one dimension.", "ŷᵢ = b₀ + 0.64xᵢ"],
-          ["Make predictions", "Use the current line to predict a height for every observed weight. In 1D mode, only vertical movement is allowed.", "ŷᵢ = b₀ + 0.64xᵢ"],
-          ["Measure the residuals", "Each residual is the vertical difference between an observed value and its prediction.", "eᵢ = yᵢ − ŷᵢ"],
-          ["Combine errors into one loss", "Square the residuals and add them. RSS summarizes the fit of the current line with one number.", "RSS(b₀) = Σᵢ (yᵢ − (b₀ + 0.64xᵢ))²"],
-          ["Find the downhill direction", "The derivative is the slope of the loss curve at the current intercept. Its sign tells us which way is downhill.", "∂RSS/∂b₀ = −2Σᵢ (yᵢ − ŷᵢ)"],
-          ["Update the intercept", "Subtract the derivative multiplied by the learning rate, then repeat until the update is very small.", "b₀ ← b₀ − η · ∂RSS/∂b₀"]
-        ],
-        "2d": [
-          ["Choose two initial parameters", "Start from the selected intercept b₀ and slope b₁. Both parameters can now move.", "ŷᵢ = b₀ + b₁xᵢ"],
-          ["Make predictions", "The intercept moves the line vertically; the slope rotates it. Together they determine every prediction.", "ŷᵢ = b₀ + b₁xᵢ"],
-          ["Measure the residuals", "Each residual is still the vertical gap between an observed value and the current line.", "eᵢ = yᵢ − ŷᵢ"],
-          ["Map the two-parameter loss", "Every pair (b₀, b₁) produces an RSS value. The contour map shows the resulting loss surface from above.", "RSS(b₀,b₁) = Σᵢ (yᵢ − (b₀ + b₁xᵢ))²"],
-          ["Compute the gradient vector", "The two partial derivatives form a vector. It points uphill, so gradient descent moves in the opposite direction.", "∇RSS = (∂RSS/∂b₀, ∂RSS/∂b₁)"],
-          ["Update intercept and slope", "Apply the same learning rate to both gradient components, then repeat the cycle.", "(b₀,b₁) ← (b₀,b₁) − η∇RSS"]
-        ]
-      };
-
-      const state = {
-        mode: "1d",
-        phase: 0,
-        iteration: 0,
-        intercept: 0,
-        slope: fixedSlope,
-        displayIntercept: 0,
-        displaySlope: fixedSlope,
-        learningRate: 0.08,
-        speed: 2,
-        playing: false,
-        animating: false,
-        lastUpdate: null,
-        history: [],
-        parameterPath: [],
-        autoTimer: null,
-        randomCase: null
-      };
-
-      const elements = {
-        modelCanvas: document.getElementById("modelCanvas"),
-        lossCanvas: document.getElementById("lossCanvas"),
-        lossCanvasWrap: document.getElementById("lossCanvasWrap"),
-        loss3d: document.getElementById("loss3d"),
-        iteration: document.getElementById("iterationValue"),
-        equation: document.getElementById("modelEquation"),
-        lossValue: document.getElementById("lossValue"),
-        metricIntercept: document.getElementById("metricIntercept"),
-        metricSlope: document.getElementById("metricSlope"),
-        metricLoss: document.getElementById("metricLoss"),
-        metricGradient: document.getElementById("metricGradient"),
-        metricUpdate: document.getElementById("metricUpdate"),
-        stepLabel: document.getElementById("stepLabel"),
-        stepTitle: document.getElementById("stepTitle"),
-        stepText: document.getElementById("stepText"),
-        formula: document.getElementById("formulaLine"),
-        stepRail: document.getElementById("stepRail"),
-        reset: document.getElementById("resetButton"),
-        back: document.getElementById("backButton"),
-        play: document.getElementById("playButton"),
-        next: document.getElementById("nextButton"),
-        learningRate: document.getElementById("learningRate"),
-        learningRateValue: document.getElementById("learningRateValue"),
-        speed: document.getElementById("speed"),
-        speedValue: document.getElementById("speedValue"),
-        convergence: document.getElementById("convergenceText"),
-        modeDescription: document.getElementById("modeDescription"),
-        mode1d: document.getElementById("mode1d"),
-        mode2d: document.getElementById("mode2d"),
-        initialCase: document.getElementById("initialCase"),
-        randomButton: document.getElementById("randomButton"),
-        sampleMinus: document.getElementById("sampleMinus"),
-        samplePlus: document.getElementById("samplePlus"),
-        sampleCount: document.getElementById("sampleCount"),
-        lossHeading: document.getElementById("lossHeading"),
-        lossSubtitle: document.getElementById("lossSubtitle")
-      };
-
-      function predict(x, b0 = state.displayIntercept, b1 = state.displaySlope) {
-        return b0 + b1 * x;
-      }
-
-      function residuals(b0 = state.displayIntercept, b1 = state.displaySlope) {
-        return data.map(p => p.y - predict(p.x, b0, b1));
-      }
-
-      function rss(b0 = state.displayIntercept, b1 = state.displaySlope) {
-        return residuals(b0, b1).reduce((sum, value) => sum + value * value, 0);
-      }
-
-      function gradient(b0 = state.intercept, b1 = state.slope) {
-        const errors = residuals(b0, b1);
-        return {
-          b0: -2 * errors.reduce((sum, value) => sum + value, 0),
-          b1: state.mode === "2d"
-            ? -2 * errors.reduce((sum, value, index) => sum + data[index].x * value, 0)
-            : 0
-        };
-      }
-
-      function gradientNorm(vector) {
-        return Math.hypot(vector.b0, vector.b1);
-      }
-
-      function candidateUpdate(b0 = state.intercept, b1 = state.slope) {
-        const grad = gradient(b0, b1);
-        return {
-          from: { b0, b1 },
-          to: {
-            b0: b0 - state.learningRate * grad.b0,
-            b1: state.mode === "2d" ? b1 - state.learningRate * grad.b1 : fixedSlope
-          },
-          gradient: grad
-        };
-      }
-
-      function currentOptimum() {
-        return optima[state.mode];
-      }
-
-      function format(value, digits = 3, signed = false) {
-        const small = Math.abs(value) < Math.pow(10, -digits) / 2 ? 0 : value;
-        const magnitude = Math.abs(small).toFixed(digits);
-        if (!signed) return `${small < 0 ? "−" : ""}${magnitude}`;
-        return `${small >= 0 ? "+" : "−"}${magnitude}`;
-      }
-
-      function vectorText(vector, signed = false) {
-        if (state.mode === "1d") return format(vector.b0, 3, signed);
-        return `(${format(vector.b0, 3, signed)}, ${format(vector.b1, 3, signed)})`;
-      }
-
-      function setupCanvas(canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const ratio = Math.max(1, window.devicePixelRatio || 1);
-        const width = Math.max(320, rect.width);
-        const height = Math.max(240, rect.height);
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
-        const ctx = canvas.getContext("2d");
-        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-        return { ctx, width, height };
-      }
-
-      function drawAxes(ctx, width, height, margin, xTicks, yTicks, xMap, yMap, xLabel, yLabel) {
-        ctx.save();
-        ctx.strokeStyle = colors.grid;
-        ctx.lineWidth = 1;
-        ctx.font = "12px Inter, sans-serif";
-        ctx.fillStyle = colors.muted;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        xTicks.forEach(tick => {
-          const x = xMap(tick);
-          ctx.beginPath();
-          ctx.moveTo(x, margin.top);
-          ctx.lineTo(x, height - margin.bottom);
-          ctx.stroke();
-          ctx.fillText(String(tick), x, height - margin.bottom + 9);
-        });
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        yTicks.forEach(tick => {
-          const y = yMap(tick);
-          ctx.beginPath();
-          ctx.moveTo(margin.left, y);
-          ctx.lineTo(width - margin.right, y);
-          ctx.stroke();
-          ctx.fillText(String(tick), margin.left - 9, y);
-        });
-        ctx.strokeStyle = colors.navy;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(margin.left, margin.top);
-        ctx.lineTo(margin.left, height - margin.bottom);
-        ctx.lineTo(width - margin.right, height - margin.bottom);
-        ctx.stroke();
-        ctx.fillStyle = colors.navy;
-        ctx.font = "600 13px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "bottom";
-        ctx.fillText(xLabel, (margin.left + width - margin.right) / 2, height - 5);
-        ctx.save();
-        ctx.translate(17, (margin.top + height - margin.bottom) / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.fillText(yLabel, 0, 0);
-        ctx.restore();
-        ctx.restore();
-      }
-
-      function numericTicks(min, max) {
-        if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [0];
-        const roughStep = (max - min) / 5;
-        const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
-        const normalized = roughStep / magnitude;
-        const niceStep = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
-        const start = Math.ceil(min / niceStep) * niceStep;
-        const ticks = [];
-        for (let value = start; value <= max + niceStep * 0.01 && ticks.length < 8; value += niceStep) {
-          ticks.push(Number(value.toPrecision(6)));
-        }
-        return ticks;
-      }
-
-      function drawModel() {
-        const { ctx, width, height } = setupCanvas(elements.modelCanvas);
-        ctx.clearRect(0, 0, width, height);
-        const margin = { left: 62, right: 26, top: 28, bottom: 52 };
-        const xMin = 0;
-        const xMax = 3.4;
-        const lineEnds = [predict(xMin), predict(xMax)];
-        const yMin = Math.min(0.5, Math.floor(Math.min(...lineEnds) - 0.4));
-        const yMax = Math.max(3.7, Math.ceil(Math.max(...lineEnds) + 0.4));
-        const xMap = value => margin.left + (value - xMin) / (xMax - xMin) * (width - margin.left - margin.right);
-        const yMap = value => height - margin.bottom - (value - yMin) / (yMax - yMin) * (height - margin.top - margin.bottom);
-        drawAxes(ctx, width, height, margin, [0, 1, 2, 3], numericTicks(yMin, yMax), xMap, yMap, "Weight", "Height");
-
-        ctx.save();
-        ctx.strokeStyle = colors.teal;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(xMap(xMin), yMap(predict(xMin)));
-        ctx.lineTo(xMap(xMax), yMap(predict(xMax)));
-        ctx.stroke();
-
-        const showPredictions = state.phase >= 1;
-        const showResiduals = state.phase >= 2;
-        data.forEach((point, index) => {
-          const px = xMap(point.x);
-          const py = yMap(point.y);
-          const predicted = predict(point.x);
-          const ppy = yMap(predicted);
-          if (showResiduals) {
-            ctx.save();
-            ctx.strokeStyle = colors.coral;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 4]);
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(px, ppy);
-            ctx.stroke();
-            ctx.restore();
-            const labelEvery = Math.max(1, Math.ceil(data.length / 5));
-            if (data.length <= 6 || index % labelEvery === 0) {
-              ctx.fillStyle = colors.coral;
-              ctx.font = "600 12px Inter, sans-serif";
-              ctx.textAlign = point.x > 2.6 ? "right" : "left";
-              ctx.fillText(`e${index + 1} = ${format(point.y - predicted, 2, true)}`, px + (point.x > 2.6 ? -8 : 8), (py + ppy) / 2 - 5);
-            }
-          }
-          if (showPredictions) {
-            ctx.fillStyle = "white";
-            ctx.strokeStyle = colors.teal;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(px, ppy, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          }
-          ctx.fillStyle = colors.coral;
-          ctx.beginPath();
-          ctx.arc(px, py, 6, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = "white";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        });
-        ctx.fillStyle = colors.teal;
-        ctx.font = "700 13px Inter, sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText("current model", width - margin.right, Math.max(margin.top + 15, yMap(predict(xMax)) - 10));
-        ctx.restore();
-      }
-
-      function drawArrow(ctx, x1, y1, x2, y2, color) {
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const head = 9;
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 6), y2 - head * Math.sin(angle - Math.PI / 6));
-        ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 6), y2 - head * Math.sin(angle + Math.PI / 6));
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
-
-      function drawLoss1D(ctx, width, height) {
-        const margin = { left: 68, right: 28, top: 28, bottom: 52 };
-        const xMin = -0.8;
-        const xMax = 2.5;
-        const yMin = 0;
-        const yMax = Math.ceil(Math.max(rss(xMin, fixedSlope), rss(xMax, fixedSlope)) + 1);
-        const xMap = value => margin.left + (value - xMin) / (xMax - xMin) * (width - margin.left - margin.right);
-        const yMap = value => height - margin.bottom - (value - yMin) / (yMax - yMin) * (height - margin.top - margin.bottom);
-        drawAxes(ctx, width, height, margin, [-0.5, 0, 0.5, 1, 1.5, 2, 2.5], [0, 3, 6, 9, 12], xMap, yMap, "Intercept b₀", "RSS loss");
-        ctx.save();
-        ctx.strokeStyle = colors.navy;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        for (let i = 0; i <= 180; i += 1) {
-          const b0 = xMin + (xMax - xMin) * i / 180;
-          const x = xMap(b0);
-          const y = yMap(rss(b0, fixedSlope));
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        const optimum = currentOptimum();
-        if (state.phase >= 3) {
-          ctx.strokeStyle = colors.green;
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.moveTo(xMap(optimum.b0), margin.top);
-          ctx.lineTo(xMap(optimum.b0), height - margin.bottom);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.fillStyle = colors.green;
-          ctx.font = "700 12px Inter, sans-serif";
-          ctx.textAlign = "center";
-          ctx.fillText(`minimum b₀ = ${format(optimum.b0)}`, xMap(optimum.b0), margin.top + 8);
-        }
-        const currentB = state.displayIntercept;
-        const currentLoss = rss(currentB, fixedSlope);
-        const currentGradient = state.phase === 5 && state.lastUpdate
-          ? state.lastUpdate.gradient.b0
-          : gradient(currentB, fixedSlope).b0;
-        if (state.phase >= 4) {
-          const span = 0.3;
-          const leftB = Math.max(xMin, currentB - span);
-          const rightB = Math.min(xMax, currentB + span);
-          const tangent = b0 => currentLoss + currentGradient * (b0 - currentB);
-          ctx.strokeStyle = colors.coral;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(xMap(leftB), yMap(tangent(leftB)));
-          ctx.lineTo(xMap(rightB), yMap(tangent(rightB)));
-          ctx.stroke();
-        }
-        const update = state.phase === 5 && state.lastUpdate ? state.lastUpdate : candidateUpdate();
-        if (state.phase >= 4) {
-          const arrowY = Math.max(margin.top + 30, Math.min(yMap(rss(update.from.b0, fixedSlope)), yMap(rss(update.to.b0, fixedSlope))) - 22);
-          drawArrow(ctx, xMap(update.from.b0), arrowY, xMap(update.to.b0), arrowY, colors.teal);
-        }
-        ctx.fillStyle = colors.coral;
-        ctx.beginPath();
-        ctx.arc(xMap(currentB), yMap(currentLoss), 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = colors.coral;
-        ctx.font = "700 12px Inter, sans-serif";
-        ctx.textAlign = currentB < 1.8 ? "left" : "right";
-        ctx.fillText(`b₀ = ${format(currentB)}`, xMap(currentB) + (currentB < 1.8 ? 10 : -10), yMap(currentLoss) - 12);
-        ctx.restore();
-      }
-
-      const loss3dState = {
-        renderer: null,
-        scene: null,
-        camera: null,
-        surfaceGroup: null,
-        markerGroup: null,
-        surfaceKey: "",
-        maxRelativeLoss: 1,
-        yaw: -0.72,
-        pitch: 0.54,
-        distance: 9.2,
-        dragging: false,
-        pointerX: 0,
-        pointerY: 0
-      };
-
-      const loss3dRange = {
-        b1Min: -0.6,
-        b1Max: 1.6,
-        b0Min: -1,
-        b0Max: 2.5,
-        width: 6,
-        depth: 5,
-        height: 3
-      };
-
-      function disposeObject(object) {
-        object.traverse(child => {
-          child.geometry?.dispose?.();
-          if (Array.isArray(child.material)) child.material.forEach(material => material.dispose?.());
-          else child.material?.dispose?.();
-        });
-      }
-
-      function clearThreeGroup(group) {
-        while (group.children.length) {
-          const child = group.children[group.children.length - 1];
-          group.remove(child);
-          disposeObject(child);
-        }
-      }
-
-      function initLoss3D() {
-        if (loss3dState.renderer || !window.THREE) return Boolean(loss3dState.renderer);
-        const THREE = window.THREE;
-        try {
-          const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-          renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-          renderer.setClearColor(0xf8fbfc, 1);
-          renderer.outputColorSpace = THREE.SRGBColorSpace;
-          elements.loss3d.prepend(renderer.domElement);
-
-          const scene = new THREE.Scene();
-          const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
-          scene.add(new THREE.HemisphereLight(0xffffff, 0xc4d1d8, 1.8));
-          const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-          keyLight.position.set(-4, 8, 5);
-          scene.add(keyLight);
-          const surfaceGroup = new THREE.Group();
-          const markerGroup = new THREE.Group();
-          scene.add(surfaceGroup, markerGroup);
-          Object.assign(loss3dState, { renderer, scene, camera, surfaceGroup, markerGroup });
-
-          const canvas = renderer.domElement;
-          canvas.addEventListener("pointerdown", event => {
-            loss3dState.dragging = true;
-            loss3dState.pointerX = event.clientX;
-            loss3dState.pointerY = event.clientY;
-            canvas.setPointerCapture(event.pointerId);
-          });
-          canvas.addEventListener("pointermove", event => {
-            if (!loss3dState.dragging) return;
-            const dx = event.clientX - loss3dState.pointerX;
-            const dy = event.clientY - loss3dState.pointerY;
-            loss3dState.pointerX = event.clientX;
-            loss3dState.pointerY = event.clientY;
-            loss3dState.yaw -= dx * 0.008;
-            loss3dState.pitch = Math.max(0.16, Math.min(1.18, loss3dState.pitch + dy * 0.006));
-            renderLoss3D();
-          });
-          const endDrag = () => { loss3dState.dragging = false; };
-          canvas.addEventListener("pointerup", endDrag);
-          canvas.addEventListener("pointercancel", endDrag);
-          canvas.addEventListener("wheel", event => {
-            event.preventDefault();
-            loss3dState.distance = Math.max(6.3, Math.min(14, loss3dState.distance + event.deltaY * 0.01));
-            renderLoss3D();
-          }, { passive: false });
-          return true;
-        } catch (error) {
-          elements.loss3d.innerHTML = '<div class="three-fallback">3D rendering is unavailable in this browser.</div>';
-          return false;
-        }
-      }
-
-      function loss3dCoordinates(b0, b1, clamp = false) {
-        const range = loss3dRange;
-        const shownB0 = clamp ? Math.max(range.b0Min, Math.min(range.b0Max, b0)) : b0;
-        const shownB1 = clamp ? Math.max(range.b1Min, Math.min(range.b1Max, b1)) : b1;
-        const x = (shownB1 - range.b1Min) / (range.b1Max - range.b1Min) * range.width - range.width / 2;
-        const z = (shownB0 - range.b0Min) / (range.b0Max - range.b0Min) * range.depth - range.depth / 2;
-        const minimum = rss(optima["2d"].b0, optima["2d"].b1);
-        const relative = Math.max(0, rss(shownB0, shownB1) - minimum);
-        const y = Math.log1p(relative) / Math.log1p(loss3dState.maxRelativeLoss) * range.height;
-        return new window.THREE.Vector3(x, y, z);
-      }
-
-      function rebuildLoss3DSurface() {
-        if (!initLoss3D()) return;
-        const THREE = window.THREE;
-        const range = loss3dRange;
-        clearThreeGroup(loss3dState.surfaceGroup);
-        const optimum = optima["2d"];
-        const minimum = rss(optimum.b0, optimum.b1);
-        let maxRelative = 1;
-        for (let row = 0; row <= 24; row += 1) {
-          for (let column = 0; column <= 24; column += 1) {
-            const b0 = range.b0Min + (range.b0Max - range.b0Min) * row / 24;
-            const b1 = range.b1Min + (range.b1Max - range.b1Min) * column / 24;
-            maxRelative = Math.max(maxRelative, rss(b0, b1) - minimum);
-          }
-        }
-        loss3dState.maxRelativeLoss = maxRelative;
-
-        const segments = 46;
-        const geometry = new THREE.PlaneGeometry(range.width, range.depth, segments, segments);
-        geometry.rotateX(-Math.PI / 2);
-        const positions = geometry.attributes.position;
-        const vertexColors = [];
-        const lowColor = new THREE.Color(0x2f8f83);
-        const midColor = new THREE.Color(0xf1c56e);
-        const highColor = new THREE.Color(0xd95f4d);
-        for (let index = 0; index < positions.count; index += 1) {
-          const x = positions.getX(index);
-          const z = positions.getZ(index);
-          const b1 = range.b1Min + (x + range.width / 2) / range.width * (range.b1Max - range.b1Min);
-          const b0 = range.b0Min + (z + range.depth / 2) / range.depth * (range.b0Max - range.b0Min);
-          const relative = Math.max(0, rss(b0, b1) - minimum);
-          const normalized = Math.log1p(relative) / Math.log1p(maxRelative);
-          positions.setY(index, normalized * range.height);
-          const color = normalized < 0.5
-            ? lowColor.clone().lerp(midColor, normalized * 2)
-            : midColor.clone().lerp(highColor, (normalized - 0.5) * 2);
-          vertexColors.push(color.r, color.g, color.b);
-        }
-        geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
-        geometry.computeVertexNormals();
-        const material = new THREE.MeshPhongMaterial({
-          vertexColors: true,
-          side: THREE.DoubleSide,
-          shininess: 30,
-          transparent: true,
-          opacity: 0.94
-        });
-        loss3dState.surfaceGroup.add(new THREE.Mesh(geometry, material));
-
-        const grid = new THREE.GridHelper(range.width, 8, 0x8093a3, 0xcbd7df);
-        grid.position.y = -0.025;
-        grid.scale.z = range.depth / range.width;
-        loss3dState.surfaceGroup.add(grid);
-
-        const axisMaterial = new THREE.LineBasicMaterial({ color: 0x073763 });
-        const axisPoints = [
-          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
-          new THREE.Vector3(range.width / 2, 0, -range.depth / 2),
-          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
-          new THREE.Vector3(-range.width / 2, 0, range.depth / 2),
-          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
-          new THREE.Vector3(-range.width / 2, range.height + 0.3, -range.depth / 2)
-        ];
-        loss3dState.surfaceGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(axisPoints), axisMaterial));
-        loss3dState.surfaceKey = `${sampleSize}`;
-      }
-
-      function updateLoss3DMarkers() {
-        if (!initLoss3D()) return;
-        const THREE = window.THREE;
-        clearThreeGroup(loss3dState.markerGroup);
-        const optimumPoint = loss3dCoordinates(optima["2d"].b0, optima["2d"].b1, true);
-        optimumPoint.y += 0.09;
-        const optimumMarker = new THREE.Mesh(
-          new THREE.SphereGeometry(0.11, 18, 12),
-          new THREE.MeshPhongMaterial({ color: 0x478c5c })
-        );
-        optimumMarker.position.copy(optimumPoint);
-        loss3dState.markerGroup.add(optimumMarker);
-
-        const pathPoints = state.parameterPath.map(point => {
-          const mapped = loss3dCoordinates(point.b0, point.b1, true);
-          mapped.y += 0.07;
-          return mapped;
-        });
-        const currentPoint = loss3dCoordinates(state.displayIntercept, state.displaySlope, true);
-        currentPoint.y += 0.12;
-        if (pathPoints.length) pathPoints.push(currentPoint.clone());
-        if (pathPoints.length > 1) {
-          const path = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(pathPoints),
-            new THREE.LineBasicMaterial({ color: 0x167c80 })
-          );
-          loss3dState.markerGroup.add(path);
-        }
-
-        const currentMarker = new THREE.Mesh(
-          new THREE.SphereGeometry(0.14, 20, 14),
-          new THREE.MeshPhongMaterial({ color: 0xd95f4d })
-        );
-        currentMarker.position.copy(currentPoint);
-        loss3dState.markerGroup.add(currentMarker);
-
-        if (state.phase >= 4) {
-          const update = state.phase === 5 && state.lastUpdate ? state.lastUpdate : candidateUpdate();
-          const from = loss3dCoordinates(update.from.b0, update.from.b1, true);
-          const to = loss3dCoordinates(update.to.b0, update.to.b1, true);
-          from.y += 0.16;
-          to.y += 0.16;
-          const direction = to.clone().sub(from);
-          const length = direction.length();
-          if (length > 0.02) {
-            direction.normalize();
-            loss3dState.markerGroup.add(new THREE.ArrowHelper(direction, from, length, 0x167c80, 0.28, 0.14));
-          }
-        }
-      }
-
-      function renderLoss3D() {
-        if (!loss3dState.renderer) return;
-        const rect = elements.loss3d.getBoundingClientRect();
-        const width = Math.max(320, rect.width);
-        const height = Math.max(240, rect.height);
-        loss3dState.renderer.setSize(width, height, false);
-        loss3dState.camera.aspect = width / height;
-        loss3dState.camera.updateProjectionMatrix();
-        const horizontal = loss3dState.distance * Math.cos(loss3dState.pitch);
-        loss3dState.camera.position.set(
-          horizontal * Math.sin(loss3dState.yaw),
-          loss3dState.distance * Math.sin(loss3dState.pitch) + 0.7,
-          horizontal * Math.cos(loss3dState.yaw)
-        );
-        loss3dState.camera.lookAt(0, 1.05, 0);
-        loss3dState.renderer.render(loss3dState.scene, loss3dState.camera);
-      }
-
-      function drawLoss3D() {
-        if (!initLoss3D()) return;
-        if (loss3dState.surfaceKey !== `${sampleSize}`) rebuildLoss3DSurface();
-        updateLoss3DMarkers();
-        renderLoss3D();
-      }
-
-      function drawLoss() {
-        const is3D = state.mode === "2d";
-        elements.lossCanvas.hidden = is3D;
-        elements.loss3d.hidden = !is3D;
-        if (is3D) {
-          drawLoss3D();
-          return;
-        }
-        const { ctx, width, height } = setupCanvas(elements.lossCanvas);
-        ctx.clearRect(0, 0, width, height);
-        drawLoss1D(ctx, width, height);
-      }
-
-      function updateUI() {
-        const currentLoss = rss();
-        const metricGradient = state.phase === 5 && state.lastUpdate
-          ? state.lastUpdate.gradient
-          : gradient(state.displayIntercept, state.displaySlope);
-        const update = state.phase === 5 && state.lastUpdate ? state.lastUpdate : candidateUpdate(state.displayIntercept, state.displaySlope);
-        const metricDelta = {
-          b0: update.to.b0 - update.from.b0,
-          b1: update.to.b1 - update.from.b1
-        };
-        const phase = phaseCopy[state.mode][state.phase];
-        const optimum = currentOptimum();
-        const distance = state.mode === "1d"
-          ? Math.abs(state.displayIntercept - optimum.b0)
-          : Math.hypot(state.displayIntercept - optimum.b0, state.displaySlope - optimum.b1);
-
-        elements.iteration.textContent = String(state.iteration);
-        elements.equation.textContent = `ŷ = ${format(state.displayIntercept)} ${state.displaySlope >= 0 ? "+" : "−"} ${format(Math.abs(state.displaySlope))}x`;
-        elements.lossValue.textContent = `RSS = ${format(currentLoss)}`;
-        elements.metricIntercept.textContent = format(state.displayIntercept);
-        elements.metricSlope.textContent = `${format(state.displaySlope)}${state.mode === "1d" ? " fixed" : ""}`;
-        elements.metricLoss.textContent = format(currentLoss);
-        elements.metricGradient.textContent = vectorText(metricGradient);
-        elements.metricUpdate.textContent = vectorText(metricDelta, true);
-        elements.stepLabel.textContent = `Step ${state.phase + 1} of 6 · ${state.mode.toUpperCase()}`;
-        elements.stepTitle.textContent = phase[0];
-        elements.stepText.textContent = phase[1];
-        elements.formula.textContent = phase[2];
-        elements.learningRateValue.textContent = state.learningRate.toFixed(3);
-        elements.speedValue.textContent = `${state.speed.toFixed(1)}×`;
-        elements.modeDescription.textContent = state.mode === "1d"
-          ? "1D mode fixes the slope at 0.64 and uses gradient descent to learn the intercept."
-          : "2D mode uses gradient descent to learn the intercept and slope at the same time.";
-        elements.lossHeading.textContent = state.mode === "1d" ? "2. Loss landscape" : "2. Three-dimensional loss landscape";
-        elements.lossSubtitle.textContent = state.mode === "1d"
-          ? "RSS as a function of the intercept b₀"
-          : "Surface height and color encode RSS across b₁ and b₀";
-        elements.mode1d.classList.toggle("active", state.mode === "1d");
-        elements.mode2d.classList.toggle("active", state.mode === "2d");
-        elements.mode1d.setAttribute("aria-pressed", String(state.mode === "1d"));
-        elements.mode2d.setAttribute("aria-pressed", String(state.mode === "2d"));
-        const nextLoss = rss(update.to.b0, update.to.b1);
-        const aggressiveRate = !Number.isFinite(nextLoss) || nextLoss > currentLoss * 1.08;
-        elements.convergence.textContent = aggressiveRate
-          ? `High learning rate: the next step raises RSS to ${format(nextLoss)}`
-          : distance < 0.004
-            ? `Converged near (b₀, b₁) = (${format(optimum.b0)}, ${format(optimum.b1)})`
-            : state.mode === "1d"
-              ? `Distance to optimum b₀: ${format(distance)}`
-              : `Parameter distance to optimum: ${format(distance)}`;
-        elements.sampleCount.textContent = String(sampleSize);
-
-        [...elements.stepRail.querySelectorAll(".step-chip")].forEach((chip, index) => {
-          chip.classList.toggle("active", index === state.phase);
-          chip.classList.toggle("complete", index < state.phase);
-        });
-        elements.play.textContent = state.playing ? "Ⅱ Pause" : "▶ Auto play";
-        elements.back.disabled = state.history.length === 0 || state.animating;
-        elements.next.disabled = state.animating;
-        elements.learningRate.disabled = state.animating;
-        elements.initialCase.disabled = state.animating;
-        elements.randomButton.disabled = state.animating;
-        elements.sampleMinus.disabled = state.animating || sampleSize === minSamples;
-        elements.samplePlus.disabled = state.animating || sampleSize === maxSamples;
-        drawModel();
-        drawLoss();
-      }
-
-      function snapshot() {
-        return {
-          phase: state.phase,
-          iteration: state.iteration,
-          intercept: state.intercept,
-          slope: state.slope,
-          displayIntercept: state.displayIntercept,
-          displaySlope: state.displaySlope,
-          lastUpdate: state.lastUpdate ? JSON.parse(JSON.stringify(state.lastUpdate)) : null,
-          parameterPath: state.parameterPath.map(point => ({ ...point }))
-        };
-      }
-
-      function restore(saved) {
-        Object.assign(state, saved);
-        updateUI();
-      }
-
-      function animateUpdate(update, onComplete) {
-        const duration = reducedMotion ? 1 : 700 / state.speed;
-        const start = performance.now();
-        state.animating = true;
-        function frame(now) {
-          const raw = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - raw, 3);
-          state.displayIntercept = update.from.b0 + (update.to.b0 - update.from.b0) * eased;
-          state.displaySlope = update.from.b1 + (update.to.b1 - update.from.b1) * eased;
-          updateUI();
-          if (raw < 1) requestAnimationFrame(frame);
-          else {
-            state.animating = false;
-            state.intercept = update.to.b0;
-            state.slope = update.to.b1;
-            state.displayIntercept = update.to.b0;
-            state.displaySlope = update.to.b1;
-            state.parameterPath.push({ b0: update.to.b0, b1: update.to.b1 });
-            state.iteration += 1;
-            updateUI();
-            onComplete?.();
-          }
-        }
-        requestAnimationFrame(frame);
-      }
-
-      function stopAuto() {
-        state.playing = false;
-        clearTimeout(state.autoTimer);
-      }
-
-      function pauseAuto() {
-        stopAuto();
-        updateUI();
-      }
-
-      function performUpdate(onComplete) {
-        const update = candidateUpdate();
-        state.phase = 5;
-        state.lastUpdate = update;
-        animateUpdate(update, onComplete);
-      }
-
-      function advance(manual = true) {
-        if (state.animating) return;
-        if (manual) pauseAuto();
-        state.history.push(snapshot());
-        if (state.phase < 4) {
-          state.phase += 1;
-          updateUI();
-          return;
-        }
-        if (state.phase === 4) {
-          performUpdate(() => {
-            if (state.playing) scheduleAuto();
-          });
-          return;
-        }
-        const currentLoss = rss(state.intercept, state.slope);
-        if (!Number.isFinite(currentLoss) || currentLoss > 1e8) {
-          pauseAuto();
-          return;
-        }
-        const threshold = state.mode === "1d" ? 0.008 : 0.02;
-        if (gradientNorm(gradient()) < threshold || state.iteration >= 80) {
-          pauseAuto();
-          return;
-        }
-        state.phase = 1;
-        state.lastUpdate = null;
-        updateUI();
-      }
-
-      function goBack() {
-        pauseAuto();
-        if (state.animating || state.history.length === 0) return;
-        restore(state.history.pop());
-      }
-
-      function makeRandomCase() {
-        return {
-          b0: -0.8 + Math.random() * 3.1,
-          b1: -0.45 + Math.random() * 1.95
-        };
-      }
-
-      function selectedStart() {
-        const key = elements.initialCase.value;
-        if (key === "random") {
-          if (!state.randomCase) state.randomCase = makeRandomCase();
-          return state.randomCase;
-        }
-        const preset = initialCases[key] || initialCases.origin;
-        if (state.mode === "1d") {
-          const b0 = key === "near" ? optima["1d"].b0 + 0.15 : preset.b0;
-          return { b0, b1: fixedSlope };
-        }
-        return { ...preset };
-      }
-
-      function reset() {
-        stopAuto();
-        const start = selectedStart();
-        state.phase = 0;
-        state.iteration = 0;
-        state.intercept = start.b0;
-        state.slope = state.mode === "1d" ? fixedSlope : start.b1;
-        state.displayIntercept = state.intercept;
-        state.displaySlope = state.slope;
-        state.lastUpdate = null;
-        state.history = [];
-        state.parameterPath = [{ b0: state.intercept, b1: state.slope }];
-        state.animating = false;
-        updateUI();
-      }
-
-      function recommendedLearningRate() {
-        const scaled = state.mode === "1d" ? 0.08 * minSamples / sampleSize : 0.04 * minSamples / sampleSize;
-        const minimum = state.mode === "1d" ? 0.01 : 0.005;
-        const step = state.mode === "1d" ? 0.01 : 0.005;
-        return Math.max(minimum, Math.round(scaled / step) * step);
-      }
-
-      function setSampleSize(nextSize) {
-        if (state.animating || nextSize === sampleSize) return;
-        sampleSize = Math.max(minSamples, Math.min(maxSamples, nextSize));
-        recomputeDataStats();
-        loss3dState.surfaceKey = "";
-        state.randomCase = elements.initialCase.value === "random" ? makeRandomCase() : null;
-        state.learningRate = recommendedLearningRate();
-        elements.learningRate.value = String(state.learningRate);
-        reset();
-      }
-
-      function changeSampleSize(direction) {
-        const currentIndex = sampleChoices.indexOf(sampleSize);
-        const nextIndex = Math.max(0, Math.min(sampleChoices.length - 1, currentIndex + direction));
-        setSampleSize(sampleChoices[nextIndex]);
-      }
-
-      function setMode(mode) {
-        if (state.mode === mode || state.animating) return;
-        state.mode = mode;
-        if (mode === "1d") {
-          elements.learningRate.min = "0.01";
-          elements.learningRate.max = "0.8";
-          elements.learningRate.step = "0.01";
-        } else {
-          elements.learningRate.min = "0.005";
-          elements.learningRate.max = "0.275";
-          elements.learningRate.step = "0.005";
-        }
-        state.learningRate = recommendedLearningRate();
-        elements.learningRate.value = String(state.learningRate);
-        reset();
-      }
-
-      function scheduleAuto() {
-        clearTimeout(state.autoTimer);
-        if (!state.playing || state.animating) return;
-        state.autoTimer = setTimeout(() => {
-          if (!state.playing) return;
-          advance(false);
-          if (state.playing && !state.animating) scheduleAuto();
-        }, 900 / state.speed);
-      }
-
-      function toggleAuto() {
-        if (state.playing) {
-          pauseAuto();
-          return;
-        }
-        state.playing = true;
-        updateUI();
-        scheduleAuto();
-      }
-
-      elements.reset.addEventListener("click", reset);
-      elements.back.addEventListener("click", goBack);
-      elements.next.addEventListener("click", () => advance(true));
-      elements.play.addEventListener("click", toggleAuto);
-      elements.mode1d.addEventListener("click", () => setMode("1d"));
-      elements.mode2d.addEventListener("click", () => setMode("2d"));
-      elements.initialCase.addEventListener("change", () => {
-        state.randomCase = elements.initialCase.value === "random" ? makeRandomCase() : null;
-        reset();
-      });
-      elements.randomButton.addEventListener("click", () => {
-        elements.initialCase.value = "random";
-        state.randomCase = makeRandomCase();
-        reset();
-      });
-      elements.sampleMinus.addEventListener("click", () => changeSampleSize(-1));
-      elements.samplePlus.addEventListener("click", () => changeSampleSize(1));
-      elements.learningRate.addEventListener("input", event => {
-        state.learningRate = Number(event.target.value);
-        reset();
-      });
-      elements.speed.addEventListener("input", event => {
-        state.speed = Number(event.target.value);
-        updateUI();
-        if (state.playing) scheduleAuto();
-      });
-      elements.stepRail.addEventListener("click", event => {
-        const chip = event.target.closest(".step-chip");
-        if (!chip || state.animating) return;
-        pauseAuto();
-        const target = Number(chip.dataset.step);
-        if (target === state.phase) return;
-        if (target === 0) {
-          reset();
-          return;
-        }
-        state.history.push(snapshot());
-        if (target === 5) {
-          performUpdate();
-          return;
-        }
-        state.phase = target;
-        state.displayIntercept = state.intercept;
-        state.displaySlope = state.slope;
-        state.lastUpdate = null;
-        updateUI();
-      });
-
-      window.addEventListener("resize", updateUI);
-      new ResizeObserver(updateUI).observe(document.querySelector(".charts"));
-      elements.speed.value = String(state.speed);
-      reset();
-    })();
-  </script>
 </body>
 </html>
