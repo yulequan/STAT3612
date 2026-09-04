@@ -217,7 +217,7 @@
 
     .settings-bar {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 1px;
       margin-top: 10px;
       overflow: hidden;
@@ -324,6 +324,78 @@
       display: block;
       width: 100%;
       height: 100%;
+    }
+
+    .loss-3d {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      overflow: hidden;
+      background: #f8fbfc;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .loss-3d:active { cursor: grabbing; }
+
+    .loss-3d canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .axis-label-3d {
+      position: absolute;
+      z-index: 2;
+      padding: 3px 6px;
+      border: 1px solid rgba(215, 224, 231, 0.9);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--navy);
+      font-size: 11px;
+      font-weight: 750;
+      pointer-events: none;
+    }
+
+    .axis-label-3d.loss-axis { left: 10px; top: 10px; }
+    .axis-label-3d.slope-axis { left: 50%; bottom: 8px; transform: translateX(-50%); }
+    .axis-label-3d.intercept-axis { left: 10px; bottom: 8px; }
+
+    .loss-3d-legend {
+      position: absolute;
+      z-index: 2;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px 10px;
+      max-width: calc(100% - 125px);
+      padding: 5px 7px;
+      border: 1px solid rgba(215, 224, 231, 0.9);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+      pointer-events: none;
+    }
+
+    .loss-3d-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); }
+    .legend-dot.sgd { background: var(--coral); }
+    .legend-dot.minimum { background: var(--green); }
+    .legend-contour { width: 14px; border-top: 2px solid #355b72; }
+
+    .three-fallback {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      place-items: center;
+      color: var(--muted);
+      font-size: 13px;
     }
 
     .metrics {
@@ -525,6 +597,10 @@
 
     <section class="settings-bar" aria-label="Experiment settings">
       <div class="setting">
+        <label for="sampleCount">Total samples <output id="sampleCountValue">40</output></label>
+        <input id="sampleCount" type="range" min="20" max="200" step="10" value="40" />
+      </div>
+      <div class="setting">
         <label for="batchSize">SGD batch size <output id="batchSizeValue">4 / 40</output></label>
         <input id="batchSize" type="range" min="1" max="40" step="1" value="4" />
       </div>
@@ -534,7 +610,7 @@
       </div>
       <div class="setting">
         <label for="speed">Playback speed <output id="speedValue">2.0×</output></label>
-        <input id="speed" type="range" min="1" max="5" step="0.5" value="2" />
+        <input id="speed" type="range" min="1" max="20" step="1" value="2" />
       </div>
     </section>
 
@@ -559,7 +635,7 @@
         <div class="panel-heading">
           <div>
             <h2>2. Logistic-loss landscape</h2>
-            <p>Both methods move through the same parameter space</p>
+            <p>Three-dimensional surface, loss contours, and optimization paths</p>
           </div>
           <div class="legend">
             <span><i class="legend-line"></i>GD path</span>
@@ -567,7 +643,17 @@
           </div>
         </div>
         <div class="canvas-wrap">
-          <canvas id="lossCanvas" aria-label="Logistic loss contours and optimization paths"></canvas>
+          <div class="loss-3d" id="loss3d" aria-label="Interactive three-dimensional logistic loss surface with contours">
+            <span class="axis-label-3d loss-axis">Logistic loss</span>
+            <span class="axis-label-3d slope-axis">Slope b₁</span>
+            <span class="axis-label-3d intercept-axis">Intercept b₀</span>
+            <div class="loss-3d-legend" aria-hidden="true">
+              <span><i class="legend-dot"></i>GD</span>
+              <span><i class="legend-dot sgd"></i>SGD</span>
+              <span><i class="legend-dot minimum"></i>Minimum</span>
+              <span><i class="legend-contour"></i>Contours</span>
+            </div>
+          </div>
         </div>
       </article>
     </section>
@@ -607,9 +693,10 @@
     </footer>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
   <script>
     (() => {
-      const sampleCount = 40;
+      let sampleCount = 40;
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const colors = {
         navy: "#073763",
@@ -641,8 +728,8 @@
         });
       }
 
-      const data = buildData();
-      const allIndices = data.map((_, index) => index);
+      let data = buildData();
+      let allIndices = data.map((_, index) => index);
       const startParameters = { b0: 1.55, b1: -1.15 };
 
       function shuffledOrder(epoch) {
@@ -691,7 +778,7 @@
         return parameters;
       }
 
-      const optimum = findOptimum();
+      let optimum = findOptimum();
 
       const state = {
         phase: 0,
@@ -719,13 +806,15 @@
 
       const elements = {
         modelCanvas: document.getElementById("modelCanvas"),
-        lossCanvas: document.getElementById("lossCanvas"),
+        loss3d: document.getElementById("loss3d"),
         iteration: document.getElementById("iterationValue"),
         stepRail: document.getElementById("stepRail"),
         reset: document.getElementById("resetButton"),
         back: document.getElementById("backButton"),
         play: document.getElementById("playButton"),
         next: document.getElementById("nextButton"),
+        sampleCount: document.getElementById("sampleCount"),
+        sampleCountValue: document.getElementById("sampleCountValue"),
         batchSize: document.getElementById("batchSize"),
         batchSizeValue: document.getElementById("batchSizeValue"),
         learningRate: document.getElementById("learningRate"),
@@ -921,127 +1010,325 @@
         context.restore();
       }
 
-      function drawLoss() {
-        const { context, width, height } = setupCanvas(elements.lossCanvas);
-        context.clearRect(0, 0, width, height);
-        const margin = { left: 65, right: 25, top: 26, bottom: 50 };
-        const b1Min = -2.3;
-        const b1Max = 3.5;
-        const b0Min = -3;
-        const b0Max = 3;
-        const xMap = value => margin.left + (value - b1Min) / (b1Max - b1Min) * (width - margin.left - margin.right);
-        const yMap = value => height - margin.bottom - (value - b0Min) / (b0Max - b0Min) * (height - margin.top - margin.bottom);
-        const invB1 = x => b1Min + (x - margin.left) / (width - margin.left - margin.right) * (b1Max - b1Min);
-        const invB0 = y => b0Min + (height - margin.bottom - y) / (height - margin.top - margin.bottom) * (b0Max - b0Min);
-        const minimumLoss = logisticLoss(optimum);
-        const palette = ["#f5fbfa", "#e8f3f2", "#d7e9e7", "#e7e5d7", "#f2dccd", "#f3cfc6"];
-        const cell = Math.max(6, Math.floor((width - margin.left - margin.right) / 75));
-        for (let y = margin.top; y < height - margin.bottom; y += cell) {
-          for (let x = margin.left; x < width - margin.right; x += cell) {
-            const loss = logisticLoss({ b0: invB0(y + cell / 2), b1: invB1(x + cell / 2) });
-            const relative = Math.max(0, loss - minimumLoss);
-            const index = Math.min(palette.length - 1, Math.floor(relative / 1.2 * palette.length));
-            context.fillStyle = palette[index];
-            context.fillRect(x, y, cell + 1, cell + 1);
+      const loss3dState = {
+        renderer: null,
+        scene: null,
+        camera: null,
+        surfaceGroup: null,
+        markerGroup: null,
+        surfaceKey: "",
+        maxRelativeLoss: 1,
+        yaw: -0.72,
+        pitch: 0.54,
+        distance: 10.2,
+        dragging: false,
+        pointerX: 0,
+        pointerY: 0
+      };
+
+      const loss3dRange = {
+        b1Min: -2.3,
+        b1Max: 3.5,
+        b0Min: -3,
+        b0Max: 3,
+        width: 6.2,
+        depth: 5.2,
+        height: 3.2
+      };
+
+      function disposeObject(object) {
+        object.traverse(child => {
+          child.geometry?.dispose?.();
+          if (Array.isArray(child.material)) child.material.forEach(material => material.dispose?.());
+          else child.material?.dispose?.();
+        });
+      }
+
+      function clearThreeGroup(group) {
+        while (group.children.length) {
+          const child = group.children[group.children.length - 1];
+          group.remove(child);
+          disposeObject(child);
+        }
+      }
+
+      function initLoss3D() {
+        if (loss3dState.renderer || !window.THREE) return Boolean(loss3dState.renderer);
+        const THREE = window.THREE;
+        try {
+          const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+          renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+          renderer.setClearColor(0xf8fbfc, 1);
+          renderer.outputColorSpace = THREE.SRGBColorSpace;
+          elements.loss3d.prepend(renderer.domElement);
+
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
+          scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c8d2, 1.75));
+          const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+          keyLight.position.set(-4, 8, 5);
+          scene.add(keyLight);
+          const surfaceGroup = new THREE.Group();
+          const markerGroup = new THREE.Group();
+          scene.add(surfaceGroup, markerGroup);
+          Object.assign(loss3dState, { renderer, scene, camera, surfaceGroup, markerGroup });
+
+          const canvas = renderer.domElement;
+          canvas.addEventListener("pointerdown", event => {
+            loss3dState.dragging = true;
+            loss3dState.pointerX = event.clientX;
+            loss3dState.pointerY = event.clientY;
+            canvas.setPointerCapture(event.pointerId);
+          });
+          canvas.addEventListener("pointermove", event => {
+            if (!loss3dState.dragging) return;
+            const dx = event.clientX - loss3dState.pointerX;
+            const dy = event.clientY - loss3dState.pointerY;
+            loss3dState.pointerX = event.clientX;
+            loss3dState.pointerY = event.clientY;
+            loss3dState.yaw -= dx * 0.008;
+            loss3dState.pitch = Math.max(0.16, Math.min(1.18, loss3dState.pitch + dy * 0.006));
+            renderLoss3D();
+          });
+          const endDrag = () => { loss3dState.dragging = false; };
+          canvas.addEventListener("pointerup", endDrag);
+          canvas.addEventListener("pointercancel", endDrag);
+          canvas.addEventListener("wheel", event => {
+            event.preventDefault();
+            loss3dState.distance = Math.max(6.8, Math.min(15, loss3dState.distance + event.deltaY * 0.01));
+            renderLoss3D();
+          }, { passive: false });
+          return true;
+        } catch (error) {
+          elements.loss3d.innerHTML = '<div class="three-fallback">3D rendering is unavailable in this browser.</div>';
+          return false;
+        }
+      }
+
+      function loss3dCoordinates(b0, b1, clamp = false, lossValue = null) {
+        const range = loss3dRange;
+        const shownB0 = clamp ? Math.max(range.b0Min, Math.min(range.b0Max, b0)) : b0;
+        const shownB1 = clamp ? Math.max(range.b1Min, Math.min(range.b1Max, b1)) : b1;
+        const x = (shownB1 - range.b1Min) / (range.b1Max - range.b1Min) * range.width - range.width / 2;
+        const z = (shownB0 - range.b0Min) / (range.b0Max - range.b0Min) * range.depth - range.depth / 2;
+        const minimum = logisticLoss(optimum);
+        const relative = Math.max(0, (lossValue ?? logisticLoss({ b0: shownB0, b1: shownB1 })) - minimum);
+        const y = Math.log1p(relative) / Math.log1p(loss3dState.maxRelativeLoss) * range.height;
+        return new window.THREE.Vector3(x, y, z);
+      }
+
+      function contourSegments(values, nx, ny, level) {
+        const range = loss3dRange;
+        const segments = [];
+        for (let row = 0; row < ny; row += 1) {
+          for (let column = 0; column < nx; column += 1) {
+            const b1Left = range.b1Min + (range.b1Max - range.b1Min) * column / nx;
+            const b1Right = range.b1Min + (range.b1Max - range.b1Min) * (column + 1) / nx;
+            const b0Bottom = range.b0Min + (range.b0Max - range.b0Min) * row / ny;
+            const b0Top = range.b0Min + (range.b0Max - range.b0Min) * (row + 1) / ny;
+            const points = [
+              { x: b1Left, y: b0Bottom },
+              { x: b1Right, y: b0Bottom },
+              { x: b1Right, y: b0Top },
+              { x: b1Left, y: b0Top }
+            ];
+            const cellValues = [values[row][column], values[row][column + 1], values[row + 1][column + 1], values[row + 1][column]];
+            const hits = [
+              edgeIntersection(cellValues[0], cellValues[1], points[0], points[1], level),
+              edgeIntersection(cellValues[1], cellValues[2], points[1], points[2], level),
+              edgeIntersection(cellValues[2], cellValues[3], points[2], points[3], level),
+              edgeIntersection(cellValues[3], cellValues[0], points[3], points[0], level)
+            ].filter(Boolean);
+            if (hits.length >= 2) segments.push([hits[0], hits[1]]);
+            if (hits.length === 4) segments.push([hits[2], hits[3]]);
           }
         }
+        return segments;
+      }
 
-        drawAxes(context, width, height, margin, [-2, -1, 0, 1, 2, 3], [-3, -2, -1, 0, 1, 2, 3], xMap, yMap, "Slope b₁", "Intercept b₀");
+      function rebuildLoss3DSurface() {
+        if (!initLoss3D()) return;
+        const THREE = window.THREE;
+        const range = loss3dRange;
+        clearThreeGroup(loss3dState.surfaceGroup);
+        const minimum = logisticLoss(optimum);
+        let maxRelative = 1;
+        for (let row = 0; row <= 26; row += 1) {
+          for (let column = 0; column <= 26; column += 1) {
+            const b0 = range.b0Min + (range.b0Max - range.b0Min) * row / 26;
+            const b1 = range.b1Min + (range.b1Max - range.b1Min) * column / 26;
+            maxRelative = Math.max(maxRelative, logisticLoss({ b0, b1 }) - minimum);
+          }
+        }
+        loss3dState.maxRelativeLoss = maxRelative;
+
+        const surfaceSegments = 46;
+        const geometry = new THREE.PlaneGeometry(range.width, range.depth, surfaceSegments, surfaceSegments);
+        geometry.rotateX(-Math.PI / 2);
+        const positions = geometry.attributes.position;
+        const vertexColors = [];
+        const lowColor = new THREE.Color(0x2f8f83);
+        const midColor = new THREE.Color(0xf1c56e);
+        const highColor = new THREE.Color(0xd95f4d);
+        for (let index = 0; index < positions.count; index += 1) {
+          const x = positions.getX(index);
+          const z = positions.getZ(index);
+          const b1 = range.b1Min + (x + range.width / 2) / range.width * (range.b1Max - range.b1Min);
+          const b0 = range.b0Min + (z + range.depth / 2) / range.depth * (range.b0Max - range.b0Min);
+          const relative = Math.max(0, logisticLoss({ b0, b1 }) - minimum);
+          const normalized = Math.log1p(relative) / Math.log1p(maxRelative);
+          positions.setY(index, normalized * range.height);
+          const color = normalized < 0.5
+            ? lowColor.clone().lerp(midColor, normalized * 2)
+            : midColor.clone().lerp(highColor, (normalized - 0.5) * 2);
+          vertexColors.push(color.r, color.g, color.b);
+        }
+        geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
+        geometry.computeVertexNormals();
+        loss3dState.surfaceGroup.add(new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
+          vertexColors: true,
+          side: THREE.DoubleSide,
+          shininess: 26,
+          transparent: true,
+          opacity: 0.9
+        })));
 
         const nx = 46;
         const ny = 42;
         const values = Array.from({ length: ny + 1 }, (_, row) =>
           Array.from({ length: nx + 1 }, (_, column) => {
-            const b1 = b1Min + (b1Max - b1Min) * column / nx;
-            const b0 = b0Min + (b0Max - b0Min) * row / ny;
+            const b1 = range.b1Min + (range.b1Max - range.b1Min) * column / nx;
+            const b0 = range.b0Min + (range.b0Max - range.b0Min) * row / ny;
             return logisticLoss({ b0, b1 });
           })
         );
-        context.save();
-        context.strokeStyle = "rgba(7, 55, 99, 0.42)";
-        context.lineWidth = 1;
+        const floorPoints = [];
+        const surfacePoints = [];
         [0.03, 0.08, 0.16, 0.3, 0.55, 0.9, 1.35].forEach(offset => {
-          const level = minimumLoss + offset;
-          for (let row = 0; row < ny; row += 1) {
-            for (let column = 0; column < nx; column += 1) {
-              const points = [
-                { x: xMap(b1Min + (b1Max - b1Min) * column / nx), y: yMap(b0Min + (b0Max - b0Min) * row / ny) },
-                { x: xMap(b1Min + (b1Max - b1Min) * (column + 1) / nx), y: yMap(b0Min + (b0Max - b0Min) * row / ny) },
-                { x: xMap(b1Min + (b1Max - b1Min) * (column + 1) / nx), y: yMap(b0Min + (b0Max - b0Min) * (row + 1) / ny) },
-                { x: xMap(b1Min + (b1Max - b1Min) * column / nx), y: yMap(b0Min + (b0Max - b0Min) * (row + 1) / ny) }
-              ];
-              const cellValues = [values[row][column], values[row][column + 1], values[row + 1][column + 1], values[row + 1][column]];
-              const hits = [
-                edgeIntersection(cellValues[0], cellValues[1], points[0], points[1], level),
-                edgeIntersection(cellValues[1], cellValues[2], points[1], points[2], level),
-                edgeIntersection(cellValues[2], cellValues[3], points[2], points[3], level),
-                edgeIntersection(cellValues[3], cellValues[0], points[3], points[0], level)
-              ].filter(Boolean);
-              if (hits.length >= 2) {
-                context.beginPath();
-                context.moveTo(hits[0].x, hits[0].y);
-                context.lineTo(hits[1].x, hits[1].y);
-                context.stroke();
-                if (hits.length === 4) {
-                  context.beginPath();
-                  context.moveTo(hits[2].x, hits[2].y);
-                  context.lineTo(hits[3].x, hits[3].y);
-                  context.stroke();
-                }
-              }
-            }
-          }
-        });
-        context.restore();
-
-        const drawPath = (path, color, dashed) => {
-          if (path.length < 2) return;
-          context.save();
-          context.strokeStyle = color;
-          context.lineWidth = 2.5;
-          if (dashed) context.setLineDash([6, 4]);
-          context.beginPath();
-          path.forEach((point, index) => {
-            if (index === 0) context.moveTo(xMap(point.b1), yMap(point.b0));
-            else context.lineTo(xMap(point.b1), yMap(point.b0));
+          const level = minimum + offset;
+          contourSegments(values, nx, ny, level).forEach(segment => {
+            segment.forEach(point => {
+              const mapped = loss3dCoordinates(point.y, point.x, true, level);
+              floorPoints.push(new THREE.Vector3(mapped.x, 0.018, mapped.z));
+              surfacePoints.push(new THREE.Vector3(mapped.x, mapped.y + 0.025, mapped.z));
+            });
           });
-          context.stroke();
-          context.restore();
-        };
-
-        drawPath(state.gdPath, colors.navy, false);
-        drawPath(state.sgdPath, colors.coral, true);
-
-        context.save();
-        context.strokeStyle = colors.green;
-        context.lineWidth = 2;
-        const optimumX = xMap(optimum.b1);
-        const optimumY = yMap(optimum.b0);
-        context.beginPath();
-        context.moveTo(optimumX - 7, optimumY);
-        context.lineTo(optimumX + 7, optimumY);
-        context.moveTo(optimumX, optimumY - 7);
-        context.lineTo(optimumX, optimumY + 7);
-        context.stroke();
-
-        const activeUpdate = state.lastUpdate || candidateUpdate();
-        if (state.phase === 1) {
-          drawArrow(context, xMap(activeUpdate.gdFrom.b1), yMap(activeUpdate.gdFrom.b0), xMap(activeUpdate.gdTo.b1), yMap(activeUpdate.gdTo.b0), colors.navy);
-          drawArrow(context, xMap(activeUpdate.sgdFrom.b1), yMap(activeUpdate.sgdFrom.b0), xMap(activeUpdate.sgdTo.b1), yMap(activeUpdate.sgdTo.b0), colors.coral);
+        });
+        if (floorPoints.length) {
+          loss3dState.surfaceGroup.add(new THREE.LineSegments(
+            new THREE.BufferGeometry().setFromPoints(floorPoints),
+            new THREE.LineBasicMaterial({ color: 0x5e7f91, transparent: true, opacity: 0.42 })
+          ));
+          loss3dState.surfaceGroup.add(new THREE.LineSegments(
+            new THREE.BufferGeometry().setFromPoints(surfacePoints),
+            new THREE.LineBasicMaterial({ color: 0x173f58, transparent: true, opacity: 0.82 })
+          ));
         }
 
-        const drawCurrent = (parameters, color, radius) => {
-          context.fillStyle = color;
-          context.beginPath();
-          context.arc(xMap(parameters.b1), yMap(parameters.b0), radius, 0, Math.PI * 2);
-          context.fill();
-          context.strokeStyle = "white";
-          context.lineWidth = 2;
-          context.stroke();
+        const grid = new THREE.GridHelper(range.width, 8, 0x8093a3, 0xcbd7df);
+        grid.position.y = -0.01;
+        grid.scale.z = range.depth / range.width;
+        loss3dState.surfaceGroup.add(grid);
+        const axisMaterial = new THREE.LineBasicMaterial({ color: 0x073763 });
+        const axisPoints = [
+          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
+          new THREE.Vector3(range.width / 2, 0, -range.depth / 2),
+          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
+          new THREE.Vector3(-range.width / 2, 0, range.depth / 2),
+          new THREE.Vector3(-range.width / 2, 0, -range.depth / 2),
+          new THREE.Vector3(-range.width / 2, range.height + 0.35, -range.depth / 2)
+        ];
+        loss3dState.surfaceGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(axisPoints), axisMaterial));
+        loss3dState.surfaceKey = String(sampleCount);
+      }
+
+      function addLossPath(path, current, color, dashed) {
+        const THREE = window.THREE;
+        const points = path.map(point => loss3dCoordinates(point.b0, point.b1, true));
+        const currentPoint = loss3dCoordinates(current.b0, current.b1, true);
+        if (!points.length || points[points.length - 1].distanceTo(currentPoint) > 0.001) points.push(currentPoint);
+        points.forEach(point => { point.y += 0.07; });
+        if (points.length < 2) return;
+        const material = dashed
+          ? new THREE.LineDashedMaterial({ color, dashSize: 0.12, gapSize: 0.08 })
+          : new THREE.LineBasicMaterial({ color });
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+        if (dashed) line.computeLineDistances();
+        loss3dState.markerGroup.add(line);
+      }
+
+      function updateLoss3DMarkers() {
+        if (!initLoss3D()) return;
+        const THREE = window.THREE;
+        clearThreeGroup(loss3dState.markerGroup);
+        const optimumPoint = loss3dCoordinates(optimum.b0, optimum.b1, true);
+        optimumPoint.y += 0.1;
+        const optimumMarker = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 18, 12),
+          new THREE.MeshPhongMaterial({ color: 0x478c5c })
+        );
+        optimumMarker.position.copy(optimumPoint);
+        loss3dState.markerGroup.add(optimumMarker);
+
+        addLossPath(state.gdPath, state.displayGd, 0x073763, false);
+        addLossPath(state.sgdPath, state.displaySgd, 0xd95f4d, true);
+
+        const addMarker = (parameters, color, radius) => {
+          const point = loss3dCoordinates(parameters.b0, parameters.b1, true);
+          point.y += 0.13;
+          const marker = new THREE.Mesh(
+            new THREE.SphereGeometry(radius, 20, 14),
+            new THREE.MeshPhongMaterial({ color })
+          );
+          marker.position.copy(point);
+          loss3dState.markerGroup.add(marker);
         };
-        drawCurrent(state.displayGd, colors.navy, 7);
-        drawCurrent(state.displaySgd, colors.coral, 6);
-        context.restore();
+        addMarker(state.displayGd, 0x073763, 0.15);
+        addMarker(state.displaySgd, 0xd95f4d, 0.13);
+
+        if (state.phase === 1) {
+          const update = state.lastUpdate || candidateUpdate();
+          [
+            [update.gdFrom, update.gdTo, 0x073763],
+            [update.sgdFrom, update.sgdTo, 0xd95f4d]
+          ].forEach(([fromParameters, toParameters, color]) => {
+            const from = loss3dCoordinates(fromParameters.b0, fromParameters.b1, true);
+            const to = loss3dCoordinates(toParameters.b0, toParameters.b1, true);
+            from.y += 0.17;
+            to.y += 0.17;
+            const direction = to.clone().sub(from);
+            const length = direction.length();
+            if (length > 0.02) {
+              direction.normalize();
+              loss3dState.markerGroup.add(new THREE.ArrowHelper(direction, from, length, color, 0.26, 0.13));
+            }
+          });
+        }
+      }
+
+      function renderLoss3D() {
+        if (!loss3dState.renderer) return;
+        const rect = elements.loss3d.getBoundingClientRect();
+        const width = Math.max(320, rect.width);
+        const height = Math.max(240, rect.height);
+        loss3dState.renderer.setSize(width, height, false);
+        loss3dState.camera.aspect = width / height;
+        loss3dState.camera.updateProjectionMatrix();
+        const horizontal = loss3dState.distance * Math.cos(loss3dState.pitch);
+        loss3dState.camera.position.set(
+          horizontal * Math.sin(loss3dState.yaw),
+          loss3dState.distance * Math.sin(loss3dState.pitch) + 0.7,
+          horizontal * Math.cos(loss3dState.yaw)
+        );
+        loss3dState.camera.lookAt(0, 1.05, 0);
+        loss3dState.renderer.render(loss3dState.scene, loss3dState.camera);
+      }
+
+      function drawLoss() {
+        if (!initLoss3D()) return;
+        if (loss3dState.surfaceKey !== String(sampleCount)) rebuildLoss3DSurface();
+        updateLoss3DMarkers();
+        renderLoss3D();
       }
 
       function format(value, digits = 3) {
@@ -1059,12 +1346,15 @@
         const showGradient = state.phase >= 1;
         const copy = phaseCopy[state.phase];
         elements.iteration.textContent = String(state.iteration);
+        elements.sampleCount.value = String(sampleCount);
+        elements.sampleCountValue.textContent = String(sampleCount);
+        elements.batchSize.max = String(sampleCount);
         elements.batchSize.value = String(state.batchSize);
         elements.batchSizeValue.textContent = `${state.batchSize} / ${sampleCount}`;
         elements.learningRate.value = String(state.learningRate);
         elements.learningRateValue.textContent = state.learningRate.toFixed(3);
         elements.speed.value = String(state.speed);
-        elements.speedValue.textContent = `${state.speed.toFixed(1)}×`;
+        elements.speedValue.textContent = `${state.speed}×`;
         elements.gdExamples.textContent = `${sampleCount} / ${sampleCount}`;
         elements.sgdExamples.textContent = `${batch.length} / ${sampleCount}`;
         elements.gdGradient.textContent = showGradient ? vectorText(activeUpdate.gdGradient) : "—";
@@ -1080,11 +1370,11 @@
             ? "g(B) = (1 / |B|) Σᵢ∈B (pᵢ − yᵢ)(1, xᵢ)"
             : state.phase === 2
               ? "(b₀,b₁) ← (b₀,b₁) − ηg(B)"
-              : "Compare L(θ) on all 40 observations";
+              : `Compare L(θ) on all ${sampleCount} observations`;
         elements.gdProcessed.textContent = state.gdProcessed.toLocaleString();
         elements.sgdProcessed.textContent = state.sgdProcessed.toLocaleString();
         elements.batchInsight.textContent = state.batchSize === sampleCount
-          ? "Batch size 40: GD and SGD use the same gradient and follow the same path."
+          ? `Batch size ${sampleCount}: GD and SGD use the same gradient and follow the same path.`
           : state.batchSize <= 4
             ? "Small batch: inexpensive updates with visibly higher gradient noise."
             : "Larger mini-batches reduce noise but require more examples per update.";
@@ -1096,6 +1386,7 @@
         elements.play.textContent = state.playing ? "Ⅱ Pause" : "▶ Auto play";
         elements.back.disabled = state.history.length === 0 || state.animating;
         elements.next.disabled = state.animating;
+        elements.sampleCount.disabled = state.animating;
         elements.batchSize.disabled = state.animating;
         elements.learningRate.disabled = state.animating;
         drawModel();
@@ -1259,6 +1550,15 @@
       elements.back.addEventListener("click", goBack);
       elements.play.addEventListener("click", toggleAuto);
       elements.next.addEventListener("click", () => advance(true));
+      elements.sampleCount.addEventListener("input", event => {
+        sampleCount = Number(event.target.value);
+        data = buildData();
+        allIndices = data.map((_, index) => index);
+        optimum = findOptimum();
+        state.batchSize = Math.min(state.batchSize, sampleCount);
+        loss3dState.surfaceKey = "";
+        reset();
+      });
       elements.batchSize.addEventListener("input", event => {
         state.batchSize = Number(event.target.value);
         reset();
