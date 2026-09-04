@@ -12,6 +12,10 @@ Open Gradient Descent Step by Step directly at:
 
 https://yulequan.github.io/STAT3612/gradient-descent-step-by-step.html
 
+Open GD vs SGD: Logistic Regression directly at:
+
+https://yulequan.github.io/STAT3612/gd-vs-sgd-logistic-regression.html
+
 The demo supports:
 
 - Step-by-step gradient descent playback
