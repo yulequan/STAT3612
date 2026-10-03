@@ -312,11 +312,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="runtime-bar" role="status">
-    <span :class="['status-dot', { ready }]" />{{ status
-    }}<span v-if="sceneBusy" class="muted"> · updating…</span
-    ><button v-if="runtimeError" class="text-button" @click="start">Retry Python</button>
-  </div>
+  <div v-if="!ready && !runtimeError" class="runtime-bar" role="status">{{ status }}</div>
   <div v-if="error || runtimeError" role="alert" class="error-box">
     {{ error || runtimeError }}
     <p>
@@ -327,7 +323,7 @@ onUnmounted(() => {
   </div>
 
   <ChapterTheory :section="learningSection" />
-  <section id="experiment" class="chapter-experiment">
+  <section id="experiment" class="chapter-experiment" :aria-busy="sceneBusy">
     <div class="section-label"><span>02</span> EXPLORE THE MECHANISM</div>
     <template v-if="chapter === 'data'">
       <p class="lede">

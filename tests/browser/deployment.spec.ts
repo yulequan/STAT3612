@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
 
-test('two-level course outline collapses independently and keeps navigation state', async ({
+test('course outline reveals chapters and preserves independent expansion', async ({
   page,
 }, info) => {
   await page.goto(base)
@@ -16,11 +16,10 @@ test('two-level course outline collapses independently and keeps navigation stat
   await expect(page.locator('.header-links a')).toHaveCount(0)
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
-  for (const name of ['Lectures', 'Tutorials', 'Demos']) {
-    await expect(outline.getByRole('button', { name, exact: true })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+  for (const name of ['Tutorials', 'Demos']) {
+    await expect(
+      outline.getByRole('button', { name: `Toggle ${name}`, exact: true }),
+    ).toHaveAttribute('aria-expanded', 'true')
   }
   for (const href of [
     '#/tutorials/tutorial04/overview',
@@ -28,33 +27,43 @@ test('two-level course outline collapses independently and keeps navigation stat
     '#/demos/gd-vs-sgd',
   ]) {
     await expect(main.locator(`a[href="${href}"]`)).toBeVisible()
-    await expect(outline.locator(`a[href="${href}"]`)).toBeVisible()
+    await expect(outline.locator(`a[href="${href}"]`).first()).toBeVisible()
   }
   await expect(main.locator('a[href="#/tutorials/tutorial04/update"]')).toHaveCount(0)
-  await expect(outline.locator('a[href="#/tutorials/tutorial04/update"]')).toHaveCount(0)
+  await expect(outline.getByRole('link', { name: 'Take one step', exact: true })).toBeHidden()
+  const tutorialToggle = outline.getByRole('button', { name: /Toggle Tutorial 04/ })
+  await expect(tutorialToggle).toHaveAttribute('aria-expanded', 'false')
+  await tutorialToggle.click()
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(base)
+  await tutorialToggle.click()
+  await page.getByLabel('Find course content').fill('Take one step')
+  await expect(outline.getByRole('link', { name: 'Take one step', exact: true })).toBeVisible()
+  await page.getByLabel('Find course content').fill('no-such-material')
+  await expect(page.getByText('No matching material.')).toBeVisible()
+  await page.getByLabel('Find course content').clear()
+  await expect(tutorialToggle).toHaveAttribute('aria-expanded', 'false')
   await page.screenshot({ path: info.outputPath('course-home.png'), fullPage: true })
-  await outline.getByRole('button', { name: 'Demos', exact: true }).click()
+  await outline.getByRole('button', { name: 'Toggle Demos', exact: true }).click()
   await expect(
     outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }),
   ).toBeHidden()
   await expect(outline.getByRole('link', { name: /Tutorial 04/ })).toBeVisible()
-  await outline.getByRole('button', { name: 'Tutorials', exact: true }).focus()
+  await outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }).focus()
   await page.keyboard.press('Space')
-  await expect(outline.getByRole('button', { name: 'Tutorials', exact: true })).toHaveAttribute(
-    'aria-expanded',
-    'false',
-  )
-  await outline.getByRole('button', { name: 'Demos', exact: true }).click()
+  await expect(
+    outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'false')
+  await outline.getByRole('button', { name: 'Toggle Demos', exact: true }).click()
   await outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }).click()
   await expect(page).toHaveURL(`${base}#/demos/gradient-descent`)
-  await expect(outline.getByRole('button', { name: 'Tutorials', exact: true })).toHaveAttribute(
-    'aria-expanded',
-    'false',
-  )
+  await expect(
+    outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'false')
   await expect(
     outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
-  await outline.getByRole('button', { name: 'Tutorials', exact: true }).click()
+  await outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }).click()
   await outline.getByRole('link', { name: /Tutorial 04/ }).click()
   await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/overview`)
   await expect(page.locator('.tutorial-overview > :first-child')).toContainText(
@@ -66,19 +75,43 @@ test('two-level course outline collapses independently and keeps navigation stat
   )
   await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
   await expect(page.locator('.sidebar-bottom a[download]')).toBeVisible()
-  await expect(page.getByLabel('Tutorial chapter')).toHaveValue('overview')
-  await page.screenshot({ path: info.outputPath('tutorial-overview.png'), fullPage: true })
-  await page.getByLabel('Tutorial chapter').selectOption('beyond')
-  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/beyond`)
-  await expect(outline.getByRole('link', { name: /Tutorial 04/ })).toHaveAttribute(
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   )
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('combobox', { name: 'Tutorial chapter' })).toHaveCount(0)
+  await expect(page.locator('.doc-preface')).toHaveCount(0)
+  await page.screenshot({ path: info.outputPath('tutorial-overview.png'), fullPage: true })
+  await outline.getByRole('link', { name: 'Beyond a linear model', exact: true }).click()
+  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/beyond`)
+  await expect(
+    outline.getByRole('link', { name: 'Beyond a linear model', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(outline.getByRole('link', { name: /Tutorial 04/ })).not.toHaveAttribute(
+    'aria-current',
+  )
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
   await expect(page.getByRole('main').locator('a[download][href$="student.zip"]')).toHaveCount(0)
   await page.goBack()
-  await expect(page.getByLabel('Tutorial chapter')).toHaveValue('overview')
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  await expect(page.getByRole('combobox', { name: 'Tutorial chapter' })).toHaveCount(0)
+  await expect(page.locator('.doc-preface')).toHaveCount(0)
+  await tutorialToggle.click()
+  await outline.getByRole('link', { name: /Tutorial 04/ }).click()
+  await expect(tutorialToggle).toHaveAttribute('aria-expanded', 'true')
+  await tutorialToggle.click()
+  await page.reload()
+  await expect(tutorialToggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
 })
 
 test('embedded demos retain 3D, playback and standalone links without external requests', async ({
@@ -144,8 +177,16 @@ test('tutorial Python, downloads and old links work under a Pages subdirectory',
 }) => {
   await page.goto(`${base}#/tutorial04/update`)
   await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/update`)
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByRole('img', { name: 'Weights after one update' })).toBeVisible()
+  const outline = page.getByRole('navigation', { name: 'Course outline' })
+  await expect(outline.getByRole('link', { name: 'Take one step', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toBeVisible()
   const download = page.waitForEvent('download')
   await page.getByRole('link', { name: '↓ Notebook + data', exact: true }).click()
   expect(

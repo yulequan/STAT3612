@@ -69,7 +69,7 @@ onUnmounted(runtime.dispose)
 </script>
 <template>
   <div class="panel"><h2>Start with a concrete question</h2>
-    <p role="status">{{ runtime.status.value }}</p>
+    <p v-if="!runtime.ready.value && !error" role="status">{{ runtime.status.value }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
     <pre v-if="result">{{ result }}</pre>
   </div>

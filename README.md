@@ -4,12 +4,14 @@ A Vue 3 + TypeScript website with real Python experiments and a companion Jupyte
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
 The course homepage opens at `#/` and offers three sections: **Lectures**, **Tutorials** and
-**Demos**. The homepage and left sidebar show two levels: sections and their materials.
-Tutorial chapters stay inside each tutorial, accessible through the chapter selector,
-overview links and previous/next links. Sidebar sections start expanded, can be collapsed
-independently, and retain their state while navigating. The top bar carries only course
-branding and the mobile menu; course navigation lives in the sidebar. Search filters
-materials only when a query is entered. Lecture materials have not been published yet.
+**Demos**. The homepage shows two levels: sections and their materials. The sidebar
+starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
+a tutorial (including a direct chapter URL) reveals its full chapter list. Separate caret
+buttons collapse each branch independently; navigation leaves other branches as they were.
+Search reveals matching chapters without changing the saved expansion state. Use the sidebar,
+overview links or previous/next links to switch chapters. On phones, open **Course menu**
+to access the same hierarchy. The top bar carries only course branding and the mobile menu;
+course navigation lives in the sidebar. Search filters materials only when a query is entered. Lecture materials have not been published yet.
 The homepage identifies Prof. Lequan Yu as the instructor. Tutorial04's overview begins
 with the tutor's name and contact email.
 Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
@@ -30,8 +32,11 @@ npm run dev
 
 Open the URL printed by Vite, normally **http://localhost:5173**. The first run downloads
 and caches the Python wheels, checking their SHA-256 hashes against the pinned Pyodide
-lockfile. Later runs reuse the cache. The web toolchain needs Node.js 22.12+ (or 24+),
-Python 3.10+ and `curl`; host scientific Python packages are not required to run the website.
+lockfile. Later runs reuse the cache. Asset preparation stages complete files, then updates
+`.cache/public` in place; running `npm run build` or `npm run prepare:assets` while Vite is
+open keeps its watched directories intact. If an older running server reports HTML instead
+of tutorial JSON, restart `npm run dev` once, then reload the page. The web toolchain needs
+Node.js 22.12+ (or 24+), Python 3.10+ and `curl`; host scientific Python packages are not required to run the website.
 
 ## Deploy
 
@@ -89,8 +94,8 @@ new tab. Demo calculations, controls and visualizations are unchanged. The only 
 the HTML is its course backlink, which targets the top page to avoid nesting the course
 site inside the frame. Three.js 0.160.1 and its license are bundled locally.
 
-After deployment, open Tutorial04, enter a practical chapter, wait for **Python ready**,
-run an example and download **Notebook + data**. Also open both demos through **Demos**.
+After deployment, open Tutorial04, enter a practical chapter, wait for **Run Python** to
+become available, run an example and download **Notebook + data**. Also open both demos through **Demos**.
 
 Preview the production build with `npm run preview`. For an offline class, copy `dist/`
 and serve it locally:
@@ -151,8 +156,9 @@ WASM; declare and verify packages per lesson.
 Each tutorial runs in its own Web Worker. Vue handles controls and visualisation; Python
 handles the scientific operations. Training reports progress each epoch without blocking
 navigation. The homepage and tutorial Overview do not start Python; entering a practical chapter loads its runtime.
-The code editor runs student Python in the same worker with fresh copies of training and
-validation arrays on each invocation. It captures printed output and errors. Stopping a run
+Loading and failure messages appear only when needed; there is no persistent runtime status
+or repeated step navigation above the chapter. The code editor runs student Python in the
+same worker with fresh copies of training and validation arrays on each invocation. It captures printed output and errors. Stopping a run
 restarts the worker and clears session models, including when a snippet loops indefinitely.
 Returning to the homepage retains the tutorial session; reloading the page does not.
 Export results to preserve comparisons. Snippets are local user-authored Python, not a
@@ -198,7 +204,9 @@ package (including its opt-in final test cell), checks notebook/source consisten
 and builds the site, then runs real-browser tests. WASM and native Python are compared at
 every training epoch. Browser tests cover homepage navigation, all chapter starters, execution
 traces, code editing and recovery, XOR/convolution, downloads, mobile layout, loading
-failure/retry, cancellation, static subdirectory deployment and absence of external requests.
+failure/retry (including an HTML fallback returned for JSON), asset regeneration while the
+development server is running, cancellation, static subdirectory deployment and absence
+of external requests.
 
 Demo regression checks compare 123 embedded UI states against values captured from the
 original standalone pages (see `tests/fixtures/README.md`). They cover both modes, parameter
@@ -207,8 +215,8 @@ updates, initialization, sample and batch sizes, learning rates, speed, back and
 Tests use `/usr/bin/google-chrome` when available; set `CHROME_BIN` or run
 `npx playwright install chromium` for another environment. Missing dependencies fail the
 checks rather than silently skipping them. Screenshots/traces remain disposable test output.
-If the default test ports (4173 and 4174) are occupied, set `TEST_PREVIEW_PORT` and
-`TEST_STATIC_PORT` to available ports when running the verification or browser tests.
+If the default test ports (4173, 4174 and 4175) are occupied, set `TEST_PREVIEW_PORT`,
+`TEST_STATIC_PORT` and `TEST_DEV_PORT` to available ports when running verification or browser tests.
 
 ## Add course materials
 

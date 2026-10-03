@@ -16,7 +16,16 @@ async function handle(data: { id: number; action: string; params: Record<string,
       const base = String(params.base)
       const runtimeURL = new URL('python/', base).href
       const folder = new URL(`tutorials/${params.tutorial}/`, base).href
-      const manifest = await fetchOK(`${folder}tutorial.json`).then((r) => r.json())
+      const manifestURL = `${folder}tutorial.json`
+      const response = await fetchOK(manifestURL)
+      const content = await response.text()
+      if (response.headers.get('content-type')?.includes('text/html') || /^\s*</.test(content)) {
+        throw new Error(
+          `Could not load ${manifestURL}: the server returned HTML instead of tutorial JSON. ` +
+            'Run npm run prepare:assets and restart the local development server, or rebuild the deployed site.',
+        )
+      }
+      const manifest = JSON.parse(content)
       const { loadPyodide } = await import(/* @vite-ignore */ `${runtimeURL}pyodide.mjs`)
       self.postMessage({ id, status: 'Starting Python…' })
       python = await loadPyodide({ indexURL: runtimeURL })

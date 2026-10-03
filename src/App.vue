@@ -5,7 +5,8 @@ import HomePage from './components/HomePage.vue'
 import TutorialOverview from './components/TutorialOverview.vue'
 import CourseCatalog from './components/CourseCatalog.vue'
 import DemoPage from './components/DemoPage.vue'
-import { courseSections, demos } from './course'
+import { courseSections, demos, matchesCourseItem } from './course'
+import CourseNavItem from './components/CourseNavItem.vue'
 function readHash() {
   const current = window.location.hash
   const canonical = current
@@ -17,7 +18,6 @@ function readHash() {
 const hash = ref(readHash())
 const menuOpen = ref(false)
 const search = ref('')
-const collapsed = ref<Record<string, boolean>>({})
 const sync = () => {
   hash.value = readHash()
   menuOpen.value = false
@@ -38,30 +38,23 @@ const demo = computed(() =>
 )
 const index = computed(() => lesson.value?.chapters.findIndex((c) => c.id === parts.value[2]) ?? -1)
 const chapter = computed(() => lesson.value?.chapters[index.value])
-const outlineSections = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  if (!query) return courseSections
-  return courseSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) =>
-      `${item.title} ${item.description}`.toLowerCase().includes(query),
-    ),
-  }))
-})
+const outlineSections = courseSections.map((section) => ({
+  ...section,
+  href: `#/${section.id}`,
+  children: section.items,
+}))
+const searchQuery = computed(() => search.value.trim().toLowerCase())
+const hasSearchResults = computed(() =>
+  outlineSections.some((item) => matchesCourseItem(item, searchQuery.value)),
+)
 const activeHref = computed(() =>
-  lesson.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
+  lesson.value && !chapter.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
 )
 const notebook = computed(
   () => `${import.meta.env.BASE_URL}tutorials/${lesson.value?.id}/student.zip`,
 )
-function changeChapter(event: Event) {
-  window.location.hash = `#/tutorials/${lesson.value!.id}/${(event.target as HTMLSelectElement).value}`
-}
 function link(i: number) {
   return `#/tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`
-}
-function section(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 function focusMain() {
   document.getElementById('main')?.focus()
@@ -111,42 +104,17 @@ watch(
       <a href="#/" :class="{ active: isHome }" :aria-current="isHome ? 'page' : undefined"
         >Course home</a
       >
-      <div v-for="item in outlineSections" :key="item.id" class="outline-section">
-        <button
-          class="outline-section-toggle"
-          :aria-expanded="!collapsed[item.id]"
-          :aria-controls="`outline-${item.id}`"
-          :aria-label="item.title"
-          @click="collapsed[item.id] = !collapsed[item.id]"
-        >
-          <span
-            class="outline-chevron"
-            :class="{ collapsed: collapsed[item.id] }"
-            aria-hidden="true"
-            >⌄</span
-          >
-          <span>{{ item.title }}</span>
-          <span class="outline-count" aria-hidden="true">{{ item.items.length }}</span>
-        </button>
-        <div :id="`outline-${item.id}`" v-show="!collapsed[item.id]">
-          <ul class="outline-children">
-            <li v-for="entry in item.items" :key="entry.id">
-              <a
-                :href="entry.href"
-                :class="{ active: activeHref === entry.href }"
-                :aria-current="activeHref === entry.href ? 'page' : undefined"
-                >{{ entry.title }}</a
-              >
-            </li>
-          </ul>
-          <small v-if="!search && !item.items.length" class="outline-empty"
-            >Materials coming soon</small
-          >
-        </div>
-      </div>
-      <p v-if="search && !outlineSections.some((section) => section.items.length)" class="muted">
-        No matching material.
-      </p>
+      <ul class="course-tree course-tree-root">
+        <CourseNavItem
+          v-for="item in outlineSections"
+          :key="item.id"
+          :item="item"
+          :depth="0"
+          :active-href="activeHref"
+          :query="searchQuery"
+        />
+      </ul>
+      <p v-if="searchQuery && !hasSearchResults" class="muted">No matching material.</p>
     </nav>
     <div v-if="lesson" class="sidebar-bottom">
       <span class="eyebrow">TUTORIAL {{ lesson.number }} · MATERIALS</span>
@@ -163,39 +131,9 @@ watch(
       <p>Choose a section from the course home.</p>
       <a class="button primary" href="#/">Return to course home →</a>
     </div>
-    <div v-if="lesson" class="doc-preface">
-      <div>
-        <a href="#/">Course</a><span> / </span><a href="#/tutorials">Tutorials</a><span> / </span
-        ><a :href="`#/tutorials/${lesson.id}/overview`">Tutorial {{ lesson.number }}</a
-        ><span> / </span><span>{{ chapter?.title ?? 'Overview' }}</span>
-      </div>
-    </div>
-    <div v-if="lesson" class="tutorial-toolbar">
-      <label for="tutorial-chapter">Chapter</label>
-      <select
-        id="tutorial-chapter"
-        aria-label="Tutorial chapter"
-        :value="chapter?.id ?? 'overview'"
-        @change="changeChapter"
-      >
-        <option value="overview">Overview</option>
-        <option v-for="(item, i) in lesson.chapters" :key="item.id" :value="item.id">
-          {{ String(i + 1).padStart(2, '0') }} · {{ item.title }}
-        </option>
-      </select>
-      <span v-if="chapter" class="chapter-progress"
-        >{{ index + 1 }} / {{ lesson.chapters.length }}</span
-      >
-    </div>
     <div v-if="lesson" class="chapter-heading">
       <span class="eyebrow">TUTORIAL {{ lesson.number }} · {{ chapter?.title ?? 'Overview' }}</span>
       <h1>{{ chapter?.question ?? lesson.title }}</h1>
-      <div v-if="chapter" class="chapter-jumps" aria-label="Learning sections">
-        <button @click="section('concept')">Understand</button><span>→</span
-        ><button @click="section('experiment')">Explore</button><span>→</span
-        ><button @click="section('python')">Read the Python</button><span>→</span
-        ><button @click="section('practice')">Try it yourself</button>
-      </div>
     </div>
     <div class="content" v-show="lesson">
       <TutorialOverview v-if="lesson && !chapter" :lesson="lesson" />

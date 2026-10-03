@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Prepare local Python runtime and tutorial assets. Network needed only on first build."""
 from concurrent.futures import ThreadPoolExecutor
+import filecmp
 import hashlib
 import json
 from pathlib import Path
 import shutil
 import subprocess
+from tempfile import TemporaryDirectory
 from package_student import package
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,21 +15,18 @@ PUBLIC = ROOT / '.cache/public'
 RUNTIME = ROOT / 'node_modules/pyodide'
 
 
-def main():
+def prepare(public):
     if not RUNTIME.exists():
         raise SystemExit('Run npm ci first.')
-    # Rebuild the generated public tree, including the authored standalone demos.
-    # Only this cache is disposable; public/ and src/ remain the source of truth.
-    shutil.rmtree(PUBLIC, ignore_errors=True)
-    shutil.copytree(ROOT / 'public', PUBLIC)
-    vendor = PUBLIC / 'vendor'
+    shutil.copytree(ROOT / 'public', public, dirs_exist_ok=True)
+    vendor = public / 'vendor'
     vendor.mkdir(parents=True, exist_ok=True)
     three = ROOT / 'node_modules/three'
     shutil.copy2(three / 'build/three.min.js', vendor / 'three.min.js')
     shutil.copy2(three / 'LICENSE', vendor / 'three-LICENSE.txt')
     version = json.loads((RUNTIME / 'package.json').read_text())['version']
     lock = json.loads((RUNTIME / 'pyodide-lock.json').read_text())
-    target = PUBLIC / 'python'
+    target = public / 'python'
     target.mkdir(parents=True, exist_ok=True)
     for name in ('pyodide.mjs', 'pyodide.asm.js', 'pyodide.asm.wasm',
                  'python_stdlib.zip', 'pyodide-lock.json'):
@@ -75,7 +74,7 @@ def main():
     for manifest in manifests:
         folder = manifest.parent
         spec = json.loads(manifest.read_text())
-        destination = PUBLIC / 'tutorials' / spec['id']
+        destination = public / 'tutorials' / spec['id']
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy2(manifest, destination / 'tutorial.json')
         for relative in spec['web_assets']:
@@ -84,6 +83,31 @@ def main():
             shutil.copy2(src, out)
         shutil.copy2(package(folder), destination / 'student.zip')
     print(f'Local runtime ready: Pyodide {version}; no CDN requests in class.')
+
+
+def publish(staging, destination):
+    # Vite watches this directory and caches its public file list. Removing the
+    # directory during a build breaks an already-running development server.
+    destination.mkdir(parents=True, exist_ok=True)
+    files = {path.relative_to(staging) for path in staging.rglob('*') if path.is_file()}
+    for relative in sorted(files):
+        source, target = staging / relative, destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_file() and filecmp.cmp(source, target, shallow=False):
+            continue
+        # Staging is on the same filesystem: readers see a complete file.
+        source.replace(target)
+    for path in destination.rglob('*'):
+        if path.is_file() and path.relative_to(destination) not in files:
+            path.unlink()
+
+
+def main():
+    PUBLIC.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix='prepare-', dir=PUBLIC.parent) as temporary:
+        staging = Path(temporary)
+        prepare(staging)
+        publish(staging, PUBLIC)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 
 const previewPort = process.env.TEST_PREVIEW_PORT || '4173'
 const staticPort = process.env.TEST_STATIC_PORT || '4174'
+const devPort = process.env.TEST_DEV_PORT || '4175'
 
 export default defineConfig({
   testDir: './tests/browser',
@@ -23,6 +24,11 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: [
+    {
+      command: `npx vite --host 127.0.0.1 --port ${devPort} --strictPort`,
+      url: `http://127.0.0.1:${devPort}`,
+      reuseExistingServer: false,
+    },
     {
       command: `npm run preview -- --port ${previewPort} --strictPort`,
       url: `http://127.0.0.1:${previewPort}`,

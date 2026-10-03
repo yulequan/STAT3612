@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 
@@ -6,6 +6,16 @@ const python = existsSync('.venv/bin/python') ? '.venv/bin/python' : 'python3'
 const reference = JSON.parse(
   execFileSync(python, ['tests/native_reference.py'], { encoding: 'utf8' }),
 )
+
+async function selectChapter(page: Page, chapter: string) {
+  const menu = page.getByRole('button', { name: 'Course menu +' })
+  if (await menu.isVisible()) await menu.click()
+  await page
+    .getByRole('navigation', { name: 'Course outline' })
+    .locator(`a[href="#/tutorials/tutorial04/${chapter}"]`)
+    .last()
+    .click()
+}
 
 test('all chapters, real Python training, final evaluation and offline downloads', async ({
   page,
@@ -20,24 +30,26 @@ test('all chapters, real Python training, final evaluation and offline downloads
   })
   await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort())
   await page.goto('/#/tutorials/tutorial04/data')
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByRole('button', { name: /Inspect digit/ })).toHaveCount(12)
   await page.screenshot({ path: info.outputPath('data-desktop.png'), fullPage: true })
 
-  await page.getByLabel('Tutorial chapter').selectOption('prepare')
+  await selectChapter(page, 'prepare')
   await page.getByLabel('Image operation').selectOption('blur')
   await expect(page.getByRole('img', { name: 'blur · same display scale' })).toBeVisible()
   await page.getByLabel('Image operation').selectOption('shift')
   await expect(page.getByRole('img', { name: 'shift · same display scale' })).toBeVisible()
-  await page.getByLabel('Tutorial chapter').selectOption('model')
+  await selectChapter(page, 'model')
   await expect(page.getByRole('img', { name: 'Contribution x × w' })).toBeVisible()
-  await page.getByLabel('Tutorial chapter').selectOption('loss')
+  await selectChapter(page, 'loss')
   await page.getByLabel('Actual digit').selectOption('0')
   await expect(page.getByText('Cross-entropy loss', { exact: true })).toBeVisible()
-  await page.getByLabel('Tutorial chapter').selectOption('update')
+  await selectChapter(page, 'update')
   await expect(page.getByRole('img', { name: 'Weights after one update' })).toBeVisible()
 
-  await page.getByLabel('Tutorial chapter').selectOption('train')
+  await selectChapter(page, 'train')
   await page.getByRole('button', { name: 'Train classifier →' }).click()
   await expect(page.getByRole('button', { name: 'Train classifier →' })).toBeEnabled({
     timeout: 60_000,
@@ -56,7 +68,7 @@ test('all chapters, real Python training, final evaluation and offline downloads
   }
   await page.screenshot({ path: info.outputPath('training-desktop.png'), fullPage: true })
 
-  await page.getByLabel('Tutorial chapter').selectOption('evaluate')
+  await selectChapter(page, 'evaluate')
   await page.getByRole('button', { name: 'Evaluate shifted validation images' }).click()
   await expect(page.getByText('Shifted 1 px right', { exact: true })).toBeVisible()
   const testButton = page.getByRole('button', { name: 'Evaluate selected model on test set' })
@@ -88,7 +100,9 @@ test('phone layout and direct chapter entry work without a trained model', async
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/#/tutorials/tutorial04/evaluate')
   await expect(page.getByRole('heading', { name: 'Start with a trained model.' })).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.screenshot({ path: info.outputPath('mobile.png'), fullPage: true })
 })
@@ -99,7 +113,9 @@ test('runtime loading failure has a visible retry that recovers', async ({ page,
   await expect(page.getByRole('alert')).toBeVisible()
   await context.unroute('**/python/pyodide.mjs')
   await page.getByRole('button', { name: 'Restart Python', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
@@ -107,12 +123,16 @@ test('training can be stopped without freezing the page or leaving a stale error
   page,
 }) => {
   await page.goto('/#/tutorials/tutorial04/train')
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await page.getByLabel('Epochs', { exact: true }).fill('100')
   await page.getByRole('combobox', { name: 'Batch size', exact: true }).selectOption('1')
   await page.getByRole('button', { name: 'Train classifier →' }).click()
   await page.getByRole('button', { name: 'Stop and reset Python' }).click()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByRole('button', { name: 'Train classifier →' })).toBeEnabled()
   await expect(page.getByRole('alert')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Your experiment starts here.' })).toBeVisible()
@@ -124,7 +144,9 @@ test('built site works under a subdirectory on an ordinary static server', async
   await page.goto(
     `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/#/tutorials/tutorial04/update`,
   )
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByRole('img', { name: 'Weights after one update' })).toBeVisible()
   const file = page.waitForEvent('download')
   await page.getByRole('link', { name: '↓ Notebook + data' }).click()
@@ -165,7 +187,9 @@ test('course home offers a choice without starting Python and preserves the chos
   expect(pythonRequests).toEqual([])
   await page.screenshot({ path: info.outputPath('tutorial-overview.png'), fullPage: true })
   await page.getByRole('link', { name: 'Begin: Meet the data →', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   const worker = page.workers()[0]
   const editor = page.getByRole('textbox', { name: 'Editable Python experiment' })
   await editor.fill('print("my preserved experiment")')
@@ -200,7 +224,9 @@ test('every chapter connects rendered maths, highlighted source and runnable Pyt
   page,
 }) => {
   await page.goto('/#/tutorials/tutorial04/data')
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   const chapters = ['data', 'prepare', 'model', 'loss', 'update', 'train', 'evaluate', 'beyond']
   const outputs = [
     'same value:',
@@ -213,7 +239,7 @@ test('every chapter connects rendered maths, highlighted source and runnable Pyt
     'predictions:',
   ]
   for (const [i, chapter] of chapters.entries()) {
-    await page.getByLabel('Tutorial chapter').selectOption(chapter)
+    await selectChapter(page, chapter)
     await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
     await expect(page.locator('#concept .katex').first()).toBeVisible()
     await expect(page.locator('.katex-error')).toHaveCount(0)
@@ -228,7 +254,9 @@ test('trace exposes values only after their line executes; edited snippets recov
   page,
 }, info) => {
   await page.goto('/#/tutorials/tutorial04/update')
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   const stepper = page.getByRole('region', { name: 'Step through the Python update' })
   const variable = (name: string) =>
     stepper.locator('.variable-grid > div').filter({ has: page.getByText(name, { exact: true }) })
@@ -255,14 +283,16 @@ test('trace exposes values only after their line executes; edited snippets recov
   await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
   await expect(page.getByLabel('Python output')).toContainText('recovered (960, 784)')
   await expect(page.getByRole('alert')).toHaveCount(0)
-  await page.getByLabel('Tutorial chapter').selectOption('loss')
+  await selectChapter(page, 'loss')
   await expect(editor).toContainText('cross_entropy')
-  await page.getByLabel('Tutorial chapter').selectOption('update')
+  await selectChapter(page, 'update')
   await expect(editor).toContainText('recovered')
   await editor.fill('while True:\n    pass')
   await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
   await page.getByRole('button', { name: 'Stop and reset Python', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await editor.fill('print("after restart")')
   await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
   await expect(page.getByLabel('Python output')).toContainText('after restart')
@@ -272,7 +302,9 @@ test('nonlinear rules solve XOR and Python convolution responds to the window an
   page,
 }, info) => {
   await page.goto('/#/tutorials/tutorial04/beyond')
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   await expect(page.getByText('3 / 4 XOR examples classified correctly')).toBeVisible()
   for (const mode of ['interaction', 'hidden']) {
     await page.getByLabel('Decision rule').selectOption(mode)
@@ -316,9 +348,11 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
   await page.screenshot({ path: info.outputPath('overview-mobile.png'), fullPage: true })
   await page.getByRole('link', { name: 'Begin: Meet the data →', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
   for (const chapter of ['update', 'beyond']) {
-    await page.getByLabel('Tutorial chapter').selectOption(chapter)
+    await selectChapter(page, chapter)
     await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
     await expect(page.locator('#concept .katex').first()).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Editable Python experiment' })).toBeVisible()
@@ -330,5 +364,19 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   await page.getByRole('button', { name: 'Course menu +' }).click()
   await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
   await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
+  const outline = page.getByRole('navigation', { name: 'Course outline' })
+  await expect(
+    outline.getByRole('link', { name: 'Beyond a linear model', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
   await page.screenshot({ path: info.outputPath('course-menu-mobile.png') })
+  await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
+  await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toBeHidden()
+  await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
+  await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
+  await outline.getByRole('link', { name: 'Overview', exact: true }).click()
+  await expect(page).toHaveURL(/#\/tutorials\/tutorial04\/overview$/)
+  await expect(page.getByRole('button', { name: 'Course menu +' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
 })

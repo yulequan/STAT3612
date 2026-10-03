@@ -62,6 +62,7 @@ export function createPython(tutorial: string) {
       else item.resolve(data.result)
     }
     worker.onerror = (event) => {
+      status.value = 'Python stopped'
       error.value = event.message || 'The Python worker stopped. Restart the experiment.'
       ready.value = false
       for (const item of pending.values()) item.reject(new Error(error.value))
@@ -78,7 +79,10 @@ export function createPython(tutorial: string) {
       }
       return result
     } catch (e) {
-      if (worker === sessionWorker) error.value = String(e)
+      if (worker === sessionWorker) {
+        error.value = String(e)
+        status.value = 'Python could not start'
+      }
       throw e
     }
   }
