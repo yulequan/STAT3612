@@ -856,7 +856,7 @@ onUnmounted(() => {
       <div v-if="!current" class="panel empty-chart">
         <h2>Start with a trained model.</h2>
         <p>Run the default experiment first. Its validation errors will appear here.</p>
-        <a class="button primary" href="#/tutorial04/train">Go to training →</a>
+        <a class="button primary" href="#/tutorials/tutorial04/train">Go to training →</a>
       </div>
       <template v-else>
         <div class="panel">
@@ -944,7 +944,7 @@ onUnmounted(() => {
               Next: add shifted <em>training</em> images and retrain. Compare both original and
               shifted validation accuracy. Does the change help, and what does it cost?
             </p>
-            <a href="#/tutorial04/train">Return to the training controls →</a>
+            <a href="#/tutorials/tutorial04/train">Return to the training controls →</a>
             <p class="muted">
               One successful shift experiment does not establish invariance to all shifts.
             </p>

@@ -3,11 +3,22 @@ import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { tutorials } from './tutorials'
 import HomePage from './components/HomePage.vue'
 import TutorialOverview from './components/TutorialOverview.vue'
-const hash = ref(window.location.hash)
+import CourseCatalog from './components/CourseCatalog.vue'
+import DemoPage from './components/DemoPage.vue'
+import { courseSections, demos } from './course'
+function readHash() {
+  const current = window.location.hash
+  const canonical = current
+    .replace(/^#\/demo(?:\/)?$/, '#/demos')
+    .replace(/^#\/(tutorial\d+)(?=\/|$)/, '#/tutorials/$1')
+  if (current !== canonical) window.history.replaceState(null, '', canonical)
+  return canonical
+}
+const hash = ref(readHash())
 const menuOpen = ref(false)
 const search = ref('')
 const sync = () => {
-  hash.value = window.location.hash
+  hash.value = readHash()
   menuOpen.value = false
   search.value = ''
   window.scrollTo({ top: 0 })
@@ -15,21 +26,39 @@ const sync = () => {
 window.addEventListener('hashchange', sync)
 onUnmounted(() => window.removeEventListener('hashchange', sync))
 const parts = computed(() => hash.value.replace(/^#\/?/, '').split('/'))
-const isHome = computed(() => !parts.value[0] || ['tutorials', 'demo'].includes(parts.value[0]))
-const lesson = computed(() => tutorials.find((t) => t.id === parts.value[0]))
-const index = computed(() => lesson.value?.chapters.findIndex((c) => c.id === parts.value[1]) ?? -1)
+const isHome = computed(() => !parts.value[0])
+const courseSection = computed(() => courseSections.find((s) => s.id === parts.value[0]))
+const catalog = computed(() => (!parts.value[1] ? courseSection.value : undefined))
+const lesson = computed(() =>
+  parts.value[0] === 'tutorials' ? tutorials.find((t) => t.id === parts.value[1]) : undefined,
+)
+const demo = computed(() =>
+  parts.value[0] === 'demos' ? demos.find((d) => d.id === parts.value[1]) : undefined,
+)
+const index = computed(() => lesson.value?.chapters.findIndex((c) => c.id === parts.value[2]) ?? -1)
 const chapter = computed(() => lesson.value?.chapters[index.value])
-const chapters = computed(
-  () =>
-    lesson.value?.chapters.filter((c) =>
-      `${c.title} ${c.question}`.toLowerCase().includes(search.value.toLowerCase()),
-    ) ?? [],
+const outlineSections = computed(() => {
+  const query = search.value.trim().toLowerCase()
+  if (!query) return courseSections
+  return courseSections.map((section) => ({
+    ...section,
+    items: section.items.flatMap((item) => {
+      if (`${item.title} ${item.description}`.toLowerCase().includes(query)) return [item]
+      const children = item.children?.filter((child) =>
+        `${child.title} ${child.description}`.toLowerCase().includes(query),
+      )
+      return children?.length ? [{ ...item, children }] : []
+    }),
+  }))
+})
+const activeHref = computed(() =>
+  lesson.value && !chapter.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
 )
 const notebook = computed(
   () => `${import.meta.env.BASE_URL}tutorials/${lesson.value?.id}/student.zip`,
 )
 function link(i: number) {
-  return `#/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`
+  return `#/tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`
 }
 function section(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -45,11 +74,11 @@ watch(
       ? `${chapter.value.title} · STAT3612`
       : lesson.value
         ? `Overview · ${lesson.value.title} · STAT3612`
-        : parts.value[0] === 'demo'
-          ? 'Demo · STAT3612'
-          : 'STAT3612 · Statistical Machine Learning'
-    if (parts.value[0] === 'tutorials') section('tutorial-catalog')
-    if (parts.value[0] === 'demo') section('demo-catalog')
+        : demo.value
+          ? `${demo.value.title} · STAT3612`
+          : catalog.value
+            ? `${catalog.value.title} · STAT3612`
+            : 'STAT3612 · Statistical Machine Learning'
   },
   { immediate: true },
 )
@@ -59,74 +88,93 @@ watch(
   <header class="site-header">
     <a class="site-brand" href="#/"
       ><span class="brand-mark">S</span
-      ><span>STAT / SDST 3612<small>THE LEARNING COMPANION</small></span></a
+      ><span>STAT / SDST 3612<small>STATISTICAL MACHINE LEARNING</small></span></a
     >
     <div class="header-links">
-      <a href="#/tutorials">All tutorials</a><a href="#/demo">Demo</a
+      <a
+        v-for="item in courseSections"
+        :key="item.id"
+        :href="`#/${item.id}`"
+        class="header-section"
+        :aria-current="courseSection?.id === item.id ? 'true' : undefined"
+        >{{ item.title }}</a
       ><a v-if="lesson" class="header-download" :href="notebook" download>Notebook + data ↓</a
       ><span class="header-term">2026–27</span
       ><button
-        v-if="lesson"
         class="mobile-menu"
         :aria-expanded="menuOpen"
-        aria-controls="chapter-sidebar"
+        aria-controls="course-sidebar"
         @click="menuOpen = !menuOpen"
       >
-        Chapters {{ menuOpen ? '−' : '+' }}
+        {{ lesson ? 'Chapters' : 'Course menu' }} {{ menuOpen ? '−' : '+' }}
       </button>
     </div>
   </header>
-  <aside v-if="lesson" id="chapter-sidebar" class="sidebar" :class="{ 'is-open': menuOpen }">
-    <a class="back-home" href="#/">← Course home</a>
-    <div class="sidebar-title">
-      <span class="eyebrow">TUTORIAL {{ lesson.number }}</span>
-      <h2>{{ lesson.title }}</h2>
-    </div>
-    <label class="chapter-search"
-      ><span class="sr-only">Find a chapter</span
-      ><input v-model="search" placeholder="Find a chapter…" type="search"
-    /></label>
-    <nav aria-label="Tutorial chapters">
-      <a
-        v-if="!search || 'overview'.includes(search.toLowerCase())"
-        :href="`#/${lesson.id}/overview`"
-        :class="{ active: !chapter }"
-        :aria-current="!chapter ? 'page' : undefined"
-        ><span class="chapter-number">○</span><span>Overview</span></a
+  <aside id="course-sidebar" class="sidebar" :class="{ 'is-open': menuOpen }">
+    <label class="chapter-search">
+      <span class="sr-only">Find course content</span>
+      <input v-model="search" placeholder="Find material…" type="search" />
+    </label>
+    <nav class="course-outline" aria-label="Course outline">
+      <a href="#/" :class="{ active: isHome }" :aria-current="isHome ? 'page' : undefined"
+        >Course home</a
       >
-      <a
-        v-for="item in chapters"
-        :key="item.id"
-        :href="`#/${lesson.id}/${item.id}`"
-        :aria-current="item.id === chapter?.id ? 'page' : undefined"
-        :class="{ active: item.id === chapter?.id }"
-        ><span class="chapter-number">{{
-          String(lesson.chapters.indexOf(item) + 1).padStart(2, '0')
-        }}</span
-        ><span>{{ item.title }}</span></a
-      >
-      <p v-if="!chapters.length && !'overview'.includes(search.toLowerCase())" class="muted">
-        No matching chapter.
+      <div v-for="item in outlineSections" :key="item.id" class="outline-section">
+        <a
+          :href="`#/${item.id}`"
+          class="outline-section-title"
+          :class="{ active: catalog?.id === item.id }"
+          :aria-current="catalog?.id === item.id ? 'page' : undefined"
+          >{{ item.title }}</a
+        >
+        <ul class="outline-children">
+          <li v-for="entry in item.items" :key="entry.id">
+            <a
+              :href="entry.href"
+              :class="{ active: !entry.children && activeHref === entry.href }"
+              :aria-current="!entry.children && activeHref === entry.href ? 'page' : undefined"
+              >{{ entry.title }}</a
+            >
+            <ul v-if="entry.children" class="outline-chapters">
+              <li v-for="child in entry.children" :key="child.id">
+                <a
+                  :href="child.href"
+                  :class="{ active: activeHref === child.href }"
+                  :aria-current="activeHref === child.href ? 'page' : undefined"
+                  >{{ child.title }}</a
+                >
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <small v-if="!search && !item.items.length" class="outline-empty"
+          >Materials coming soon</small
+        >
+      </div>
+      <p v-if="search && !outlineSections.some((section) => section.items.length)" class="muted">
+        No matching material.
       </p>
     </nav>
-    <div class="sidebar-bottom">
+    <div v-if="lesson" class="sidebar-bottom">
       <span class="eyebrow">FROM READING TO DOING</span>
       <p>Understand the question.<br />Explore the mechanism.<br />Make the experiment yours.</p>
       <a class="download-link" :href="notebook" download>↓ Notebook + data</a>
     </div>
   </aside>
-  <main id="main" tabindex="-1" :class="{ 'lesson-main': lesson }">
+  <main id="main" tabindex="-1" class="lesson-main">
     <HomePage v-if="isHome" />
+    <CourseCatalog v-else-if="catalog" :section="catalog" />
+    <DemoPage v-else-if="demo" :key="demo.id" :demo="demo" />
     <div v-else-if="!lesson" class="not-found">
       <span class="eyebrow">PAGE NOT FOUND</span>
-      <h1>This tutorial is not available.</h1>
-      <p>Choose a published tutorial from the course home.</p>
+      <h1>This page is not available.</h1>
+      <p>Choose a section from the course home.</p>
       <a class="button primary" href="#/">Return to course home →</a>
     </div>
     <div v-if="lesson" class="doc-preface">
       <div>
-        <a href="#/">Course</a><span> / </span
-        ><a :href="`#/${lesson.id}/overview`">Tutorial {{ lesson.number }}</a
+        <a href="#/">Course</a><span> / </span><a href="#/tutorials">Tutorials</a><span> / </span
+        ><a :href="`#/tutorials/${lesson.id}/overview`">Tutorial {{ lesson.number }}</a
         ><span> / </span><span>{{ chapter?.title ?? 'Overview' }}</span>
       </div>
       <span v-if="chapter"
@@ -155,7 +203,7 @@ watch(
       <footer v-if="lesson && chapter" class="chapter-footer">
         <a v-if="index > 0" :href="link(index - 1)"
           ><small>PREVIOUS</small>← {{ lesson.chapters[index - 1]!.title }}</a
-        ><a v-else :href="`#/${lesson.id}/overview`"><small>PREVIOUS</small>← Overview</a
+        ><a v-else :href="`#/tutorials/${lesson.id}/overview`"><small>PREVIOUS</small>← Overview</a
         ><a v-if="index < lesson.chapters.length - 1" :href="link(index + 1)"
           ><small>NEXT CHAPTER</small>{{ lesson.chapters[index + 1]!.title }} →</a
         ><a v-else :href="notebook" download

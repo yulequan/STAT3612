@@ -18,7 +18,7 @@ defineProps<{ lesson: Lesson }>()
             <h3>{{ stage.title }}</h3>
             <p>{{ stage.description }}</p>
             <div class="overview-chapter-links">
-              <a v-for="id in stage.chapters" :key="id" :href="`#/${lesson.id}/${id}`">
+              <a v-for="id in stage.chapters" :key="id" :href="`#/tutorials/${lesson.id}/${id}`">
                 {{ lesson.chapters.find((chapter) => chapter.id === id)?.title }} →
               </a>
             </div>
@@ -47,7 +47,7 @@ defineProps<{ lesson: Lesson }>()
       Explore the ideas and run small Python experiments here. Use the companion notebook to keep
       your code, comparisons and reasoning together.
     </p>
-    <a class="button primary" :href="`#/${lesson.id}/${lesson.chapters[0]!.id}`"
+    <a class="button primary" :href="`#/tutorials/${lesson.id}/${lesson.chapters[0]!.id}`"
       >Begin: {{ lesson.chapters[0]!.title }} →</a
     >
   </article>

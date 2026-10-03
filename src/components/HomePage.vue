@@ -1,49 +1,37 @@
 <script setup lang="ts">
-import { tutorials } from '../tutorials'
-const base = import.meta.env.BASE_URL
+import { courseSections } from '../course'
 </script>
 <template>
-  <section id="tutorial-catalog" class="course-index">
-    <p class="eyebrow">STATISTICAL MACHINE LEARNING · 2026–27</p>
-    <h1>Tutorials</h1>
-    <ul class="tutorial-list">
-      <li v-for="lesson in tutorials" :key="lesson.id">
-        <a :href="`#/${lesson.id}/overview`">
-          <span class="tutorial-list-number">{{ lesson.number }}</span>
-          <span
-            ><strong>{{ lesson.title }}</strong
-            ><small>{{ lesson.subtitle }}</small></span
+  <section class="course-index course-home">
+    <p class="eyebrow">STAT / SDST 3612 · 2026–27</p>
+    <h1>Statistical Machine Learning</h1>
+    <p class="course-intro">
+      Explore the course through lectures, guided tutorials and interactive demonstrations.
+    </p>
+    <section
+      v-for="section in courseSections"
+      :key="section.id"
+      class="home-section"
+      :aria-labelledby="`home-${section.id}`"
+    >
+      <h2 :id="`home-${section.id}`">
+        <a :href="`#/${section.id}`">{{ section.title }}</a>
+      </h2>
+      <p class="section-description">{{ section.description }}</p>
+      <p v-if="!section.items.length" class="muted">Materials coming soon.</p>
+      <ul v-else class="home-materials">
+        <li v-for="item in section.items" :key="item.id">
+          <a class="material-title" :href="item.href"
+            >{{ item.title }} <span aria-hidden="true">→</span></a
           >
-          <span class="tutorial-list-arrow" aria-hidden="true">→</span>
-        </a>
-      </li>
-    </ul>
-  </section>
-  <section id="demo-catalog" class="course-index" aria-labelledby="demo-heading">
-    <h2 id="demo-heading">Demo</h2>
-    <p>Explore optimization through the course's interactive demonstrations.</p>
-    <ul class="tutorial-list">
-      <li>
-        <a :href="`${base}gradient-descent-step-by-step.html`">
-          <span class="tutorial-list-number">01</span>
-          <span>
-            <strong>Gradient Descent Step by Step</strong>
-            <small>Follow predictions, loss, gradients and parameter updates in 1D and 2D.</small>
-          </span>
-          <span class="tutorial-list-arrow" aria-hidden="true">→</span>
-        </a>
-      </li>
-      <li>
-        <a :href="`${base}gd-vs-sgd-logistic-regression.html`">
-          <span class="tutorial-list-number">02</span>
-          <span>
-            <strong>GD vs SGD: Logistic Regression</strong>
-            <small>Compare full-data and mini-batch updates on a 3D logistic-loss surface.</small>
-          </span>
-          <span class="tutorial-list-arrow" aria-hidden="true">→</span>
-        </a>
-      </li>
-    </ul>
-    <p><a :href="`${base}demo/`">Demo overview →</a></p>
+          <p>{{ item.description }}</p>
+          <ul v-if="item.children" class="home-chapters">
+            <li v-for="child in item.children" :key="child.id">
+              <a :href="child.href">{{ child.title }}</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </section>
   </section>
 </template>

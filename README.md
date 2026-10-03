@@ -1,10 +1,17 @@
-# STAT / SDST 3612 · Interactive tutorials
+# STAT / SDST 3612 · Course site
 
 A Vue 3 + TypeScript website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
-The minimal course homepage lists published tutorials. Each opens with an Overview of the
-task, learning route, objectives, prerequisites and expected work; chapters are freely navigable.
+The course homepage opens at `#/` and offers three sections: **Lectures**, **Tutorials** and
+**Demos**. All available materials and tutorial chapters are expanded on the homepage,
+so each item can be opened directly. The left sidebar keeps the entire course outline
+expanded on every page; navigating changes only the active highlight. Section catalogs
+remain available, but are optional. Phones use a menu button to reveal the same complete
+outline. Search filters materials only when a query is entered. Lecture materials have
+not been published yet.
+Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
+expected work; chapters are freely navigable.
 
 Each chapter connects a mathematical explanation, an interactive demonstration, highlighted
 Python source and a small editable experiment. LaTeX is rendered locally with KaTeX. The SGD
@@ -63,14 +70,25 @@ The original standalone demo URLs remain valid:
 - [Gradient Descent Step by Step](https://yulequan.github.io/STAT3612/gradient-descent-step-by-step.html)
 - [GD vs SGD: Logistic Regression](https://yulequan.github.io/STAT3612/gd-vs-sgd-logistic-regression.html)
 
-The course outline and header include **Demo**, alongside the imported tutorials.
-The previous demo overview is preserved at [`demo/`](https://yulequan.github.io/STAT3612/demo/).
-The original demos live in `public/`; asset preparation copies them unchanged into the
-build alongside a locally bundled Three.js 0.160.1 and its license. Their calculations,
-controls and visualizations are preserved, with links back to the course's Demo section.
+Course routes follow the material hierarchy:
+
+- `#/lectures` — lecture catalog (ready for future materials).
+- `#/tutorials` → `#/tutorials/tutorial04/overview` → individual chapters.
+- `#/demos` → `#/demos/gradient-descent` or `#/demos/gd-vs-sgd`.
+
+The old `#/tutorial04/...` and `#/demo` links remain supported. The previous standalone
+demo overview is preserved at [`demo/`](https://yulequan.github.io/STAT3612/demo/).
+
+The original demos remain single-page HTML files in `public/`. `DemoPage.vue` embeds them
+in same-origin iframes within the course header and sidebar. Each frame resizes to its
+content, keeping scrolling in the outer course page; navigating away removes the frame,
+including its timers and WebGL context. **Open standalone** opens the original page in a
+new tab. Demo calculations, controls and visualizations are unchanged. The only change to
+the HTML is its course backlink, which targets the top page to avoid nesting the course
+site inside the frame. Three.js 0.160.1 and its license are bundled locally.
 
 After deployment, open Tutorial04, enter a practical chapter, wait for **Python ready**,
-run an example and download **Notebook + data**. Also open both demos through **Demo**.
+run an example and download **Notebook + data**. Also open both demos through **Demos**.
 
 Preview the production build with `npm run preview`. For an offline class, copy `dist/`
 and serve it locally:
@@ -87,7 +105,8 @@ libraries. It works without internet access once built. Serve it over HTTP(S), n
 ```text
 src/
   App.vue                      course navigation and chapter shell
-  components/                  homepage, tutorial overview, math, code editor, images and charts
+  course.ts                    section, lecture and demo catalogs
+  components/                  course home, catalogs, demo embed, tutorial overview and shared UI
   runtime/                     Python worker and request lifecycle
   tutorials/
     index.ts                   automatically discovers lessons
@@ -178,11 +197,21 @@ every training epoch. Browser tests cover homepage navigation, all chapter start
 traces, code editing and recovery, XOR/convolution, downloads, mobile layout, loading
 failure/retry, cancellation, static subdirectory deployment and absence of external requests.
 
+Demo regression checks compare 123 embedded UI states against values captured from the
+original standalone pages (see `tests/fixtures/README.md`). They cover both modes, parameter
+updates, initialization, sample and batch sizes, learning rates, speed, back and reset.
+
 Tests use `/usr/bin/google-chrome` when available; set `CHROME_BIN` or run
 `npx playwright install chromium` for another environment. Missing dependencies fail the
 checks rather than silently skipping them. Screenshots/traces remain disposable test output.
 If the default test ports (4173 and 4174) are occupied, set `TEST_PREVIEW_PORT` and
 `TEST_STATIC_PORT` to available ports when running the verification or browser tests.
+
+## Add course materials
+
+Add published lecture links to `lectures` in `src/course.ts`. Add standalone demo metadata
+to `demos` in that file and place its HTML in `public/`. The shared catalogs and sidebar
+use this registry; the course homepage never automatically opens a tutorial or demo.
 
 ## Add the next tutorial
 
