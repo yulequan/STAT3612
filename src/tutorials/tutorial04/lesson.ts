@@ -5,6 +5,7 @@ export default {
   number: '04',
   title: 'From pixels to a classifier',
   subtitle: 'Image classification with stochastic gradient descent',
+  tutor: { name: 'Yinghao Zhu', email: 'yhzhu99@connect.hku.hk' },
   overview: {
     task: 'Build a classifier that distinguishes handwritten 3s from 8s, then use evidence from its mistakes to decide what to improve.',
     motivation:

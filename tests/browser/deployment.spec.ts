@@ -3,62 +3,82 @@ import { readFileSync } from 'node:fs'
 
 const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
 
-test('home and sidebar expose all materials and keep the full outline open on navigation', async ({
+test('two-level course outline collapses independently and keeps navigation state', async ({
   page,
 }, info) => {
   await page.goto(base)
+  const main = page.getByRole('main')
+  const outline = page.getByRole('navigation', { name: 'Course outline' })
   await expect(
-    page.getByRole('heading', { name: 'Statistical Machine Learning', exact: true }),
+    main.getByRole('heading', { name: 'Statistical Machine Learning', exact: true }),
   ).toBeVisible()
+  await expect(main.getByText('Prof. Lequan Yu', { exact: true })).toBeVisible()
+  await expect(page.locator('.header-links a')).toHaveCount(0)
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
-  await page.screenshot({ path: info.outputPath('course-home.png'), fullPage: true })
-  const outline = page.getByRole('navigation', { name: 'Course outline' })
-  const hrefs = () =>
-    outline.locator('a').evaluateAll((links) => links.map((link) => link.getAttribute('href')))
-  const expandedLinks = await hrefs()
+  for (const name of ['Lectures', 'Tutorials', 'Demos']) {
+    await expect(outline.getByRole('button', { name, exact: true })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+  }
   for (const href of [
     '#/tutorials/tutorial04/overview',
-    '#/tutorials/tutorial04/update',
     '#/demos/gradient-descent',
     '#/demos/gd-vs-sgd',
   ]) {
-    await expect(page.getByRole('main').locator(`a[href="${href}"]`).first()).toBeVisible()
-    await expect(outline.locator(`a[href="${href}"]`).first()).toBeVisible()
+    await expect(main.locator(`a[href="${href}"]`)).toBeVisible()
+    await expect(outline.locator(`a[href="${href}"]`)).toBeVisible()
   }
-  for (const name of ['Lectures', 'Tutorials', 'Demos']) {
-    await outline.getByRole('link', { name, exact: true }).click()
-    await expect(page).toHaveURL(`${base}#/${name.toLowerCase()}`)
-    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
-    await expect(outline.getByRole('link', { name, exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    if (name === 'Lectures')
-      await expect(page.getByText('Lecture materials are coming soon.')).toBeVisible()
-    expect(await hrefs()).toEqual(expandedLinks)
-  }
-  await page.reload()
-  await expect(page).toHaveTitle('Demos · STAT3612')
-  await page
-    .getByRole('main')
-    .getByRole('link', { name: /Gradient Descent Step by Step/ })
-    .click()
-  await expect(page).toHaveURL(`${base}#/demos/gradient-descent`)
-  expect(await hrefs()).toEqual(expandedLinks)
-  await outline.getByRole('link', { name: 'Overview', exact: true }).click()
-  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/overview`)
-  expect(await hrefs()).toEqual(expandedLinks)
+  await expect(main.locator('a[href="#/tutorials/tutorial04/update"]')).toHaveCount(0)
+  await expect(outline.locator('a[href="#/tutorials/tutorial04/update"]')).toHaveCount(0)
+  await page.screenshot({ path: info.outputPath('course-home.png'), fullPage: true })
+  await outline.getByRole('button', { name: 'Demos', exact: true }).click()
+  await expect(
+    outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }),
+  ).toBeHidden()
+  await expect(outline.getByRole('link', { name: /Tutorial 04/ })).toBeVisible()
+  await outline.getByRole('button', { name: 'Tutorials', exact: true }).focus()
+  await page.keyboard.press('Space')
+  await expect(outline.getByRole('button', { name: 'Tutorials', exact: true })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+  await outline.getByRole('button', { name: 'Demos', exact: true }).click()
   await outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }).click()
+  await expect(page).toHaveURL(`${base}#/demos/gradient-descent`)
+  await expect(outline.getByRole('button', { name: 'Tutorials', exact: true })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
   await expect(
     outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
+  await outline.getByRole('button', { name: 'Tutorials', exact: true }).click()
+  await outline.getByRole('link', { name: /Tutorial 04/ }).click()
+  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/overview`)
+  await expect(page.locator('.tutorial-overview > :first-child')).toContainText(
+    'Tutor: Yinghao Zhu',
+  )
+  await expect(page.getByRole('link', { name: 'yhzhu99@connect.hku.hk' })).toHaveAttribute(
+    'href',
+    'mailto:yhzhu99@connect.hku.hk',
+  )
+  await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
+  await expect(page.locator('.sidebar-bottom a[download]')).toBeVisible()
+  await expect(page.getByLabel('Tutorial chapter')).toHaveValue('overview')
+  await page.screenshot({ path: info.outputPath('tutorial-overview.png'), fullPage: true })
+  await page.getByLabel('Tutorial chapter').selectOption('beyond')
+  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/beyond`)
+  await expect(outline.getByRole('link', { name: /Tutorial 04/ })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
+  await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
+  await expect(page.getByRole('main').locator('a[download][href$="student.zip"]')).toHaveCount(0)
   await page.goBack()
-  await expect(
-    page.getByRole('heading', { name: 'Learning objectives', exact: true }),
-  ).toBeVisible()
-  await page.goForward()
-  await expect(page.locator('iframe')).toHaveCount(1)
+  await expect(page.getByLabel('Tutorial chapter')).toHaveValue('overview')
 })
 
 test('embedded demos retain 3D, playback and standalone links without external requests', async ({
@@ -150,16 +170,12 @@ test('phone navigation and embedded demos fit the viewport', async ({ page }, in
   await page.getByRole('button', { name: 'Course menu +' }).click()
   await page
     .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: 'Demos', exact: true })
+    .getByRole('link', { name: 'Gradient Descent Step by Step', exact: true })
     .click()
   await expect(page.getByRole('button', { name: 'Course menu +' })).toHaveAttribute(
     'aria-expanded',
     'false',
   )
-  await page
-    .getByRole('main')
-    .getByRole('link', { name: /Gradient Descent Step by Step/ })
-    .click()
   const frame = page.frameLocator('iframe')
   await frame.locator('#mode2d').click()
   await expect(frame.locator('#loss3d canvas')).toBeVisible()

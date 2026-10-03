@@ -4,12 +4,14 @@ A Vue 3 + TypeScript website with real Python experiments and a companion Jupyte
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
 The course homepage opens at `#/` and offers three sections: **Lectures**, **Tutorials** and
-**Demos**. All available materials and tutorial chapters are expanded on the homepage,
-so each item can be opened directly. The left sidebar keeps the entire course outline
-expanded on every page; navigating changes only the active highlight. Section catalogs
-remain available, but are optional. Phones use a menu button to reveal the same complete
-outline. Search filters materials only when a query is entered. Lecture materials have
-not been published yet.
+**Demos**. The homepage and left sidebar show two levels: sections and their materials.
+Tutorial chapters stay inside each tutorial, accessible through the chapter selector,
+overview links and previous/next links. Sidebar sections start expanded, can be collapsed
+independently, and retain their state while navigating. The top bar carries only course
+branding and the mobile menu; course navigation lives in the sidebar. Search filters
+materials only when a query is entered. Lecture materials have not been published yet.
+The homepage identifies Prof. Lequan Yu as the instructor. Tutorial04's overview begins
+with the tutor's name and contact email.
 Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
 expected work; chapters are freely navigable.
 
@@ -158,7 +160,8 @@ restricted security sandbox; the provided namespace omits held-out test arrays.
 
 ## Notebook
 
-The website's **Notebook + data** link downloads a complete student zip. Tutorial04 has
+The single **Notebook + data** link at the bottom of the tutorial sidebar downloads a
+complete student zip. On phones, open **Course menu** to find it. Tutorial04 has
 one 35-cell notebook, including editable numerical functions, baseline outputs, a practical
 investigation and a bridge to alternative classifiers and convolution. Each web chapter links
 to its corresponding notebook section. File loading and image operations use its adjacent

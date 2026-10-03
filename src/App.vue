@@ -17,6 +17,7 @@ function readHash() {
 const hash = ref(readHash())
 const menuOpen = ref(false)
 const search = ref('')
+const collapsed = ref<Record<string, boolean>>({})
 const sync = () => {
   hash.value = readHash()
   menuOpen.value = false
@@ -42,21 +43,20 @@ const outlineSections = computed(() => {
   if (!query) return courseSections
   return courseSections.map((section) => ({
     ...section,
-    items: section.items.flatMap((item) => {
-      if (`${item.title} ${item.description}`.toLowerCase().includes(query)) return [item]
-      const children = item.children?.filter((child) =>
-        `${child.title} ${child.description}`.toLowerCase().includes(query),
-      )
-      return children?.length ? [{ ...item, children }] : []
-    }),
+    items: section.items.filter((item) =>
+      `${item.title} ${item.description}`.toLowerCase().includes(query),
+    ),
   }))
 })
 const activeHref = computed(() =>
-  lesson.value && !chapter.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
+  lesson.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
 )
 const notebook = computed(
   () => `${import.meta.env.BASE_URL}tutorials/${lesson.value?.id}/student.zip`,
 )
+function changeChapter(event: Event) {
+  window.location.hash = `#/tutorials/${lesson.value!.id}/${(event.target as HTMLSelectElement).value}`
+}
 function link(i: number) {
   return `#/tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`
 }
@@ -91,22 +91,14 @@ watch(
       ><span>STAT / SDST 3612<small>STATISTICAL MACHINE LEARNING</small></span></a
     >
     <div class="header-links">
-      <a
-        v-for="item in courseSections"
-        :key="item.id"
-        :href="`#/${item.id}`"
-        class="header-section"
-        :aria-current="courseSection?.id === item.id ? 'true' : undefined"
-        >{{ item.title }}</a
-      ><a v-if="lesson" class="header-download" :href="notebook" download>Notebook + data ↓</a
-      ><span class="header-term">2026–27</span
+      <span class="header-term">2026–27</span
       ><button
         class="mobile-menu"
         :aria-expanded="menuOpen"
         aria-controls="course-sidebar"
         @click="menuOpen = !menuOpen"
       >
-        {{ lesson ? 'Chapters' : 'Course menu' }} {{ menuOpen ? '−' : '+' }}
+        Course menu {{ menuOpen ? '−' : '+' }}
       </button>
     </div>
   </header>
@@ -120,44 +112,44 @@ watch(
         >Course home</a
       >
       <div v-for="item in outlineSections" :key="item.id" class="outline-section">
-        <a
-          :href="`#/${item.id}`"
-          class="outline-section-title"
-          :class="{ active: catalog?.id === item.id }"
-          :aria-current="catalog?.id === item.id ? 'page' : undefined"
-          >{{ item.title }}</a
+        <button
+          class="outline-section-toggle"
+          :aria-expanded="!collapsed[item.id]"
+          :aria-controls="`outline-${item.id}`"
+          :aria-label="item.title"
+          @click="collapsed[item.id] = !collapsed[item.id]"
         >
-        <ul class="outline-children">
-          <li v-for="entry in item.items" :key="entry.id">
-            <a
-              :href="entry.href"
-              :class="{ active: !entry.children && activeHref === entry.href }"
-              :aria-current="!entry.children && activeHref === entry.href ? 'page' : undefined"
-              >{{ entry.title }}</a
-            >
-            <ul v-if="entry.children" class="outline-chapters">
-              <li v-for="child in entry.children" :key="child.id">
-                <a
-                  :href="child.href"
-                  :class="{ active: activeHref === child.href }"
-                  :aria-current="activeHref === child.href ? 'page' : undefined"
-                  >{{ child.title }}</a
-                >
-              </li>
-            </ul>
-          </li>
-        </ul>
-        <small v-if="!search && !item.items.length" class="outline-empty"
-          >Materials coming soon</small
-        >
+          <span
+            class="outline-chevron"
+            :class="{ collapsed: collapsed[item.id] }"
+            aria-hidden="true"
+            >⌄</span
+          >
+          <span>{{ item.title }}</span>
+          <span class="outline-count" aria-hidden="true">{{ item.items.length }}</span>
+        </button>
+        <div :id="`outline-${item.id}`" v-show="!collapsed[item.id]">
+          <ul class="outline-children">
+            <li v-for="entry in item.items" :key="entry.id">
+              <a
+                :href="entry.href"
+                :class="{ active: activeHref === entry.href }"
+                :aria-current="activeHref === entry.href ? 'page' : undefined"
+                >{{ entry.title }}</a
+              >
+            </li>
+          </ul>
+          <small v-if="!search && !item.items.length" class="outline-empty"
+            >Materials coming soon</small
+          >
+        </div>
       </div>
       <p v-if="search && !outlineSections.some((section) => section.items.length)" class="muted">
         No matching material.
       </p>
     </nav>
     <div v-if="lesson" class="sidebar-bottom">
-      <span class="eyebrow">FROM READING TO DOING</span>
-      <p>Understand the question.<br />Explore the mechanism.<br />Make the experiment yours.</p>
+      <span class="eyebrow">TUTORIAL {{ lesson.number }} · MATERIALS</span>
       <a class="download-link" :href="notebook" download>↓ Notebook + data</a>
     </div>
   </aside>
@@ -177,8 +169,22 @@ watch(
         ><a :href="`#/tutorials/${lesson.id}/overview`">Tutorial {{ lesson.number }}</a
         ><span> / </span><span>{{ chapter?.title ?? 'Overview' }}</span>
       </div>
-      <span v-if="chapter"
-        >{{ String(index + 1).padStart(2, '0') }} of {{ lesson.chapters.length }}</span
+    </div>
+    <div v-if="lesson" class="tutorial-toolbar">
+      <label for="tutorial-chapter">Chapter</label>
+      <select
+        id="tutorial-chapter"
+        aria-label="Tutorial chapter"
+        :value="chapter?.id ?? 'overview'"
+        @change="changeChapter"
+      >
+        <option value="overview">Overview</option>
+        <option v-for="(item, i) in lesson.chapters" :key="item.id" :value="item.id">
+          {{ String(i + 1).padStart(2, '0') }} · {{ item.title }}
+        </option>
+      </select>
+      <span v-if="chapter" class="chapter-progress"
+        >{{ index + 1 }} / {{ lesson.chapters.length }}</span
       >
     </div>
     <div v-if="lesson" class="chapter-heading">
@@ -206,8 +212,8 @@ watch(
         ><a v-else :href="`#/tutorials/${lesson.id}/overview`"><small>PREVIOUS</small>← Overview</a
         ><a v-if="index < lesson.chapters.length - 1" :href="link(index + 1)"
           ><small>NEXT CHAPTER</small>{{ lesson.chapters[index + 1]!.title }} →</a
-        ><a v-else :href="notebook" download
-          ><small>CONTINUE INDEPENDENTLY</small>Open the notebook ↓</a
+        ><a v-else :href="`#/tutorials/${lesson.id}/overview`"
+          ><small>TUTORIAL COMPLETE</small>Return to overview →</a
         >
       </footer>
     </div>

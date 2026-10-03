@@ -24,35 +24,20 @@ test('all chapters, real Python training, final evaluation and offline downloads
   await expect(page.getByRole('button', { name: /Inspect digit/ })).toHaveCount(12)
   await page.screenshot({ path: info.outputPath('data-desktop.png'), fullPage: true })
 
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Prepare the inputs/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('prepare')
   await page.getByLabel('Image operation').selectOption('blur')
   await expect(page.getByRole('img', { name: 'blur · same display scale' })).toBeVisible()
   await page.getByLabel('Image operation').selectOption('shift')
   await expect(page.getByRole('img', { name: 'shift · same display scale' })).toBeVisible()
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Make a prediction/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('model')
   await expect(page.getByRole('img', { name: 'Contribution x × w' })).toBeVisible()
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Define the objective/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('loss')
   await page.getByLabel('Actual digit').selectOption('0')
   await expect(page.getByText('Cross-entropy loss', { exact: true })).toBeVisible()
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Take one step/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('update')
   await expect(page.getByRole('img', { name: 'Weights after one update' })).toBeVisible()
 
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Train the classifier/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('train')
   await page.getByRole('button', { name: 'Train classifier →' }).click()
   await expect(page.getByRole('button', { name: 'Train classifier →' })).toBeEnabled({
     timeout: 60_000,
@@ -71,10 +56,7 @@ test('all chapters, real Python training, final evaluation and offline downloads
   }
   await page.screenshot({ path: info.outputPath('training-desktop.png'), fullPage: true })
 
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: /Evaluate & improve/ })
-    .click()
+  await page.getByLabel('Tutorial chapter').selectOption('evaluate')
   await page.getByRole('button', { name: 'Evaluate shifted validation images' }).click()
   await expect(page.getByText('Shifted 1 px right', { exact: true })).toBeVisible()
   const testButton = page.getByRole('button', { name: 'Evaluate selected model on test set' })
@@ -231,7 +213,8 @@ test('every chapter connects rendered maths, highlighted source and runnable Pyt
     'predictions:',
   ]
   for (const [i, chapter] of chapters.entries()) {
-    await page.locator(`nav a[href="#/tutorials/tutorial04/${chapter}"]`).click()
+    await page.getByLabel('Tutorial chapter').selectOption(chapter)
+    await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
     await expect(page.locator('#concept .katex').first()).toBeVisible()
     await expect(page.locator('.katex-error')).toHaveCount(0)
     await expect(page.locator('#python .hljs-keyword').first()).toBeVisible()
@@ -272,9 +255,9 @@ test('trace exposes values only after their line executes; edited snippets recov
   await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
   await expect(page.getByLabel('Python output')).toContainText('recovered (960, 784)')
   await expect(page.getByRole('alert')).toHaveCount(0)
-  await page.locator('nav a[href="#/tutorials/tutorial04/loss"]').click()
+  await page.getByLabel('Tutorial chapter').selectOption('loss')
   await expect(editor).toContainText('cross_entropy')
-  await page.locator('nav a[href="#/tutorials/tutorial04/update"]').click()
+  await page.getByLabel('Tutorial chapter').selectOption('update')
   await expect(editor).toContainText('recovered')
   await editor.fill('while True:\n    pass')
   await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
@@ -335,12 +318,8 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   await page.getByRole('link', { name: 'Begin: Meet the data →', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60_000 })
   for (const chapter of ['update', 'beyond']) {
-    await page.getByRole('button', { name: 'Chapters +' }).click()
-    await page.locator(`nav a[href="#/tutorials/tutorial04/${chapter}"]`).click()
-    await expect(page.getByRole('button', { name: 'Chapters +' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
+    await page.getByLabel('Tutorial chapter').selectOption(chapter)
+    await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
     await expect(page.locator('#concept .katex').first()).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Editable Python experiment' })).toBeVisible()
     expect(
@@ -348,4 +327,8 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
     ).toBeTruthy()
     await page.screenshot({ path: info.outputPath(`${chapter}-mobile.png`), fullPage: true })
   }
+  await page.getByRole('button', { name: 'Course menu +' }).click()
+  await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
+  await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
+  await page.screenshot({ path: info.outputPath('course-menu-mobile.png') })
 })

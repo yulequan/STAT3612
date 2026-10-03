@@ -12,7 +12,6 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ run: [code: string]; stop: [] }>()
 const drafts: Record<string, string> = {}
-const downloadLink = `${import.meta.env.BASE_URL}tutorials/tutorial04/student.zip`
 const code = ref(props.section.starter)
 watch(
   () => props.chapter,
@@ -64,7 +63,6 @@ watch(
           the complete dataset and editable implementation.
         </p>
       </div>
-      <a :href="downloadLink" download>Download the lab ↗</a>
     </div>
   </section>
 </template>

@@ -186,8 +186,6 @@ main:focus {
 .header-term {
   color: var(--muted);
   font-size: 0.68rem;
-  border-left: 1px solid var(--line);
-  padding-left: 24px;
 }
 .mobile-menu {
   display: none;
@@ -201,7 +199,7 @@ main:focus {
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  overflow-y: auto;
+  overflow: hidden;
   z-index: 40;
 }
 .back-home {
@@ -267,7 +265,9 @@ main:focus {
 }
 .sidebar-bottom {
   margin-top: auto;
-  padding: 40px 10px 5px;
+  flex-shrink: 0;
+  padding: 18px 4px 0;
+  border-top: 1px solid var(--line);
 }
 .sidebar-bottom p {
   font-size: 0.74rem;
@@ -276,6 +276,13 @@ main:focus {
   margin: 12px 0 18px;
 }
 .download-link {
+  display: block;
+  padding: 12px 10px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  text-decoration: none;
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -1516,9 +1523,6 @@ td button {
   .header-term {
     display: none;
   }
-  .header-links > .header-download {
-    display: none;
-  }
   .mobile-menu {
     display: inline-flex;
     font-size: 0.65rem;
@@ -1735,23 +1739,19 @@ td button {
 }
 
 /* Course-wide navigation and section landing pages. */
-.header-section[aria-current] {
-  text-decoration: underline;
-  text-underline-offset: 6px;
-}
 .sidebar .course-outline {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding-bottom: 18px;
 }
-.sidebar .course-outline > a,
-.sidebar .outline-section-title {
+.sidebar .course-outline > a {
   font-weight: 600;
 }
 .outline-section {
   margin-top: 10px;
 }
-.sidebar .outline-children,
-.sidebar .outline-chapters {
+.sidebar .outline-children {
   list-style: none;
   margin: 3px 0 0 9px;
   padding: 0 0 0 9px;
@@ -1761,10 +1761,6 @@ td button {
   font-size: 0.7rem;
   line-height: 1.5;
   padding: 7px 8px;
-}
-.sidebar .outline-chapters a {
-  font-size: 0.67rem;
-  padding: 5px 8px;
 }
 .outline-empty {
   display: block;
@@ -1795,8 +1791,7 @@ td button {
   color: var(--muted);
   font-size: 0.82rem;
 }
-.home-materials,
-.home-chapters {
+.home-materials {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1818,17 +1813,6 @@ td button {
   font-size: 0.8rem;
   margin: 5px 0 12px;
   color: var(--muted);
-}
-.home-chapters {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 20px;
-  border-left: 1px solid var(--line);
-  padding-left: 15px;
-}
-.home-chapters a {
-  font-size: 0.76rem;
-  text-decoration: none;
 }
 .home-section a:hover {
   text-decoration: underline;
@@ -1862,11 +1846,6 @@ td button {
   border-radius: 6px;
   background: #f3f6f8;
 }
-@media (max-width: 850px) {
-  .header-links > .header-section {
-    display: none;
-  }
-}
 @media (max-width: 600px) {
   .demo-page {
     padding: 20px 8px;
@@ -1874,7 +1853,94 @@ td button {
   .demo-toolbar {
     padding: 0 10px;
   }
-  .home-chapters {
-    grid-template-columns: 1fr;
+}
+
+/* Two-level, independently collapsible course outline. */
+.outline-section-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 10px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+.outline-chevron {
+  display: inline-block;
+  width: 14px;
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+.outline-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+.outline-count {
+  margin-left: auto;
+  min-width: 22px;
+  border-radius: 4px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 0.64rem;
+}
+.course-instructor {
+  margin: 0 0 20px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.course-instructor strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.tutor-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.tutorial-toolbar {
+  max-width: 1150px;
+  margin: 20px auto 0;
+  padding: 0 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.73rem;
+  color: var(--muted);
+}
+.tutorial-toolbar select {
+  width: 290px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 7px 30px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.76rem;
+}
+.chapter-progress {
+  margin-left: auto;
+  white-space: nowrap;
+}
+@media (max-width: 850px) {
+  .tutorial-toolbar {
+    padding: 0 24px;
+  }
+}
+@media (max-width: 600px) {
+  .tutorial-toolbar {
+    padding: 0 20px;
+    gap: 8px;
+  }
+  .tutorial-toolbar select {
+    flex: 1;
+    width: 0;
   }
 }

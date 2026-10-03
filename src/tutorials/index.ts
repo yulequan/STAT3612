@@ -4,6 +4,7 @@ export type Lesson = {
   number: string
   title: string
   subtitle: string
+  tutor?: { name: string; email: string }
   overview: {
     task: string
     motivation: string

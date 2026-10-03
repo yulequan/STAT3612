@@ -5,6 +5,7 @@ import { courseSections } from '../course'
   <section class="course-index course-home">
     <p class="eyebrow">STAT / SDST 3612 · 2026–27</p>
     <h1>Statistical Machine Learning</h1>
+    <p class="course-instructor">Instructor: <strong>Prof. Lequan Yu</strong></p>
     <p class="course-intro">
       Explore the course through lectures, guided tutorials and interactive demonstrations.
     </p>
@@ -25,11 +26,6 @@ import { courseSections } from '../course'
             >{{ item.title }} <span aria-hidden="true">→</span></a
           >
           <p>{{ item.description }}</p>
-          <ul v-if="item.children" class="home-chapters">
-            <li v-for="child in item.children" :key="child.id">
-              <a :href="child.href">{{ child.title }}</a>
-            </li>
-          </ul>
         </li>
       </ul>
     </section>

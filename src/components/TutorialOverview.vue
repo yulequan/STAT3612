@@ -4,6 +4,13 @@ defineProps<{ lesson: Lesson }>()
 </script>
 <template>
   <article class="tutorial-overview">
+    <p v-if="lesson.tutor" class="tutor-contact">
+      <strong>Tutor: {{ lesson.tutor.name }}</strong>
+      <span
+        >(Contact: <a :href="`mailto:${lesson.tutor.email}`">{{ lesson.tutor.email }}</a
+        >)</span
+      >
+    </p>
     <section class="overview-intro">
       <h2>The task</h2>
       <p class="lede">{{ lesson.overview.task }}</p>

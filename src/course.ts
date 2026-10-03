@@ -5,7 +5,6 @@ export type CourseItem = {
   title: string
   description: string
   href: string
-  children?: CourseItem[]
 }
 export type CourseSection = { id: string; title: string; description: string; items: CourseItem[] }
 export type Demo = CourseItem & { file: string }
@@ -45,20 +44,6 @@ export const courseSections: CourseSection[] = [
       title: `Tutorial ${lesson.number} · ${lesson.title}`,
       description: lesson.subtitle,
       href: `#/tutorials/${lesson.id}/overview`,
-      children: [
-        {
-          id: 'overview',
-          title: 'Overview',
-          description: 'Task, objectives and learning route',
-          href: `#/tutorials/${lesson.id}/overview`,
-        },
-        ...lesson.chapters.map((chapter) => ({
-          id: chapter.id,
-          title: chapter.title,
-          description: chapter.question,
-          href: `#/tutorials/${lesson.id}/${chapter.id}`,
-        })),
-      ],
     })),
   },
   {
