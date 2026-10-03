@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Interactive demonstrations for STAT3612." />
+  <title>STAT3612 Interactive Demos</title>
+  <style>
+    :root {
+      --navy: #073763;
+      --blue: #2f6da1;
+      --teal: #167c80;
+      --coral: #d95f4d;
+      --ink: #17212b;
+      --muted: #607080;
+      --line: #d7e0e7;
+      --page: #f3f6f8;
+      --panel: #ffffff;
+      --soft-blue: #eaf2f8;
+      --soft-teal: #e7f3f2;
+      --shadow: 0 8px 24px rgba(25, 50, 74, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; }
+
+    a:focus-visible {
+      outline: 3px solid rgba(47, 109, 161, 0.3);
+      outline-offset: 3px;
+    }
+
+    .site-header {
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .header-inner,
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      gap: 20px;
+    }
+
+    .course-mark {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .course-code {
+      color: var(--navy);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .course-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .repository-link {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .repository-link:hover { text-decoration: underline; }
+    .page { padding: 54px 0 70px; }
+
+    .intro {
+      max-width: 760px;
+      padding-bottom: 38px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 34px;
+      line-height: 1.18;
+      font-weight: 750;
+    }
+
+    .intro p:last-child {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .section-heading::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .demo-list {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .demo-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      min-height: 246px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .demo-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 32px;
+    }
+
+    .demo-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 8px;
+      border-left: 3px solid var(--teal);
+      background: var(--soft-teal);
+      color: #125f62;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .demo-content h3 {
+      margin: 14px 0 8px;
+      color: var(--navy);
+      font-size: 23px;
+      line-height: 1.3;
+    }
+
+    .demo-content p {
+      max-width: 630px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .demo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      margin-top: 22px;
+      padding: 0 15px;
+      border: 1px solid var(--navy);
+      border-radius: 4px;
+      background: var(--navy);
+      color: white;
+      font-size: 14px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .demo-link:hover { background: #0c477d; }
+
+    .demo-visual {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 22px;
+      border-left: 1px solid var(--line);
+      background: var(--soft-blue);
+    }
+
+    .demo-visual svg {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+    }
+
+    .future-note {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      .header-inner,
+      .page { width: min(100% - 28px, 1120px); }
+      .header-inner { min-height: 58px; }
+      .course-label { display: none; }
+      .page { padding-top: 38px; }
+      h1 { font-size: 29px; }
+      .demo-card { grid-template-columns: 1fr; }
+      .demo-content { padding: 25px 22px; }
+
+      .demo-visual {
+        min-height: 210px;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="course-mark" href="../#/demo" aria-label="Return to course Demo">
+        <span class="course-code">STAT3612</span>
+        <span class="course-label">Interactive Demos</span>
+      </a>
+      <a class="repository-link" href="https://github.com/yulequan/STAT3612">GitHub repository</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="intro">
+      <p class="eyebrow">Course learning lab</p>
+      <h1>STAT3612 Interactive Demos</h1>
+      <p>Explore statistical learning concepts through focused, interactive demonstrations used alongside the course lectures.</p>
+    </section>
+
+    <section aria-labelledby="optimization-heading">
+      <div class="section-heading">
+        <h2 id="optimization-heading">Optimization</h2>
+      </div>
+
+      <div class="demo-list">
+        <article class="demo-card">
+          <div class="demo-content">
+            <span class="demo-tag">Gradient-based learning</span>
+            <h3>Gradient Descent Step by Step</h3>
+            <p>Follow prediction, residual, loss, gradient, and parameter-update calculations in 1D or 2D, with an interactive 3D loss landscape.</p>
+            <a class="demo-link" href="../gradient-descent-step-by-step.html">Open demo <span aria-hidden="true">→</span></a>
+          </div>
+
+          <div class="demo-visual" aria-hidden="true">
+            <svg viewBox="0 0 360 210" role="img">
+              <rect x="1" y="1" width="358" height="208" rx="5" fill="#ffffff" stroke="#c9d6df" />
+              <path d="M38 28V174H329" fill="none" stroke="#7990a2" stroke-width="1.5" />
+              <path d="M48 46C92 61 115 139 177 158C232 174 268 78 321 38" fill="none" stroke="#073763" stroke-width="4" />
+              <path d="M76 58L113 98L151 133L183 156" fill="none" stroke="#167c80" stroke-width="2.5" stroke-dasharray="6 5" />
+              <circle cx="76" cy="58" r="7" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="113" cy="98" r="6" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="151" cy="133" r="6" fill="#d95f4d" stroke="#ffffff" stroke-width="3" />
+              <circle cx="183" cy="156" r="7" fill="#478c5c" stroke="#ffffff" stroke-width="3" />
+              <path d="M92 72L104 90L96 87" fill="#167c80" />
+              <text x="178" y="195" text-anchor="middle" fill="#607080" font-size="12" font-family="Inter, sans-serif">parameter value</text>
+              <text x="15" y="104" text-anchor="middle" fill="#607080" font-size="12" font-family="Inter, sans-serif" transform="rotate(-90 15 104)">loss</text>
+            </svg>
+          </div>
+        </article>
+
+        <article class="demo-card">
+          <div class="demo-content">
+            <span class="demo-tag">Mini-batch optimization</span>
+            <h3>GD vs SGD: Logistic Regression</h3>
+            <p>Compare full-data and mini-batch updates on an interactive 3D logistic-loss surface with contours, adjustable batch size, and adjustable dataset size.</p>
+            <a class="demo-link" href="../gd-vs-sgd-logistic-regression.html">Open demo <span aria-hidden="true">→</span></a>
+          </div>
+
+          <div class="demo-visual" aria-hidden="true">
+            <svg viewBox="0 0 360 210" role="img">
+              <rect x="1" y="1" width="358" height="208" rx="5" fill="#ffffff" stroke="#c9d6df" />
+              <ellipse cx="192" cy="108" rx="118" ry="62" fill="none" stroke="#c6d7e3" stroke-width="2" transform="rotate(-18 192 108)" />
+              <ellipse cx="192" cy="108" rx="82" ry="41" fill="none" stroke="#d6e4de" stroke-width="2" transform="rotate(-18 192 108)" />
+              <ellipse cx="192" cy="108" rx="47" ry="23" fill="none" stroke="#ead9cd" stroke-width="2" transform="rotate(-18 192 108)" />
+              <path d="M51 166C87 152 116 137 145 123C168 112 188 104 211 98" fill="none" stroke="#073763" stroke-width="4" />
+              <circle cx="51" cy="166" r="6" fill="#073763" stroke="#ffffff" stroke-width="2" />
+              <circle cx="99" cy="145" r="5" fill="#073763" stroke="#ffffff" stroke-width="2" />
+              <circle cx="145" cy="123" r="5" fill="#073763" stroke="#ffffff" stroke-width="2" />
+              <circle cx="211" cy="98" r="7" fill="#478c5c" stroke="#ffffff" stroke-width="3" />
+              <path d="M51 166L83 113L119 147L147 84L175 121L201 77L211 98" fill="none" stroke="#d95f4d" stroke-width="3" stroke-dasharray="7 5" />
+              <circle cx="83" cy="113" r="5" fill="#d95f4d" stroke="#ffffff" stroke-width="2" />
+              <circle cx="119" cy="147" r="5" fill="#d95f4d" stroke="#ffffff" stroke-width="2" />
+              <circle cx="147" cy="84" r="5" fill="#d95f4d" stroke="#ffffff" stroke-width="2" />
+              <circle cx="175" cy="121" r="5" fill="#d95f4d" stroke="#ffffff" stroke-width="2" />
+              <circle cx="201" cy="77" r="5" fill="#d95f4d" stroke="#ffffff" stroke-width="2" />
+              <text x="54" y="190" fill="#073763" font-size="12" font-weight="700" font-family="Inter, sans-serif">GD</text>
+              <text x="278" y="43" fill="#a74638" font-size="12" font-weight="700" font-family="Inter, sans-serif">SGD</text>
+            </svg>
+          </div>
+        </article>
+      </div>
+
+      <p class="future-note">Additional course demonstrations will appear here as they are released.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{
+  "title": "Tutorial 04 · One gradient update",
+  "scenes": [
+    {
+      "id": "lesson-task",
+      "action": "lesson-task",
+      "text": "Welcome to Tutorial Four. Our task is to distinguish handwritten threes from eights. We start with logistic regression so we can inspect the complete learning process."
+    },
+    {
+      "id": "lesson-route",
+      "action": "lesson-route",
+      "text": "The overview connects four stages: prepare the data, connect predictions to gradients, run a fair experiment, and consider a different model. In this short demonstration, we will focus on one gradient update."
+    },
+    {
+      "id": "overview",
+      "action": "overview",
+      "text": "Let's follow one real Python update. We will use a handwritten eight, with zero initial weights and bias."
+    },
+    {
+      "id": "score",
+      "action": "line",
+      "line": 2,
+      "focus": "score z",
+      "text": "Each pixel is multiplied by its weight. We add those contributions and the bias. At these initial values, the score is zero."
+    },
+    {
+      "id": "probability",
+      "action": "next",
+      "line": 3,
+      "focus": "probability p",
+      "text": "Click Next step. The sigmoid turns a score of zero into a probability of one half. This is the predicted probability of eight."
+    },
+    {
+      "id": "residual",
+      "action": "next",
+      "line": 4,
+      "focus": "residual p − y",
+      "text": "Our true label is one. So p minus y is negative one half. For sigmoid cross entropy, this residual is the loss derivative with respect to the score."
+    },
+    {
+      "id": "gradient",
+      "action": "next",
+      "line": 5,
+      "text": "Multiply the residual by each input pixel to obtain the weight gradient. In this single example, a zero valued pixel contributes zero."
+    },
+    {
+      "id": "weights",
+      "action": "line",
+      "line": 7,
+      "text": "Now subtract the learning rate times the gradient. At inked pixels, the gradient is negative, so the corresponding weights increase."
+    },
+    {
+      "id": "pixel",
+      "action": "pixel",
+      "text": "We can inspect individual pixels with this slider. Compare the input value, its gradient, and its new weight. The gradient and update have opposite signs."
+    },
+    {
+      "id": "bias",
+      "action": "next",
+      "line": 8,
+      "focus": "bias gradient",
+      "text": "The bias is updated too. Its gradient is the residual averaged over the batch. Both gradients were computed using the original parameters."
+    },
+    {
+      "id": "complete",
+      "action": "next",
+      "line": 9,
+      "text": "The update is complete. The probability of eight has increased for this image. That does not establish generalisation: we still need training and validation on other examples."
+    },
+    {
+      "id": "run",
+      "action": "run",
+      "text": "Finally, run the editable Python experiment. These printed results come from Python in the browser, not a simulated animation. Try another learning rate yourself."
+    }
+  ]
+}

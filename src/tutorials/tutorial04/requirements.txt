@@ -1,0 +1,6 @@
+# Student notebook environment, Python 3.11+. Browser packages are pinned separately by Pyodide.
+numpy>=2.0,<3
+scipy>=1.14,<2
+matplotlib>=3.9,<4
+jupyterlab>=4.2,<5
+ipykernel>=6.29,<8

@@ -1,0 +1,10 @@
+{
+  "id": "tutorial04",
+  "title": "From pixels to a classifier",
+  "subtitle": "Image classification with stochastic gradient descent",
+  "experiment": "experiment.py",
+  "dataset": "data/mnist_3v8.npz",
+  "python_packages": ["numpy", "scipy"],
+  "web_assets": ["experiment.py", "data/mnist_3v8.npz"],
+  "student_files": ["tutorial04.ipynb", "experiment.py", "data/mnist_3v8.npz", "requirements.txt", "README.md"]
+}

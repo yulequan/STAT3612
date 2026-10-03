@@ -57,6 +57,17 @@
       padding: 4px 2px 18px;
     }
 
+    .breadcrumb {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .breadcrumb:hover { text-decoration: underline; }
+
     .title-block h1 {
       margin: 0;
       color: var(--navy);
@@ -633,6 +644,7 @@
   <main class="app">
     <header class="topbar">
       <div class="title-block">
+        <a class="breadcrumb" href="./#/demo">← Course Demo</a>
         <h1>Gradient Descent Step by Step</h1>
         <p id="modeDescription">1D mode fixes the slope at 0.64 and uses gradient descent to learn the intercept.</p>
       </div>
@@ -782,7 +794,7 @@
     </footer>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+  <script src="./vendor/three.min.js"></script>
   <script>
     (() => {
       const seedData = [

@@ -1,0 +1,15 @@
+# the shared uv environment for every tutorial in this repository
+.venv/
+# python + notebook scratch
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+node_modules/
+dist/
+.cache/
+# local API credentials (never expose via VITE_* variables)
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
