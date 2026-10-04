@@ -238,7 +238,7 @@ async function blocks(prefix, selector, intro = '') {
 }
 async function chapter(name) {
   currentChapter = name
-  await click(page.getByRole('navigation').locator(`a[href="#/tutorial04/${name}"]`))
+  await click(page.getByRole('navigation').locator(`a[href="/tutorials/tutorial04/${name}"]`))
   await expect(page.locator('#concept h2')).toBeVisible()
   await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60000 })
   await stable()
@@ -504,7 +504,7 @@ try {
     'Hello everyone. Today we are working through Tutorial Four: From pixels to a classifier. We will cover the overview and all eight chapters, from preparing handwritten digits through a complete stochastic gradient descent experiment, and then the bridge to neural networks. Open Tutorial Four to begin.',
     page.locator('.course-index'),
     async () => {
-      await click(page.locator('a[href="#/tutorial04/overview"]'))
+      await click(page.locator('a[href="/tutorials/tutorial04/overview"]'))
       await focus(page.locator('.chapter-heading'))
     },
     ['course-index'],
@@ -927,20 +927,20 @@ try {
     'For a fair robustness comparison, return to training and select the original baseline run. Evaluate the same one pixel shift on the same validation split without retraining. Then restore the augmentation run. The augmentation cost is twice as many updates per epoch, so performance is not the only difference.',
     page.locator('#experiment .two-col .panel').first(),
     async () => {
-      await click(page.locator('nav a[href="#/tutorial04/train"]'))
+      await click(page.locator('nav a[href="/tutorials/tutorial04/train"]'))
       await stable()
       await click(page.locator('#experiment tbody button').nth(0))
-      await click(page.locator('nav a[href="#/tutorial04/evaluate"]'))
+      await click(page.locator('nav a[href="/tutorials/tutorial04/evaluate"]'))
       await stable()
       await click(page.getByRole('button', { name: 'Evaluate shifted validation images' }))
       await expect(page.getByText('Shifted 1 px right', { exact: true })).toBeVisible()
       await view(page.locator('#experiment .two-col .panel').first())
       await focus(page.locator('#experiment .two-col .panel').first())
       await sleep(1000)
-      await click(page.locator('nav a[href="#/tutorial04/train"]'))
+      await click(page.locator('nav a[href="/tutorials/tutorial04/train"]'))
       await stable()
       await click(page.locator('#experiment tbody button').nth(2))
-      await click(page.locator('nav a[href="#/tutorial04/evaluate"]'))
+      await click(page.locator('nav a[href="/tutorials/tutorial04/evaluate"]'))
       await stable()
       await click(page.getByRole('button', { name: 'Evaluate shifted validation images' }))
       await expect(page.getByText('Shifted 1 px right', { exact: true })).toBeVisible()

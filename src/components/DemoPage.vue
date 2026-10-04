@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { courseHref } from '../navigation'
 import { onBeforeUnmount, ref } from 'vue'
 import type { Demo } from '../course'
 defineProps<{ demo: Demo }>()
-const base = import.meta.env.BASE_URL
+const base = courseHref()
 const frame = ref<HTMLIFrameElement>()
 const height = ref(900)
 let observer: ResizeObserver | undefined
@@ -25,8 +26,8 @@ onBeforeUnmount(() => observer?.disconnect())
   <section class="demo-page" :aria-label="demo.title">
     <div class="demo-toolbar">
       <div class="demo-breadcrumb" aria-label="Breadcrumb">
-        <a href="#/">Course</a><span aria-hidden="true"> / </span> <a href="#/demos">Demos</a
-        ><span aria-hidden="true"> / </span>
+        <a :href="courseHref()">Course</a><span aria-hidden="true"> / </span>
+        <a :href="courseHref('demos')">Demos</a><span aria-hidden="true"> / </span>
         <span>{{ demo.title }}</span>
       </div>
       <a :href="`${base}${demo.file}`" target="_blank" rel="noopener">Open standalone ↗</a>

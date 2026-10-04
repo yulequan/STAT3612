@@ -2,6 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <base href="./" />
+    <script>
+      // Keep assets rooted at the site after history navigation removes a trailing slash.
+      document.querySelector('base').href = document.baseURI
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#123f36" />
     <link

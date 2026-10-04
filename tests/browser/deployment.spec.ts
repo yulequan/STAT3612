@@ -1,7 +1,57 @@
 import { test, expect } from '@playwright/test'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 
 const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
+
+test('every generated course entry is served by an ordinary static server', async ({ request }) => {
+  const entries = readdirSync('dist', { recursive: true }).filter(
+    (file) =>
+      typeof file === 'string' && file.endsWith('/index.html') && file !== 'demo/index.html',
+  )
+  expect(entries.length).toBeGreaterThan(0)
+  for (const entry of entries) {
+    const response = await request.get(`${base}${String(entry).replace(/\/index\.html$/, '')}`)
+    expect(response.status(), String(entry)).toBe(200)
+    expect(await response.text()).toContain('<div id="app"></div>')
+  }
+})
+
+test('direct clean chapter URLs support refresh, history and rooted Python assets', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  const url = `${base}tutorials/tutorial04/prepare?from=direct`
+  expect((await page.goto(url))?.status()).toBe(200)
+  await expect(page).toHaveURL(url)
+  await expect(
+    page.getByRole('heading', { name: 'What do we change before learning?' }),
+  ).toBeVisible()
+  expect(await page.evaluate(() => document.baseURI)).toBe(base)
+  await page.reload()
+  await expect(page).toHaveURL(url)
+  await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
+    timeout: 60_000,
+  })
+  await page.getByRole('button', { name: 'Run Python →', exact: true }).click()
+  await expect(page.getByLabel('Python output')).toContainText('mean absolute change:')
+  const worker = page.workers()[0]
+  await page
+    .locator('.chapter-footer')
+    .getByRole('link', { name: /Make a prediction/ })
+    .click()
+  await expect(page).toHaveURL(`${base}tutorials/tutorial04/model`)
+  expect(page.workers()).toEqual([worker])
+  await page.goBack()
+  await expect(page).toHaveURL(url)
+  await expect(page).toHaveTitle('Prepare the inputs · STAT3612')
+  await page.goForward()
+  await expect(page).toHaveURL(`${base}tutorials/tutorial04/model`)
+  await expect(page).toHaveTitle('Make a prediction · STAT3612')
+  await page.getByRole('link', { name: 'Course home', exact: true }).click()
+  await expect(page).toHaveURL(base)
+  expect(errors).toEqual([])
+})
 
 test('course outline reveals chapters and preserves independent expansion', async ({
   page,
@@ -22,14 +72,16 @@ test('course outline reveals chapters and preserves independent expansion', asyn
     ).toHaveAttribute('aria-expanded', 'true')
   }
   for (const href of [
-    '#/tutorials/tutorial04/overview',
-    '#/demos/gradient-descent',
-    '#/demos/gd-vs-sgd',
+    `${new URL(base).pathname}tutorials/tutorial04/overview`,
+    `${new URL(base).pathname}demos/gradient-descent`,
+    `${new URL(base).pathname}demos/gd-vs-sgd`,
   ]) {
     await expect(main.locator(`a[href="${href}"]`)).toBeVisible()
     await expect(outline.locator(`a[href="${href}"]`).first()).toBeVisible()
   }
-  await expect(main.locator('a[href="#/tutorials/tutorial04/update"]')).toHaveCount(0)
+  await expect(
+    main.locator(`a[href="${new URL(base).pathname}tutorials/tutorial04/update"]`),
+  ).toHaveCount(0)
   await expect(outline.getByRole('link', { name: 'Take one step', exact: true })).toBeHidden()
   const tutorialToggle = outline.getByRole('button', { name: /Toggle Tutorial 04/ })
   await expect(tutorialToggle).toHaveAttribute('aria-expanded', 'false')
@@ -56,7 +108,7 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   ).toHaveAttribute('aria-expanded', 'false')
   await outline.getByRole('button', { name: 'Toggle Demos', exact: true }).click()
   await outline.getByRole('link', { name: 'Gradient Descent Step by Step', exact: true }).click()
-  await expect(page).toHaveURL(`${base}#/demos/gradient-descent`)
+  await expect(page).toHaveURL(`${base}demos/gradient-descent`)
   await expect(
     outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }),
   ).toHaveAttribute('aria-expanded', 'false')
@@ -65,7 +117,7 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   ).toHaveAttribute('aria-current', 'page')
   await outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }).click()
   await outline.getByRole('link', { name: /Tutorial 04/ }).click()
-  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/overview`)
+  await expect(page).toHaveURL(`${base}tutorials/tutorial04/overview`)
   await expect(page.locator('.tutorial-overview > :first-child')).toContainText(
     'Tutor: Yinghao Zhu',
   )
@@ -83,7 +135,7 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   await expect(page.locator('.doc-preface')).toHaveCount(0)
   await page.screenshot({ path: info.outputPath('tutorial-overview.png'), fullPage: true })
   await outline.getByRole('link', { name: 'Beyond a linear model', exact: true }).click()
-  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/beyond`)
+  await expect(page).toHaveURL(`${base}tutorials/tutorial04/beyond`)
   await expect(
     outline.getByRole('link', { name: 'Beyond a linear model', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
@@ -126,7 +178,7 @@ test('embedded demos retain 3D, playback and standalone links without external r
       external.push(request.url())
   })
   await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort())
-  await page.goto(`${base}#/demos/gradient-descent`)
+  await page.goto(`${base}demos/gradient-descent`)
   const frame = page.frameLocator('iframe')
   await expect(frame.getByRole('heading', { name: 'Gradient Descent Step by Step' })).toBeVisible()
   await frame.locator('#mode2d').click()
@@ -138,7 +190,7 @@ test('embedded demos retain 3D, playback and standalone links without external r
     .getByRole('navigation', { name: 'Course outline' })
     .getByRole('link', { name: 'GD vs SGD: Logistic Regression', exact: true })
     .click()
-  await expect(page).toHaveURL(`${base}#/demos/gd-vs-sgd`)
+  await expect(page).toHaveURL(`${base}demos/gd-vs-sgd`)
   await expect(page.locator('iframe')).toHaveCount(1)
   await expect(frame.locator('#loss3d canvas')).toBeVisible()
   await frame.locator('#speed').fill('20')
@@ -157,7 +209,7 @@ test('embedded demos retain 3D, playback and standalone links without external r
   await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 30)
   await page.mouse.up()
   await page.mouse.wheel(0, 100)
-  await expect(page).toHaveURL(`${base}#/demos/gd-vs-sgd`)
+  await expect(page).toHaveURL(`${base}demos/gd-vs-sgd`)
   await page.screenshot({ path: info.outputPath('embedded-logistic.png'), fullPage: true })
   const popup = page.waitForEvent('popup')
   await page.getByRole('link', { name: 'Open standalone ↗' }).click()
@@ -166,17 +218,17 @@ test('embedded demos retain 3D, playback and standalone links without external r
   await standalone.close()
   // The iframe's course link must navigate the top page, never nest the SPA inside itself.
   await frame.getByRole('link', { name: '← Course Demos' }).click()
-  await expect(page).toHaveURL(`${base}#/demos`)
+  await expect(page).toHaveURL(`${base}demos`)
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(errors).toEqual([])
   expect(external).toEqual([])
 })
 
-test('tutorial Python, downloads and old links work under a Pages subdirectory', async ({
+test('tutorial Python, downloads and standalone demos work under a Pages subdirectory', async ({
   page,
 }) => {
-  await page.goto(`${base}#/tutorial04/update`)
-  await expect(page).toHaveURL(`${base}#/tutorials/tutorial04/update`)
+  await page.goto(`${base}tutorials/tutorial04/update`)
+  await expect(page).toHaveURL(`${base}tutorials/tutorial04/update`)
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -194,8 +246,8 @@ test('tutorial Python, downloads and old links work under a Pages subdirectory',
       .subarray(0, 2)
       .toString(),
   ).toBe('PK')
-  await page.goto(`${base}#/demo`)
-  await expect(page).toHaveURL(`${base}#/demos`)
+  await page.goto(`${base}demos`)
+  await expect(page).toHaveURL(`${base}demos`)
   await expect(page.getByRole('heading', { name: 'Demos', exact: true })).toBeVisible()
   for (const file of ['gradient-descent-step-by-step', 'gd-vs-sgd-logistic-regression']) {
     await page.goto(`${base}${file}.html`)

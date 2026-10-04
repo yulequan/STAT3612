@@ -6,7 +6,7 @@
     "prepare:assets": "python3 scripts/prepare_web.py",
     "dev": "npm run prepare:assets && vite",
     "typecheck": "vue-tsc --noEmit",
-    "build": "npm run prepare:assets && npm run typecheck && vite build",
+    "build": "npm run prepare:assets && npm run typecheck && vite build && node scripts/build_routes.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test:web": "playwright test",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\" index.html vite.config.ts tsconfig.json tests/browser playwright.config.ts"

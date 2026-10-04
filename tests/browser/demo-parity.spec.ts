@@ -11,7 +11,7 @@ for (const [kind, route] of [
     await page.addInitScript(() => {
       Math.random = () => 0.37
     })
-    await page.goto(`/#/demos/${route}`)
+    await page.goto(`/demos/${route}`)
     await expect(page.frameLocator('iframe').locator('#nextButton')).toBeVisible()
     const frame = page.frames().find((frame) => frame.parentFrame())!
     const actual = await exerciseDemo(frame, kind)

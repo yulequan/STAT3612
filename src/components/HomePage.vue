@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { courseHref } from '../navigation'
 import { courseSections } from '../course'
 </script>
 <template>
@@ -16,7 +17,7 @@ import { courseSections } from '../course'
       :aria-labelledby="`home-${section.id}`"
     >
       <h2 :id="`home-${section.id}`">
-        <a :href="`#/${section.id}`">{{ section.title }}</a>
+        <a :href="courseHref(`${section.id}`)">{{ section.title }}</a>
       </h2>
       <p class="section-description">{{ section.description }}</p>
       <p v-if="!section.items.length" class="muted">Materials coming soon.</p>

@@ -7,26 +7,26 @@ import CourseCatalog from './components/CourseCatalog.vue'
 import DemoPage from './components/DemoPage.vue'
 import { courseSections, demos, matchesCourseItem } from './course'
 import CourseNavItem from './components/CourseNavItem.vue'
-function readHash() {
-  const current = window.location.hash
-  const canonical = current
-    .replace(/^#\/demo(?:\/)?$/, '#/demos')
-    .replace(/^#\/(tutorial\d+)(?=\/|$)/, '#/tutorials/$1')
-  if (current !== canonical) window.history.replaceState(null, '', canonical)
-  return canonical
-}
-const hash = ref(readHash())
+import { courseHref, navigateCourse, readPath } from './navigation'
+const path = ref(readPath())
 const menuOpen = ref(false)
 const search = ref('')
 const sync = () => {
-  hash.value = readHash()
+  path.value = readPath()
   menuOpen.value = false
   search.value = ''
   window.scrollTo({ top: 0 })
 }
-window.addEventListener('hashchange', sync)
-onUnmounted(() => window.removeEventListener('hashchange', sync))
-const parts = computed(() => hash.value.replace(/^#\/?/, '').split('/'))
+function onClick(event: MouseEvent) {
+  if (navigateCourse(event)) sync()
+}
+window.addEventListener('popstate', sync)
+document.addEventListener('click', onClick)
+onUnmounted(() => {
+  window.removeEventListener('popstate', sync)
+  document.removeEventListener('click', onClick)
+})
+const parts = computed(() => path.value.split('/'))
 const isHome = computed(() => !parts.value[0])
 const courseSection = computed(() => courseSections.find((s) => s.id === parts.value[0]))
 const catalog = computed(() => (!parts.value[1] ? courseSection.value : undefined))
@@ -40,7 +40,7 @@ const index = computed(() => lesson.value?.chapters.findIndex((c) => c.id === pa
 const chapter = computed(() => lesson.value?.chapters[index.value])
 const outlineSections = courseSections.map((section) => ({
   ...section,
-  href: `#/${section.id}`,
+  href: courseHref(section.id),
   children: section.items,
 }))
 const searchQuery = computed(() => search.value.trim().toLowerCase())
@@ -48,19 +48,19 @@ const hasSearchResults = computed(() =>
   outlineSections.some((item) => matchesCourseItem(item, searchQuery.value)),
 )
 const activeHref = computed(() =>
-  lesson.value && !chapter.value ? `#/tutorials/${lesson.value.id}/overview` : hash.value || '#/',
+  lesson.value && !chapter.value
+    ? courseHref(`tutorials/${lesson.value.id}/overview`)
+    : courseHref(path.value),
 )
-const notebook = computed(
-  () => `${import.meta.env.BASE_URL}tutorials/${lesson.value?.id}/student.zip`,
-)
+const notebook = computed(() => courseHref(`tutorials/${lesson.value?.id}/student.zip`))
 function link(i: number) {
-  return `#/tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`
+  return courseHref(`tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`)
 }
 function focusMain() {
   document.getElementById('main')?.focus()
 }
 watch(
-  hash,
+  path,
   async () => {
     await nextTick()
     document.title = chapter.value
@@ -79,7 +79,7 @@ watch(
 <template>
   <a class="skip-link" href="#main" @click.prevent="focusMain">Skip to content</a>
   <header class="site-header">
-    <a class="site-brand" href="#/"
+    <a class="site-brand" :href="courseHref()"
       ><span class="brand-mark">S</span
       ><span>STAT / SDST 3612<small>STATISTICAL MACHINE LEARNING</small></span></a
     >
@@ -101,7 +101,10 @@ watch(
       <input v-model="search" placeholder="Find material…" type="search" />
     </label>
     <nav class="course-outline" aria-label="Course outline">
-      <a href="#/" :class="{ active: isHome }" :aria-current="isHome ? 'page' : undefined"
+      <a
+        :href="courseHref()"
+        :class="{ active: isHome }"
+        :aria-current="isHome ? 'page' : undefined"
         >Course home</a
       >
       <ul class="course-tree course-tree-root">
@@ -129,7 +132,7 @@ watch(
       <span class="eyebrow">PAGE NOT FOUND</span>
       <h1>This page is not available.</h1>
       <p>Choose a section from the course home.</p>
-      <a class="button primary" href="#/">Return to course home →</a>
+      <a class="button primary" :href="courseHref()">Return to course home →</a>
     </div>
     <div v-if="lesson" class="chapter-heading">
       <span class="eyebrow">TUTORIAL {{ lesson.number }} · {{ chapter?.title ?? 'Overview' }}</span>
@@ -147,10 +150,11 @@ watch(
       <footer v-if="lesson && chapter" class="chapter-footer">
         <a v-if="index > 0" :href="link(index - 1)"
           ><small>PREVIOUS</small>← {{ lesson.chapters[index - 1]!.title }}</a
-        ><a v-else :href="`#/tutorials/${lesson.id}/overview`"><small>PREVIOUS</small>← Overview</a
+        ><a v-else :href="courseHref(`tutorials/${lesson.id}/overview`)"
+          ><small>PREVIOUS</small>← Overview</a
         ><a v-if="index < lesson.chapters.length - 1" :href="link(index + 1)"
           ><small>NEXT CHAPTER</small>{{ lesson.chapters[index + 1]!.title }} →</a
-        ><a v-else :href="`#/tutorials/${lesson.id}/overview`"
+        ><a v-else :href="courseHref(`tutorials/${lesson.id}/overview`)"
           ><small>TUTORIAL COMPLETE</small>Return to overview →</a
         >
       </footer>

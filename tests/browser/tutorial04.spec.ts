@@ -12,7 +12,7 @@ async function selectChapter(page: Page, chapter: string) {
   if (await menu.isVisible()) await menu.click()
   await page
     .getByRole('navigation', { name: 'Course outline' })
-    .locator(`a[href="#/tutorials/tutorial04/${chapter}"]`)
+    .locator(`a[href="/tutorials/tutorial04/${chapter}"]`)
     .last()
     .click()
 }
@@ -29,7 +29,7 @@ test('all chapters, real Python training, final evaluation and offline downloads
       external.push(request.url())
   })
   await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort())
-  await page.goto('/#/tutorials/tutorial04/data')
+  await page.goto('/tutorials/tutorial04/data')
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -98,7 +98,7 @@ test('phone layout and direct chapter entry work without a trained model', async
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/#/tutorials/tutorial04/evaluate')
+  await page.goto('/tutorials/tutorial04/evaluate')
   await expect(page.getByRole('heading', { name: 'Start with a trained model.' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
@@ -109,7 +109,7 @@ test('phone layout and direct chapter entry work without a trained model', async
 
 test('runtime loading failure has a visible retry that recovers', async ({ page, context }) => {
   await context.route('**/python/pyodide.mjs', (route) => route.abort())
-  await page.goto('/#/tutorials/tutorial04/data')
+  await page.goto('/tutorials/tutorial04/data')
   await expect(page.getByRole('alert')).toBeVisible()
   await context.unroute('**/python/pyodide.mjs')
   await page.getByRole('button', { name: 'Restart Python', exact: true }).click()
@@ -122,7 +122,7 @@ test('runtime loading failure has a visible retry that recovers', async ({ page,
 test('training can be stopped without freezing the page or leaving a stale error', async ({
   page,
 }) => {
-  await page.goto('/#/tutorials/tutorial04/train')
+  await page.goto('/tutorials/tutorial04/train')
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -142,7 +142,7 @@ test('built site works under a subdirectory on an ordinary static server', async
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(
-    `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/#/tutorials/tutorial04/update`,
+    `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/tutorials/tutorial04/update`,
   )
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
@@ -176,7 +176,7 @@ test('course home offers a choice without starting Python and preserves the chos
     .getByRole('main')
     .getByRole('link', { name: /From pixels to a classifier/ })
     .click()
-  await expect(page).toHaveURL(/#\/tutorials\/tutorial04\/overview$/)
+  await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)
   await expect(
     page.getByRole('heading', { name: 'Learning objectives', exact: true }),
   ).toBeVisible()
@@ -204,7 +204,7 @@ test('course home offers a choice without starting Python and preserves the chos
   await page.getByRole('link', { name: 'Begin: Meet the data →', exact: true }).click()
   await expect(editor).toContainText('my preserved experiment')
   expect(page.workers()).toEqual([worker])
-  await page.goto('/#/tutorial04')
+  await page.goto('/tutorials/tutorial04')
   await expect(
     page.getByRole('heading', { name: 'Learning objectives', exact: true }),
   ).toBeVisible()
@@ -213,17 +213,17 @@ test('course home offers a choice without starting Python and preserves the chos
     .locator('.chapter-footer')
     .getByRole('link', { name: /Overview/ })
     .click()
-  await expect(page).toHaveURL(/#\/tutorials\/tutorial04\/overview$/)
+  await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)
   await page.getByLabel('Find course content').fill('gradient-does-not-exist')
   await expect(page.getByText('No matching material.')).toBeVisible()
-  await page.goto('/#/tutorial99/data')
+  await page.goto('/tutorials/tutorial99/data')
   await expect(page.getByRole('heading', { name: 'This page is not available.' })).toBeVisible()
 })
 
 test('every chapter connects rendered maths, highlighted source and runnable Python', async ({
   page,
 }) => {
-  await page.goto('/#/tutorials/tutorial04/data')
+  await page.goto('/tutorials/tutorial04/data')
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -253,7 +253,7 @@ test('every chapter connects rendered maths, highlighted source and runnable Pyt
 test('trace exposes values only after their line executes; edited snippets recover and can be stopped', async ({
   page,
 }, info) => {
-  await page.goto('/#/tutorials/tutorial04/update')
+  await page.goto('/tutorials/tutorial04/update')
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -301,7 +301,7 @@ test('trace exposes values only after their line executes; edited snippets recov
 test('nonlinear rules solve XOR and Python convolution responds to the window and filter', async ({
   page,
 }, info) => {
-  await page.goto('/#/tutorials/tutorial04/beyond')
+  await page.goto('/tutorials/tutorial04/beyond')
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -374,7 +374,7 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
   await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
   await outline.getByRole('link', { name: 'Overview', exact: true }).click()
-  await expect(page).toHaveURL(/#\/tutorials\/tutorial04\/overview$/)
+  await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)
   await expect(page.getByRole('button', { name: 'Course menu +' })).toHaveAttribute(
     'aria-expanded',
     'false',

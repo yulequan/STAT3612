@@ -3,7 +3,7 @@
 A Vue 3 + TypeScript website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
-The course homepage opens at `#/` and offers three sections: **Lectures**, **Tutorials** and
+The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
 **Demos**. The homepage shows two levels: sections and their materials. The sidebar
 starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
 a tutorial (including a direct chapter URL) reveals its full chapter list. Separate caret
@@ -47,8 +47,9 @@ npm run build
 
 **Publish `dist/`.** It contains the complete static website, Python runtime, scientific
 packages, data and downloadable student packages. There is no backend, runtime CDN dependency,
-or server-side Python. Hash-based chapter URLs need no special routing rules, and assets
-use relative paths so the site can also be hosted under a subdirectory.
+or server-side Python. The build generates an `index.html` for every course route, so
+clean chapter URLs support direct visits and refreshes on ordinary static hosting. Each
+entry roots its assets at the site directory, including when hosted under a subdirectory.
 
 For a hosting provider, set the build command to `npm run build` and the publish/output
 directory to `dist`. Ensure the build image has Python 3 and curl as noted above.
@@ -70,8 +71,13 @@ The `github-pages` environment must allow deployments from `main`.
 The workflow's Python is only used to prepare static assets; it does not install the optional
 notebook-authoring dependencies. Pyodide wheels are cached and SHA-256 checked on every build.
 
-Vite's relative base (`./`) and hash navigation keep scripts, Python workers, datasets,
-notebook downloads and demo links inside `/STAT3612/`. No custom 404 routing is needed.
+The build reads the course catalog and automatically emits entry pages for all sections,
+demos, tutorial overviews and chapters. For example,
+**https://yulequan.github.io/STAT3612/tutorials/tutorial04/prepare** opens the preparation
+chapter without a hash. Navigation uses browser history and keeps the Python session alive.
+Each entry fixes its asset base before normalizing a trailing slash, keeping scripts, Python
+workers, datasets, notebook downloads and demo links inside `/STAT3612/`. No custom 404
+routing or server rewrites are needed. New lessons are included automatically.
 The original standalone demo URLs remain valid:
 
 - [Gradient Descent Step by Step](https://yulequan.github.io/STAT3612/gradient-descent-step-by-step.html)
@@ -79,12 +85,12 @@ The original standalone demo URLs remain valid:
 
 Course routes follow the material hierarchy:
 
-- `#/lectures` — lecture catalog (ready for future materials).
-- `#/tutorials` → `#/tutorials/tutorial04/overview` → individual chapters.
-- `#/demos` → `#/demos/gradient-descent` or `#/demos/gd-vs-sgd`.
+- `/lectures` — lecture catalog (ready for future materials).
+- `/tutorials` → `/tutorials/tutorial04/overview` → individual chapters.
+- `/demos` → `/demos/gradient-descent` or `/demos/gd-vs-sgd`.
 
-The old `#/tutorial04/...` and `#/demo` links remain supported. The previous standalone
-demo overview is preserved at [`demo/`](https://yulequan.github.io/STAT3612/demo/).
+Paths above are relative to the site root (`/STAT3612/` on GitHub Pages).
+The previous standalone demo overview is preserved at [`demo/`](https://yulequan.github.io/STAT3612/demo/).
 
 The original demos remain single-page HTML files in `public/`. `DemoPage.vue` embeds them
 in same-origin iframes within the course header and sidebar. Each frame resizes to its
