@@ -36,7 +36,7 @@ try {
   const errors = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.route(/^https?:\/\/(?!127\.0\.0\.1:4188\/)/, (route) => route.abort())
-  await page.goto('http://127.0.0.1:4188/#/tutorial04/update')
+  await page.goto('http://127.0.0.1:4188/tutorials/tutorial04/update')
   await expect(page.getByRole('status')).toContainText('Python ready', { timeout: 60000 })
   await expect(page.getByRole('img', { name: 'Weights after one update', exact: true })).toBeVisible()
   // Choose the label explicitly so the narration never depends on gallery ordering.
@@ -46,7 +46,7 @@ try {
   )
   await sampleSelect.selectOption(eight)
   await expect(page.getByRole('img', { name: 'Actual digit: 8', exact: true })).toBeVisible()
-  await page.locator('nav a[href="#/tutorial04/overview"]').click()
+  await page.locator('nav a[href="/tutorials/tutorial04/overview"]').click()
   await expect(page.locator('.overview-intro')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.addStyleTag({ content: `

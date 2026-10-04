@@ -9,7 +9,7 @@ test('asset preparation preserves Python assets on a running development server'
   const base = `http://127.0.0.1:${process.env.TEST_DEV_PORT || '4175'}`
   const manifestURL = `${base}/tutorials/tutorial04/tutorial.json`
   expect((await (await request.get(manifestURL)).json()).id).toBe('tutorial04')
-  await page.goto(`${base}/#/tutorials/tutorial04/data`)
+  await page.goto(`${base}/tutorials/tutorial04/data`)
   await expect(page.getByRole('button', { name: 'Run Python →', exact: true })).toBeEnabled({
     timeout: 60_000,
   })
@@ -41,7 +41,7 @@ test('HTML returned for the tutorial manifest reports the URL and retry recovers
       body: '<!doctype html><html><body>App fallback</body></html>',
     }),
   )
-  await page.goto('/#/tutorials/tutorial04/data')
+  await page.goto('/tutorials/tutorial04/data')
   await expect(page.getByRole('alert')).toContainText('HTML instead of tutorial JSON')
   await expect(page.getByRole('alert')).toContainText('/tutorials/tutorial04/tutorial.json')
   await context.unroute('**/tutorials/tutorial04/tutorial.json')

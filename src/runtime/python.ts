@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { courseHref } from '../navigation'
 
 export function createPython(tutorial: string) {
   const ready = ref(false)
@@ -71,7 +72,7 @@ export function createPython(tutorial: string) {
     try {
       const result = await request<T>('boot', {
         tutorial,
-        base: new URL(import.meta.env.BASE_URL, window.location.href).href,
+        base: new URL(courseHref(), window.location.origin).href,
       })
       if (worker === sessionWorker) {
         ready.value = true
