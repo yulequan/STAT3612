@@ -10,6 +10,8 @@ import CourseNavItem from './components/CourseNavItem.vue'
 import { courseHref, navigateCourse, readPath } from './navigation'
 const path = ref(readPath())
 const menuOpen = ref(false)
+const menuButton = ref<HTMLButtonElement>()
+const mobileViewport = window.matchMedia('(max-width: 850px)')
 const search = ref('')
 const sync = () => {
   path.value = readPath()
@@ -20,11 +22,33 @@ const sync = () => {
 function onClick(event: MouseEvent) {
   if (navigateCourse(event)) sync()
 }
+function closeMenu() {
+  menuOpen.value = false
+  menuButton.value?.focus()
+}
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && menuOpen.value) closeMenu()
+}
+function onViewportChange(event: MediaQueryListEvent) {
+  if (!event.matches) menuOpen.value = false
+}
+watch(menuOpen, async (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+  if (open) {
+    await nextTick()
+    document.querySelector<HTMLInputElement>('.chapter-search input')?.focus()
+  }
+})
 window.addEventListener('popstate', sync)
 document.addEventListener('click', onClick)
+document.addEventListener('keydown', onKeydown)
+mobileViewport.addEventListener('change', onViewportChange)
 onUnmounted(() => {
   window.removeEventListener('popstate', sync)
   document.removeEventListener('click', onClick)
+  document.removeEventListener('keydown', onKeydown)
+  mobileViewport.removeEventListener('change', onViewportChange)
+  document.body.style.overflow = ''
 })
 const parts = computed(() => path.value.split('/'))
 const isHome = computed(() => !parts.value[0])
@@ -78,27 +102,54 @@ watch(
 </script>
 <template>
   <a class="skip-link" href="#main" @click.prevent="focusMain">Skip to content</a>
-  <header class="site-header">
-    <a class="site-brand" :href="courseHref()"
-      ><span class="brand-mark">S</span
-      ><span>STAT / SDST 3612<small>STATISTICAL MACHINE LEARNING</small></span></a
+  <header class="site-header flex items-center justify-between gap-4">
+    <a class="site-brand flex items-center gap-3" :href="courseHref()"
+      ><span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26" fill="none">
+          <path
+            d="M25 6H7l9 10-9 10h18"
+            stroke="currentColor"
+            stroke-width="3.5"
+            stroke-linejoin="miter"
+          />
+        </svg> </span
+      ><span>STAT / SDST 3612<small>Statistical machine learning</small></span></a
     >
     <div class="header-links">
-      <span class="header-term">2026–27</span
-      ><button
+      <button
+        ref="menuButton"
         class="mobile-menu"
+        :aria-label="menuOpen ? 'Close course menu' : 'Open course menu'"
         :aria-expanded="menuOpen"
         aria-controls="course-sidebar"
         @click="menuOpen = !menuOpen"
       >
-        Course menu {{ menuOpen ? '−' : '+' }}
+        <span>Menu</span>
+        <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true">
+          <path
+            :d="menuOpen ? 'm5 5 10 10M5 15 15 5' : 'M3 6h14M3 14h14'"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
+        </svg>
       </button>
     </div>
   </header>
+  <button
+    v-if="menuOpen"
+    class="menu-backdrop"
+    tabindex="-1"
+    aria-label="Dismiss course menu"
+    @click="closeMenu"
+  />
   <aside id="course-sidebar" class="sidebar" :class="{ 'is-open': menuOpen }">
     <label class="chapter-search">
       <span class="sr-only">Find course content</span>
-      <input v-model="search" placeholder="Find material…" type="search" />
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
+        <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5" />
+        <path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+      <input v-model="search" placeholder="Find course content…" type="search" />
     </label>
     <nav class="course-outline" aria-label="Course outline">
       <a
@@ -124,7 +175,7 @@ watch(
       <a class="download-link" :href="notebook" download>↓ Notebook + data</a>
     </div>
   </aside>
-  <main id="main" tabindex="-1" class="lesson-main">
+  <main id="main" tabindex="-1" class="lesson-main" :inert="menuOpen">
     <HomePage v-if="isHome" />
     <CourseCatalog v-else-if="catalog" :section="catalog" />
     <DemoPage v-else-if="demo" :key="demo.id" :demo="demo" />
@@ -135,7 +186,15 @@ watch(
       <a class="button primary" :href="courseHref()">Return to course home →</a>
     </div>
     <div v-if="lesson" class="chapter-heading">
-      <span class="eyebrow">TUTORIAL {{ lesson.number }} · {{ chapter?.title ?? 'Overview' }}</span>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span class="eyebrow"
+          >TUTORIAL {{ lesson.number }} / {{ chapter?.title ?? 'Overview' }}</span
+        >
+        <span v-if="chapter" class="text-xs text-muted tabular-nums"
+          >{{ String(index + 1).padStart(2, '0') }} /
+          {{ String(lesson.chapters.length).padStart(2, '0') }} chapters</span
+        >
+      </div>
       <h1>{{ chapter?.question ?? lesson.title }}</h1>
     </div>
     <div class="content" v-show="lesson">

@@ -1,6 +1,6 @@
 # STAT / SDST 3612 · Course site
 
-A Vue 3 + TypeScript website with real Python experiments and a companion Jupyter notebook.
+A Vue 3 + TypeScript + Tailwind CSS 4 website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
 The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
@@ -9,9 +9,17 @@ starts at the same depth, with each tutorial's Overview and chapters collapsed. 
 a tutorial (including a direct chapter URL) reveals its full chapter list. Separate caret
 buttons collapse each branch independently; navigation leaves other branches as they were.
 Search reveals matching chapters without changing the saved expansion state. Use the sidebar,
-overview links or previous/next links to switch chapters. On phones, open **Course menu**
-to access the same hierarchy. The top bar carries only course branding and the mobile menu;
-course navigation lives in the sidebar. Search filters materials only when a query is entered. Lecture materials have not been published yet.
+overview links or previous/next links to switch chapters. On phones, open **Menu**
+to access the same hierarchy.
+
+The Swiss-inspired interface uses a neutral palette, a restrained red accent, sans-serif
+typography and a numbered resource grid. A geometric sigma mark identifies the course in
+the header and favicon. Tailwind runs through its Vite plugin; colors and typography live
+in the CSS theme. Fonts and assets stay local for offline use. The top bar carries only
+course branding and the mobile menu; course navigation lives in the sidebar. On phones,
+the menu focuses search, closes with Escape or a tap outside, and keeps the page behind
+it inactive. Search filters materials only when a query is entered. Lecture materials
+have not been published yet.
 The homepage identifies Prof. Lequan Yu as the instructor. Tutorial04's overview begins
 with the tutor's name and contact email.
 Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
@@ -173,7 +181,7 @@ restricted security sandbox; the provided namespace omits held-out test arrays.
 ## Notebook
 
 The single **Notebook + data** link at the bottom of the tutorial sidebar downloads a
-complete student zip. On phones, open **Course menu** to find it. Tutorial04 has
+complete student zip. On phones, open **Menu** to find it. Tutorial04 has
 one 35-cell notebook, including editable numerical functions, baseline outputs, a practical
 investigation and a bridge to alternative classifiers and convolution. Each web chapter links
 to its corresponding notebook section. File loading and image operations use its adjacent
