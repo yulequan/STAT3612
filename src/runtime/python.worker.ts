@@ -34,12 +34,14 @@ async function handle(data: { id: number; action: string; params: Record<string,
       await python.loadPackage(manifest.python_packages)
       const source = await fetchOK(`${folder}${manifest.experiment}`).then((r) => r.text())
       python.FS.writeFile('/home/pyodide/experiment.py', source)
+      let datasetPath = 'data.npz'
       if (manifest.dataset) {
         const dataset = await fetchOK(`${folder}${manifest.dataset}`).then((r) => r.arrayBuffer())
-        python.FS.writeFile('/home/pyodide/data.npz', new Uint8Array(dataset))
+        datasetPath = `/home/pyodide/${String(manifest.dataset).split('/').pop()}`
+        python.FS.writeFile(datasetPath, new Uint8Array(dataset))
       }
       await python.runPythonAsync(
-        'import json\nfrom experiment import Experiment\nexperiment = Experiment("data.npz")',
+        `import json\nfrom experiment import Experiment\nexperiment = Experiment(${JSON.stringify(datasetPath)})`,
       )
       const result = await python.runPythonAsync('experiment.dispatch("initialize", {})')
       self.postMessage({ id, result: JSON.parse(result) })

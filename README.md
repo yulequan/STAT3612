@@ -3,6 +3,17 @@
 A Vue 3 + TypeScript + Tailwind CSS 4 website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
+Tutorial05 develops **Spam Email Classification** from inbox consequences and keyword
+rules through original-data inspection, numerical features, count/TF–IDF representations,
+logistic regression, regularization and training-only CV. It then compares LDA, a binomial
+additive spline model and KNN before choosing a validation threshold and freezing the
+final test decision. Every chapter is taught through explanations, interactive mechanisms,
+actual Python and a runnable notebook experiment. The original UCI SMS Spam Collection
+is bundled unchanged; its provenance and the limits of using historical SMS to learn
+email-filtering methods are explained in the lesson and [dataset documentation](src/tutorials/tutorial05/data/README.md).
+Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overview)
+or see its [student instructions](src/tutorials/tutorial05/README.md).
+
 The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
 **Demos**. The homepage shows two levels: sections and their materials. The sidebar
 starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
@@ -78,8 +89,9 @@ This repository publishes to **https://yulequan.github.io/STAT3612/** using
 Pull requests run the same build and deployment checks without publishing. Deployments
 use the built-in `GITHUB_TOKEN`; no personal token, API keys or repository secrets are needed.
 The `github-pages` environment must allow deployments from `main`.
-The workflow's Python is only used to prepare static assets; it does not install the optional
-notebook-authoring dependencies. Pyodide wheels are cached and SHA-256 checked on every build.
+The build job uses Python only to prepare static assets. A separate scientific check job
+installs the locked notebook environment, tests both tutorials and executes both extracted
+student notebooks before publishing. Pyodide wheels are cached and SHA-256 checked on every build.
 
 The build reads the course catalog and automatically emits entry pages for all sections,
 demos, tutorial overviews and chapters. For example,
@@ -120,7 +132,7 @@ and serve it locally:
 python3 -m http.server 8000 --directory dist
 ```
 
-Open **http://localhost:8000**. The complete build is about 38 MB, mostly Python and numerical
+Open **http://localhost:8000**. The complete build is about 47 MB, mostly Python and numerical
 libraries. It works without internet access once built. Serve it over HTTP(S), not `file://`.
 
 ## A single source tree
@@ -144,6 +156,7 @@ src/
       tutorial.json            packages, assets and student-package manifest
       requirements.txt         student notebook dependencies
       README.md                student instructions
+    tutorial05/                spam lesson, shared curriculum, notebook and original UCI data
 public/                        original standalone demos and demo overview
 .github/workflows/             GitHub Pages build, browser checks and deployment
 scripts/                       prepare assets, package, scaffold, verify
@@ -165,7 +178,7 @@ The original standalone course demos are retained separately in `public/`.
 ## Python in the browser
 
 [Pyodide](https://pyodide.org/) is a mature CPython-on-WebAssembly runtime. This site pins
-**Pyodide 0.27.7 / Python 3.12.7, NumPy 2.0.2 and SciPy 1.14.1** as a compatible browser stack.
+**Pyodide 0.27.7 / Python 3.12.7, NumPy 2.0.2, SciPy 1.14.1 and scikit-learn 1.6.1** as a compatible browser stack.
 The notebook environment is pinned separately. Not every desktop Python package works in
 WASM; declare and verify packages per lesson.
 
@@ -215,7 +228,7 @@ write a reason for their model choice.
 uv run python scripts/verify.py
 ```
 
-Verification checks scientific behavior and data separation, executes the extracted student
+Verification checks both tutorials’ scientific behavior and data separation, executes the extracted student
 package (including its opt-in final test cell), checks notebook/source consistency, typechecks
 and builds the site, then runs real-browser tests. WASM and native Python are compared at
 every training epoch. Browser tests cover homepage navigation, all chapter starters, execution
@@ -243,10 +256,10 @@ use this registry; the course homepage never automatically opens a tutorial or d
 ## Add the next tutorial
 
 ```sh
-python3 scripts/new_tutorial.py 5 --title "Your next practical topic"
+python3 scripts/new_tutorial.py 6 --title "Your next practical topic"
 ```
 
-This creates one folder, `src/tutorials/tutorial05/`, with a runnable Vue/Python scaffold.
+This creates one folder, `src/tutorials/tutorial06/`, with a runnable Vue/Python scaffold.
 The registry discovers it automatically. Add its actual content, dataset and notebook before
 sharing it; the scaffold is not a completed lesson. No future topic is assumed.
 

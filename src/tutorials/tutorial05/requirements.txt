@@ -1,0 +1,5 @@
+numpy>=2.0,<3
+scipy>=1.14,<2
+scikit-learn>=1.6,<1.9
+matplotlib>=3.9,<4
+jupyterlab>=4,<5

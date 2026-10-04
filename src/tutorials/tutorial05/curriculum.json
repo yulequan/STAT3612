@@ -1,0 +1,470 @@
+{
+  "title": "Spam Email Classification",
+  "subtitle": "From simple rules to reliable decisions",
+  "task": "Build a text classifier that catches unwanted messages while preserving legitimate ones, and justify how its scores become inbox decisions.",
+  "motivation": "Start by recognizing spam yourself and designing a keyword rule. Its failures lead to measurable features, learned word evidence, regularization and fair model selection. Every stage answers a problem raised by the previous one. The SMS Spam Collection supplies short, inspectable labelled messages; it lets us learn spam-filtering methods without treating a historical SMS benchmark as evidence about modern email.",
+  "stages": [
+    {
+      "title": "Define the task and evidence",
+      "description": "Connect inbox consequences, a transparent rule, data provenance and split roles. Measure message properties before building a word representation.",
+      "chapters": [
+        "inbox",
+        "data",
+        "features",
+        "text"
+      ]
+    },
+    {
+      "title": "Learn and select a weighted rule",
+      "description": "Connect word contributions to logistic probabilities, control sensitivity with regularization, and refit the entire pipeline inside each CV fold.",
+      "chapters": [
+        "logistic",
+        "regularization",
+        "validation"
+      ]
+    },
+    {
+      "title": "Compare the assumptions we have learned",
+      "description": "Use the same numerical features to compare logistic regression, LDA and an additive spline model. Inspect how KNN changes the meaning of learning and similarity.",
+      "chapters": [
+        "lda",
+        "gam",
+        "neighbors"
+      ]
+    },
+    {
+      "title": "Make and evaluate an inbox decision",
+      "description": "Compare candidates on validation, inspect their errors and select a threshold. Freeze the reasoned choice before the held-out test evaluation.",
+      "chapters": [
+        "decision"
+      ]
+    }
+  ],
+  "objectives": [
+    "Explain the dataset’s origin, its SMS-to-email limitations, class imbalance and the roles of training, CV, validation and test data.",
+    "Construct a keyword baseline, numerical features, count vectors and TF–IDF; explain what each representation preserves or discards.",
+    "Connect logistic coefficients and message-specific contributions to scores, probabilities and regularization.",
+    "Use leakage-safe pipelines and stratified CV to select hyperparameters without using the test set.",
+    "Compare LDA, a binomial additive spline model and KNN through their assumptions, visual mechanisms and validation errors.",
+    "Choose and justify a model and threshold, inspect both error types and report a frozen decision’s test result."
+  ],
+  "prerequisites": "Basic Python and NumPy; logistic regression and GLMs, LDA, classification evaluation, cross-validation, regularization, data preprocessing, GAMs and nearest neighbours. We connect these taught ideas to text classification; no SVM, tree or ensemble knowledge is required.",
+  "outcome": "An executed notebook covering every chapter, with transparent baselines, representation and model comparisons, training-only CV, a justified threshold, final test metrics and a documented limitation.",
+  "chapters": [
+    {
+      "id": "inbox",
+      "title": "Start with the inbox",
+      "question": "What should a spam filter actually do?",
+      "idea": "A filter makes decisions with consequences.",
+      "paragraphs": [
+        "Imagine an inbox receiving course announcements, personal messages and unsolicited promotions. A useful filter must catch unwanted messages while preserving legitimate ones. Missing a promotion and hiding an internship offer have different consequences. We label spam as 1 and legitimate messages (ham) as 0.",
+        "Before fitting a model, build a rule you can explain: flag a message when it contains free, win or prize. A whole-word rule avoids treating the letters “win” inside “window” as the word “win”. Nevertheless, “Are you free after class?” exposes a false alarm, while a spam message without your keywords can slip through.",
+        "We will use short, labelled SMS messages as a manageable text-classification dataset. The opening inbox cards are constructed examples, not measured dataset results. The next chapter establishes the original source, what this sample represents and why email performance cannot be inferred directly from it."
+      ],
+      "equation": "\\hat y=\\mathbb{1}\\{\\text{a selected keyword occurs}\\}",
+      "notation": [
+        [
+          "y=1",
+          "Spam is the positive class."
+        ],
+        [
+          "y=0",
+          "Ham is a legitimate message."
+        ],
+        [
+          "\\hat y",
+          "The decision produced by a rule or model."
+        ]
+      ],
+      "mechanism": [
+        "Read the constructed messages and compare the two types of mistake.",
+        "Edit the keyword list, apply the rule to validation messages, and inspect actual errors.",
+        "Use this rule and the always-ham classifier as reference points for learned models."
+      ],
+      "interpretation": "A rule supplies an explicit baseline. Its failures motivate combining evidence and learning from labelled examples.",
+      "functions": [
+        "tokens",
+        "rule_predict"
+      ],
+      "starter": "keywords = [\"free\", \"win\", \"prize\"]\nprediction = rule_predict(X_val, keywords)\nprint(\"Rule confusion:\", metrics(y_val, prediction)[\"confusion\"])\nfor text in [\"Are you free after class?\", \"Claim your prize now\"]:\n    print(text, \"→\", rule_predict([text], keywords)[0])",
+      "experiment": "Change one keyword and inspect which false positives or false negatives change. Explain the mechanism, including a normal use of the keyword."
+    },
+    {
+      "id": "data",
+      "title": "Know the data",
+      "question": "What does this dataset let us learn?",
+      "idea": "Data provenance and a fair split define the experiment.",
+      "paragraphs": [
+        "The original source is the SMS Spam Collection, compiled by Tiago Almeida and José María Gómez Hidalgo and described in a 2011 paper with Akira Yamakami. It combines Grumbletext spam complaints, the NUS volunteer SMS corpus, Caroline Tagg’s PhD messages and an earlier SMS spam corpus. It is a compiled English research corpus, not a random or chronological sample of current emails.",
+        "We use the original UCI archive directly: 5,574 labelled records in a tab-separated text file, with no CSV mirror or rewritten message text. Keep this exact source file fixed for reproducibility. Audit empty or placeholder texts and deduplicate by case/whitespace-normalized message identity before splitting, so copies cannot appear on both sides of an evaluation. Conflicting labels for the same identity cause a visible error rather than an arbitrary choice.",
+        "Use a fixed stratified 60/20/20 training/validation/test split. Training fits transformations and models; CV within training selects hyperparameters; validation compares complete candidates and chooses the decision threshold; test estimates the performance of the frozen decision. Detailed feature exploration below uses training data. Short text, clear labels and imbalance make this dataset useful for learning, but it lacks email headers, senders and subjects."
+      ],
+      "equation": "\\mathrm{Accuracy}_{\\text{always ham}}=\\frac{n_{\\mathrm{ham}}}{n}",
+      "notation": [
+        [
+          "n",
+          "The number of examples in the measured split."
+        ],
+        [
+          "n_{\\mathrm{ham}}",
+          "The legitimate-message count in that same split."
+        ],
+        [
+          "\\text{stratified split}",
+          "Preserve approximately the same class proportions in each split."
+        ]
+      ],
+      "mechanism": [
+        "Follow the audit counts from the original UCI records through quality checks and deduplication.",
+        "Inspect the three split sizes and compare the all-ham baseline with the task goal.",
+        "Explore labelled training messages; keep detailed test messages unseen until the final evaluation."
+      ],
+      "interpretation": "High accuracy can coexist with zero spam recall. Dataset prevalence and the positive-class convention are necessary to interpret a score.",
+      "functions": [
+        "load_data",
+        "decision_metrics",
+        "metrics"
+      ],
+      "starter": "print(\"Training / validation:\", len(X_train), len(X_val))\nprint(\"Training spam proportion:\", y_train.mean())\nbaseline = metrics(y_val, np.zeros(len(y_val)))\nprint(\"Always-ham accuracy:\", baseline[\"accuracy\"])\nprint(\"Always-ham recall:\", baseline[\"recall\"])",
+      "experiment": "Compare accuracy with spam recall for the always-ham baseline. Inspect repeated message identities and explain why deduplication precedes splitting."
+    },
+    {
+      "id": "features",
+      "title": "Build observable features",
+      "question": "What can we measure before understanding language?",
+      "idea": "A representation is a choice about which evidence to preserve.",
+      "paragraphs": [
+        "Begin with quantities a computer can measure directly: characters, tokens, URL prefixes, digits and exclamation marks. They turn each message into five numbers. The URL counter recognizes http://, https:// and www.; it does not validate a domain or detect every possible link. Digits include phone numbers and prices, but also times in legitimate messages.",
+        "Compare within-class distributions rather than raw counts: ham is much more common. Overlap matters more than a difference in averages. A feature can be informative without perfectly separating spam from ham. The final histogram bin includes the long tail so the plotted proportions sum to one.",
+        "Counts have different scales and skewed distributions. We use log(1+x) to compress long tails and a training-fitted StandardScaler when these features enter numerical models. Applying that fitted transformation to validation messages gives the same coordinates. Two different messages can share all five values, demonstrating what this representation discards."
+      ],
+      "equation": "x_j=\\text{measured count},\\quad u_j=\\log(1+x_j),\\quad z_j=\\frac{u_j-\\mu_{j,\\mathrm{train}}}{s_{j,\\mathrm{train}}}",
+      "notation": [
+        [
+          "x_j",
+          "One raw numerical feature."
+        ],
+        [
+          "\\mu_{j,\\mathrm{train}},s_{j,\\mathrm{train}}",
+          "Mean and scale learned only from training observations."
+        ],
+        [
+          "\\log(1+x)",
+          "Defined even when a count is zero."
+        ]
+      ],
+      "mechanism": [
+        "Edit a message and watch its five measured counts change.",
+        "Switch the feature histogram and compare normalized ham/spam distributions.",
+        "Inspect the length–digit scatterplot as a projection, then fit a numerical logistic baseline."
+      ],
+      "interpretation": "The scatterplot shows two observed features. It does not display every feature or prove that the full classification problem is separable.",
+      "functions": [
+        "numerical_features",
+        "build_model"
+      ],
+      "starter": "texts = [\"Are you free at 8?\", \"WIN £1000! Visit https://example.org now!!!\"]\nprint(\"Characters, words, links, digits, exclamations:\")\nprint(numerical_features(texts))\nmodel = build_model(representation=\"numeric\")\nmodel.fit(X_train, y_train)\nprint(\"Numerical baseline AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "experiment": "Change the text while preserving its character count or digit count. Identify what numerical features detect and what they cannot distinguish."
+    },
+    {
+      "id": "text",
+      "title": "Turn words into vectors",
+      "question": "How can the model use the actual words?",
+      "idea": "A shared vocabulary gives every message the same coordinates.",
+      "paragraphs": [
+        "Our explicit tokenizer lowercases text and extracts alphanumeric words. Construct a vocabulary from training documents, then count occurrences in each document. Every column has a fixed meaning. Transforming a new document reuses this vocabulary: unknown words contribute no new columns. Bag-of-words ignores order and punctuation; the separate numerical representation can preserve punctuation counts.",
+        "TF–IDF changes the scale of word evidence. Term frequency is multiplied by inverse document frequency, so words appearing in almost every training document receive less emphasis. Here scikit-learn uses smoothed IDF, log((1+n)/(1+df))+1, followed by L2 normalization of each nonzero document vector. It is a representation choice, not a guarantee of better classification.",
+        "The toy matrix deliberately includes every toy token. The real text pipelines keep at most 2,500 features and require a token to appear in at least two training documents. Real matrices remain sparse; only the small teaching matrix is made dense for display. Lowercasing, stopword removal and stemming make different tradeoffs: we retain stopwords and avoid stemming rather than automatically assuming they improve this task."
+      ],
+      "equation": "\\mathrm{idf}_j=\\log\\frac{1+n}{1+\\mathrm{df}_j}+1,\\quad v_j=\\mathrm{count}_j\\mathrm{idf}_j,\\quad x_j=\\frac{v_j}{\\|\\mathbf v\\|_2}",
+      "notation": [
+        [
+          "n",
+          "Number of documents used to fit the vectorizer."
+        ],
+        [
+          "\\mathrm{df}_j",
+          "Number of those documents containing word j."
+        ],
+        [
+          "\\mathbf x",
+          "L2-normalized TF–IDF vector; an empty vector stays zero."
+        ]
+      ],
+      "mechanism": [
+        "Click a vocabulary word to connect its column with occurrences in the toy training documents.",
+        "Transform your own message and inspect counts, TF–IDF values and ignored words.",
+        "Compare count and TF–IDF models on the same data split; inspect what bag-of-words loses."
+      ],
+      "interpretation": "fit learns a representation from training data. transform applies it. Rebuilding the vocabulary for each new message would destroy the meaning of the model’s weights.",
+      "functions": [
+        "tokens",
+        "build_model"
+      ],
+      "starter": "vectorizer = TfidfVectorizer(token_pattern=r\"(?u)\\b[a-z0-9]+\\b\")\ntoy = [\"free prize now\", \"are you free after class\", \"win a prize prize\"]\nX = vectorizer.fit_transform(toy)\nprint(\"Vocabulary:\", vectorizer.get_feature_names_out())\nprint(\"IDF:\", np.round(vectorizer.idf_, 3))\nprint(\"New message:\", vectorizer.transform([\"free meeting tomorrow\"]).toarray())",
+      "experiment": "Repeat a word, reorder a sentence, and introduce an unseen word. Explain the different effects on counts and normalized TF–IDF."
+    },
+    {
+      "id": "logistic",
+      "title": "Learn a weighted rule",
+      "question": "How do word counts become a spam score?",
+      "idea": "Logistic regression learns how to combine the available evidence.",
+      "paragraphs": [
+        "A linear score sums a bias and feature contributions. Positive contributions favor spam; negative ones favor ham. The sigmoid maps this score to a probability-shaped output. At threshold 0.5, the decision is exactly whether the score is nonnegative. The sigmoid does not turn the boundary into a nonlinear one in the chosen feature space.",
+        "Fitting minimizes cross-entropy, which responds to confidence as well as correctness. This is the same prediction/loss relationship used for image classification in Tutorial04; sklearn now handles optimization so we can focus on representations and validation. These fitted probabilities need not be calibrated on new populations.",
+        "Inspect the contribution w_j x_j for a specific message, not just a list of global weights. A large coefficient contributes nothing when its feature is zero. For TF–IDF, repeating a word can also change other coordinates through normalization. Edit the input and inspect the complete contribution sum, score and probability together."
+      ],
+      "equation": "z=b+\\sum_j w_jx_j,\\quad p=\\frac{1}{1+e^{-z}},\\quad \\ell=-y\\log p-(1-y)\\log(1-p)",
+      "notation": [
+        [
+          "w_jx_j",
+          "Contribution of feature j for this message."
+        ],
+        [
+          "b",
+          "The intercept; it shifts every message’s score."
+        ],
+        [
+          "p",
+          "Model estimate of P(spam | represented message)."
+        ]
+      ],
+      "mechanism": [
+        "Fit a count or TF–IDF classifier using training messages.",
+        "Inspect a message’s positive and negative contributions and the corresponding sigmoid position.",
+        "Change one word and explain the new score before comparing validation metrics."
+      ],
+      "interpretation": "These contributions explain the fitted model’s calculation. They describe associations and do not show that a word causes spam.",
+      "functions": [
+        "build_model",
+        "metrics"
+      ],
+      "starter": "model = build_model(representation=\"count\", C=1)\nmodel.fit(X_train, y_train)\ntext = \"Congratulations claim your free prize now\"\nx = model[:-1].transform([text])\nw = model.named_steps[\"classifier\"].coef_[0]\nb = model.named_steps[\"classifier\"].intercept_[0]\nz = float((x @ w)[0]) + b\nprint(\"Score / probability:\", z, 1 / (1 + np.exp(-z)))\nprint(\"Validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "experiment": "Replace a spam-associated word with a normal word. Explain the contribution change and distinguish the score from the classification decision."
+    },
+    {
+      "id": "regularization",
+      "title": "Control the fitted rule",
+      "question": "Should one rare word receive a huge weight?",
+      "idea": "Regularization trades training fit against sensitivity to the sample.",
+      "paragraphs": [
+        "A vocabulary can contain more features than there are spam examples. Some words may look decisive only because they occur in a few training messages. An L2 penalty discourages large coefficients, allowing the model to accept some training error rather than relying strongly on fragile evidence.",
+        "In sklearn LogisticRegression, smaller C means stronger regularization. The expression below captures the loss-plus-penalty principle; solver-specific normalization determines the exact mapping from C to lambda. Our liblinear solver also penalizes its synthetic intercept feature. Compare the same representation and split when changing C.",
+        "Fit the displayed C values and inspect weight norms alongside training and validation average precision. Strong regularization can underfit; weak regularization can fit training observations better without improving new predictions. The empirical curves need not have a perfect U shape. Do not select a value using test performance."
+      ],
+      "equation": "\\min_{\\mathbf w,b}\\;\\sum_i\\ell(y_i,p_i)+\\lambda\\|\\mathbf w\\|_2^2,\\qquad C\\downarrow\\Rightarrow\\text{stronger penalty}",
+      "notation": [
+        [
+          "\\lambda",
+          "Penalty strength in the conceptual objective."
+        ],
+        [
+          "C",
+          "sklearn inverse regularization control."
+        ],
+        [
+          "\\|\\mathbf w\\|_2",
+          "Magnitude of the fitted coefficient vector."
+        ]
+      ],
+      "mechanism": [
+        "Fit the same model over five C values with the representation fixed.",
+        "Compare training and validation AP, then inspect how the coefficient norm changes.",
+        "Carry the need for a less split-sensitive hyperparameter choice into five-fold CV."
+      ],
+      "interpretation": "Changing C changes fitting. Changing the classification threshold changes decisions after fitting. They solve different problems.",
+      "functions": [
+        "build_model"
+      ],
+      "starter": "for C in [.001, .01, .1, 1, 10]:\n    model = build_model(C=C)\n    model.fit(X_train, y_train)\n    p = model.predict_proba(X_val)[:, 1]\n    norm = np.linalg.norm(model.named_steps[\"classifier\"].coef_)\n    print(f\"C={C:g}, weight norm={norm:.3f}, validation AP={metrics(y_val, p)[\"average_precision\"]:.3f}\")",
+      "experiment": "Explain whether a larger weight norm helped validation performance in this experiment. Keep the representation fixed while comparing C."
+    },
+    {
+      "id": "validation",
+      "title": "Select with cross-validation",
+      "question": "What must be fitted again inside each fold?",
+      "idea": "Cross-validation evaluates the entire learning procedure.",
+      "paragraphs": [
+        "Five-fold stratified CV partitions the training split into five parts. Fit on four and score on the remaining part, repeat until each part has served as held-out data, then compare the mean average precision for each C. The spread across folds shows variation in these observed estimates; it is not a formal confidence interval.",
+        "Vocabulary, IDF, scaling and spline knots are learned quantities. Fitting them before CV gives the training procedure access to held-out inputs. The pipeline must be fitted independently inside every fold. Words seen only in a held-out fold stay unknown for that fold’s model, exactly as an unfamiliar word would at prediction time.",
+        "Select C from training-only CV, refit that pipeline on the complete training split, then compare candidates on validation. Validation also sets the final threshold. This tutorial keeps a separate validation split so these roles are visible. Neither the best CV score nor repeatedly optimized validation performance is an unbiased final report; the untouched test set supplies the final estimate."
+      ],
+      "equation": "\\mathrm{CV}(C)=\\frac{1}{5}\\sum_{f=1}^{5}\\mathrm{AP}\\!\\left(y_f,\\;\\widehat p_{-f,C}(X_f)\\right)",
+      "notation": [
+        [
+          "f",
+          "The held-out fold."
+        ],
+        [
+          "\\widehat p_{-f,C}",
+          "A complete pipeline fitted without fold f."
+        ],
+        [
+          "\\mathrm{AP}",
+          "Average precision, calculated from the ranking of spam scores."
+        ]
+      ],
+      "mechanism": [
+        "Select a held-out fold in the diagram and follow which data fit each pipeline stage.",
+        "Run CV and inspect every fold score and the vocabulary size learned in that fold.",
+        "Refit the selected C on all training messages and inspect its validation result."
+      ],
+      "interpretation": "CV prevents this preprocessing leakage when used correctly. It does not protect against repeatedly searching many choices and reporting the best observed score as a final estimate.",
+      "functions": [
+        "cross_validate",
+        "build_model"
+      ],
+      "starter": "rows = cross_validate(X_train, y_train, representation=\"count\")\nfor row in rows:\n    print(\"C / fold AP / mean:\", row[\"C\"], np.round(row[\"folds\"], 3), round(row[\"mean\"], 3))\nprint(\"Selected C:\", max(rows, key=lambda r: r[\"mean\"])[\"C\"])",
+      "experiment": "Follow the vectorizer.fit call in the fold loop. Explain why each vocabulary can have a different size while its corresponding classifier remains valid."
+    },
+    {
+      "id": "lda",
+      "title": "Model the class distributions",
+      "question": "What changes if we model the features within each class?",
+      "idea": "LDA reaches a linear rule by modelling class-conditional distributions.",
+      "paragraphs": [
+        "Logistic regression models a conditional probability directly. LDA instead models features given the class, with a Gaussian distribution per class and a shared covariance, then applies Bayes’ rule with estimated class priors. Shared covariance causes the quadratic terms to cancel, leaving a linear log-odds rule.",
+        "Apply LDA to the five transformed numerical features. We use log(1+x), training-fitted scaling and shrinkage covariance estimation to stabilize correlated or rare observations. We do not feed a huge sparse word matrix into a dense Gaussian model: representation and model assumptions must be considered together.",
+        "The plot shows standardized log-length and log-digit count. Its ellipses are one-standard-deviation contours from the fitted shared covariance, not regions containing all observations. The line is the two-feature marginal LDA rule including the fitted class priors. Reported validation metrics use all five features, so the plotted line is not the full classifier. Real counts have zeros and non-Gaussian shapes; check errors rather than assuming the model’s distribution is literally true."
+      ],
+      "equation": "\\log\\frac{P(y=1\\mid\\mathbf x)}{P(y=0\\mid\\mathbf x)}=(\\boldsymbol\\mu_1-\\boldsymbol\\mu_0)^\\top\\Sigma^{-1}\\mathbf x+b",
+      "notation": [
+        [
+          "\\boldsymbol\\mu_0,\\boldsymbol\\mu_1",
+          "Fitted feature means for ham and spam."
+        ],
+        [
+          "\\Sigma",
+          "Shared within-class covariance."
+        ],
+        [
+          "b",
+          "Includes the mean-offset terms and log class-prior ratio."
+        ]
+      ],
+      "mechanism": [
+        "Fit LDA on the same numerical features used by the numerical logistic baseline.",
+        "Inspect the means, shared-covariance ellipses and two-feature marginal boundary.",
+        "Compare validation results with numerical logistic regression to isolate the model change."
+      ],
+      "interpretation": "Comparing numerical LDA with a word-based model changes both representation and model. Use the numerical logistic baseline when attributing a difference to model assumptions.",
+      "functions": [
+        "build_model"
+      ],
+      "starter": "for kind in [\"logistic\", \"lda\"]:\n    model = build_model(kind=kind, representation=\"numeric\")\n    model.fit(X_train, y_train)\n    p = model.predict_proba(X_val)[:, 1]\n    print(kind, \"validation AP:\", metrics(y_val, p)[\"average_precision\"])",
+      "experiment": "Compare LDA and logistic regression with the same five features. Explain the shared-covariance assumption and the role of the class priors."
+    },
+    {
+      "id": "gam",
+      "title": "Allow smooth feature effects",
+      "question": "Must each extra character change the score by the same amount?",
+      "idea": "A binomial additive model allows each feature its own smooth effect.",
+      "paragraphs": [
+        "An ordinary numerical logistic model assigns a linear effect to each transformed feature. Perhaps increasing a message from 10 to 50 characters matters differently from increasing it from 400 to 440. Replace each linear term with a smooth function, while retaining the logistic link and additive structure.",
+        "We implement a binomial additive model with separate cubic spline bases for the five log-transformed numerical features, followed by regularized logistic regression. Spline knots and scaling are fitted on training data. This is a GAM construction; sklearn supplies the basis and classifier rather than a dedicated GAM estimator. The coefficient penalty is L2, not the derivative-based roughness penalty used by some GAM packages.",
+        "The curves vary one raw feature at a time, hold the others at their training medians and report the change in log-odds relative to that reference. These are model effects, not empirical conditional spam rates or causal effects. Curves use the observed range up to the 99th percentile; unusual combinations may be sparse. Additivity permits nonlinear individual effects but does not introduce interactions between features."
+      ],
+      "equation": "\\log\\frac{p}{1-p}=b+\\sum_{j=1}^{5}f_j(\\log(1+x_j)),\\quad f_j(u)=\\sum_m\\beta_{jm}B_{jm}(u)",
+      "notation": [
+        [
+          "f_j",
+          "A smooth fitted effect for numerical feature j."
+        ],
+        [
+          "B_{jm}",
+          "Cubic spline basis function m for feature j."
+        ],
+        [
+          "\\beta_{jm}",
+          "A coefficient fitted using the binomial loss and L2 penalty."
+        ]
+      ],
+      "mechanism": [
+        "Fit the additive spline model on the five numerical features.",
+        "Switch the displayed feature and read its centered effect in log-odds units.",
+        "Compare numerical logistic regression, LDA and the additive model on validation."
+      ],
+      "interpretation": "A flexible curve may describe training patterns better. Its usefulness on new messages must still be measured with the same held-out validation data.",
+      "functions": [
+        "build_model",
+        "numerical_features"
+      ],
+      "starter": "for kind in [\"logistic\", \"gam\"]:\n    model = build_model(kind=kind, representation=\"numeric\", C=1)\n    model.fit(X_train, y_train)\n    print(kind, \"validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "experiment": "Inspect a curved effect and explain how it differs from a constant coefficient. Compare models with the same numerical inputs and identify an interaction the additive model cannot express."
+    },
+    {
+      "id": "neighbors",
+      "title": "Learn from similar messages",
+      "question": "What makes two messages neighbours?",
+      "idea": "KNN replaces a global fitted rule with a local vote.",
+      "paragraphs": [
+        "KNN stores training examples and classifies a new input using its k closest neighbours. With uniform voting, its spam score is the fraction of spam neighbours. This makes individual predictions easy to inspect, though the fraction is not automatically a calibrated probability.",
+        "For numerical features, use Euclidean distance after log transformation and training-fitted standardization. For count or TF–IDF text, use cosine distance to focus on vector direction. These are choices about similarity. A short legitimate message and an unrelated message can still be neighbours when their representation discards important information.",
+        "Changing k trades a highly local, potentially noisy decision against a broader vote that can favor the majority class. Text features are sparse and high dimensional; zero overlap and tied distances can make neighbours uninformative. For a zero vector, cosine distance provides no useful direction. Inspect actual neighbour texts, labels and distances alongside validation metrics rather than assuming that “nearest” means semantically similar."
+      ],
+      "equation": "\\widehat p(\\mathbf x)=\\frac{1}{k}\\sum_{i\\in N_k(\\mathbf x)}y_i,\\qquad d_{\\cos}=1-\\frac{\\mathbf x^\\top\\mathbf x_i}{\\|\\mathbf x\\|\\|\\mathbf x_i\\|}",
+      "notation": [
+        [
+          "N_k(\\mathbf x)",
+          "The k nearest training observations under the chosen distance."
+        ],
+        [
+          "k",
+          "Neighbour count; no gradient-based classifier fitting is needed."
+        ],
+        [
+          "d_{\\cos}",
+          "Cosine distance for nonzero vectors."
+        ]
+      ],
+      "mechanism": [
+        "Choose a representation and k, then fit the pipeline with training messages.",
+        "Enter a message and inspect its nearest training texts, distances and labels.",
+        "Compare the local vote with a logistic model on the same representation."
+      ],
+      "interpretation": "The neighbour view explains which stored observations the classifier used. It also exposes poor similarity choices that a single performance number can hide.",
+      "functions": [
+        "build_model"
+      ],
+      "starter": "model = build_model(kind=\"knn\", representation=\"tfidf\", k=5)\nmodel.fit(X_train, y_train)\ntext = \"claim your free prize now\"\nvector = model[:-1].transform([text])\ndistance, index = model.named_steps[\"classifier\"].kneighbors(vector)\nfor d, i in zip(distance[0], index[0]):\n    print(round(d, 3), \"spam\" if y_train[i] else \"ham\", X_train[i])\nprint(\"Spam vote:\", model.predict_proba([text])[0, 1])",
+      "experiment": "Compare k=3 with k=15 under one representation. Inspect the added neighbours and explain how they change the vote and validation errors."
+    },
+    {
+      "id": "decision",
+      "title": "Choose the final decision",
+      "question": "How should scores become inbox actions?",
+      "idea": "Choose a model and threshold for the actual error tradeoff.",
+      "paragraphs": [
+        "A model supplies a score; a threshold turns that score into an action. Raising the threshold generally flags fewer messages and lowers recall. Precision need not improve at every individual threshold. A confusion matrix separates legitimate messages incorrectly blocked (FP) from spam incorrectly accepted (FN), so the consequences remain visible.",
+        "Precision is TP/(TP+FP); recall is TP/(TP+FN). The PR curve shows their tradeoff, and average precision summarizes ranking performance without choosing one threshold. Average precision is not the trapezoidal area under the displayed PR curve. Its constant-score reference is the positive-class prevalence. ROC plots recall against false-positive rate; a small FPR can still hide a meaningful number of false alarms in a large ham population.",
+        "Use validation to choose a candidate and threshold, considering the intended inbox policy and representative errors. Record the reason, freeze both choices, then evaluate on the test split once. We do not impose a universal cost ratio or a fixed precision target. Under calibrated probabilities and constant error costs, the equation below explains why unequal consequences change the threshold; our fitted probabilities need not meet that calibration assumption."
+      ],
+      "equation": "\\hat y=\\mathbb{1}[p\\geq t],\\qquad t_{\\mathrm{cost}}=\\frac{c_{\\mathrm{FP}}}{c_{\\mathrm{FP}}+c_{\\mathrm{FN}}}",
+      "notation": [
+        [
+          "t",
+          "Threshold chosen using development evidence."
+        ],
+        [
+          "c_{\\mathrm{FP}},c_{\\mathrm{FN}}",
+          "Assumed constant costs; the cost formula requires calibrated probabilities."
+        ],
+        [
+          "\\mathrm{FP},\\mathrm{FN}",
+          "Ham blocked versus spam accepted."
+        ]
+      ],
+      "mechanism": [
+        "Compare trained candidates, select one and move its validation threshold.",
+        "Read the linked confusion matrix, PR/ROC curves and actual false alarms or missed spam.",
+        "Record the model/threshold rationale, freeze the decision and run the final test. Export the complete record."
+      ],
+      "interpretation": "Final test results estimate performance for this fixed research-data split. They do not establish that the same threshold is suitable for modern email or another class prevalence.",
+      "functions": [
+        "metrics"
+      ],
+      "starter": "model = build_model(representation=\"tfidf\", C=1)\nmodel.fit(X_train, y_train)\np = model.predict_proba(X_val)[:, 1]\nfor t in [.2, .5, .8]:\n    result = metrics(y_val, p, t)\n    print(\"Threshold:\", t, \"precision:\", round(result[\"precision\"], 3), \"recall:\", round(result[\"recall\"], 3), \"confusion:\", result[\"confusion\"])",
+      "experiment": "Explain a threshold using validation evidence and the error consequences. Inspect both types of errors, then report the frozen decision’s test result and a dataset limitation."
+    }
+  ]
+}

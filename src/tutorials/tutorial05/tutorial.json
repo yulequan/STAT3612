@@ -1,0 +1,26 @@
+{
+  "id": "tutorial05",
+  "title": "Spam Email Classification",
+  "subtitle": "From simple rules to reliable decisions",
+  "experiment": "experiment.py",
+  "dataset": "data/SMSSpamCollection.txt",
+  "python_packages": [
+    "numpy",
+    "scipy",
+    "scikit-learn"
+  ],
+  "web_assets": [
+    "experiment.py",
+    "data/SMSSpamCollection.txt"
+  ],
+  "student_files": [
+    "tutorial05.ipynb",
+    "experiment.py",
+    "curriculum.json",
+    "requirements.txt",
+    "README.md",
+    "data/SMSSpamCollection.txt",
+    "data/README.md",
+    "data/SOURCE-LICENSE.txt"
+  ]
+}

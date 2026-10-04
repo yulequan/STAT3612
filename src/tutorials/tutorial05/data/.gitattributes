@@ -1,0 +1,2 @@
+# Preserve the original UCI file bytes, including its meaningful whitespace.
+SMSSpamCollection.txt -text -whitespace
