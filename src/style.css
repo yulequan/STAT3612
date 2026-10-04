@@ -3,11 +3,11 @@
 
 @theme {
   --font-sans: 'Helvetica Neue', Helvetica, Arial, 'Noto Sans CJK SC', sans-serif;
-  --color-ink: #191919;
-  --color-muted: #666666;
-  --color-accent: #d93820;
-  --color-line: #e2e2e0;
-  --color-paper: #fafaf9;
+  --color-ink: #202e3a;
+  --color-muted: #65717c;
+  --color-accent: #45657e;
+  --color-line: #e2e7eb;
+  --color-paper: #fbfcfd;
   --color-surface: #ffffff;
 }
 
@@ -89,7 +89,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #d93820;
+  outline: 3px solid #45657e;
   outline-offset: 4px;
 }
 .primary {
@@ -98,8 +98,8 @@ summary:focus-visible {
   border-color: var(--accent);
 }
 .primary:hover:not(:disabled) {
-  background: #b62e1b;
-  border-color: #b62e1b;
+  background: #334e66;
+  border-color: #334e66;
   color: white;
 }
 .text-button {
@@ -128,7 +128,7 @@ summary:focus-visible {
   top: 8px;
 }
 ::selection {
-  background: #f6d8d2;
+  background: #dce7ee;
 }
 main {
   min-width: 0;
@@ -142,7 +142,7 @@ main:focus {
   position: fixed;
   inset: 0 0 auto;
   z-index: 50;
-  background: #fafaf9f5;
+  background: #fbfcfdf5;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(15px);
   padding: 0 32px;
@@ -165,11 +165,10 @@ main:focus {
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 32px;
   flex-shrink: 0;
-  background: var(--accent);
-  color: white;
+  color: var(--accent);
 }
 .header-links {
   display: flex;
@@ -196,30 +195,12 @@ main:focus {
   overflow: hidden;
   z-index: 40;
 }
-.back-home {
-  font-size: 0.73rem;
-  text-decoration: none;
-  color: var(--muted);
-  padding: 0 10px;
-}
-.sidebar-title {
-  padding: 24px 10px 16px;
-}
 .eyebrow {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-}
-.sidebar-title h2 {
-  font-family: var(--font-sans);
-  font-size: 1.45rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--ink);
-  margin: 0 0 20px;
-  letter-spacing: -0.035em;
 }
 .chapter-search input {
   width: 100%;
@@ -257,12 +238,6 @@ main:focus {
   font-size: 0.76rem;
   line-height: 1.5;
   color: #61615e;
-}
-.sidebar nav a.active {
-  background: #f5e6e2;
-  color: #b62e1b;
-  font-weight: 600;
-  box-shadow: inset 2px 0 var(--accent);
 }
 .sidebar nav a:hover {
   background: #f0f0ed;
@@ -421,7 +396,7 @@ p {
   color: #666663;
 }
 .concept-note {
-  border-left: 3px solid #d93820;
+  border-left: 3px solid #45657e;
   padding: 10px 20px;
   margin: 24px 0;
   background: #f5f5f2;
@@ -605,7 +580,7 @@ p {
   padding: 18px 23px;
   margin: 24px 0;
   background: #f5f5f2;
-  border-left: 3px solid #d93820;
+  border-left: 3px solid #45657e;
   border-radius: 0 5px 5px 0;
 }
 .question > span {
@@ -647,7 +622,7 @@ textarea {
   display: block;
   width: 100%;
   border: 1px solid #d6d6d3;
-  background: #fafaf9;
+  background: #fbfcfd;
   border-radius: 5px;
   color: #333333;
   padding: 9px 10px;
@@ -1159,7 +1134,7 @@ td button {
   background: #f1f1ee80;
 }
 .python-editor .cm-editor.cm-focused {
-  outline: 2px solid #d93820;
+  outline: 2px solid #45657e;
   outline-offset: 1px;
 }
 .editor-actions {
@@ -1304,7 +1279,7 @@ td button {
 }
 .tutorial-list a {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 24px;
+  grid-template-columns: minmax(0, 1fr) 24px;
   gap: 22px;
   align-items: center;
   padding: 26px 12px;
@@ -1312,11 +1287,6 @@ td button {
 }
 .tutorial-list a:hover {
   background: var(--soft);
-}
-.tutorial-list-number {
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
 }
 .tutorial-list strong {
   display: block;
@@ -1410,7 +1380,7 @@ td button {
     padding: 0 22px;
   }
   .tutorial-list a {
-    grid-template-columns: 30px minmax(0, 1fr) 16px;
+    grid-template-columns: minmax(0, 1fr) 16px;
     gap: 14px;
     padding: 22px 0;
   }
@@ -1689,9 +1659,6 @@ td button {
   overflow-y: auto;
   padding-bottom: 18px;
 }
-.sidebar .course-outline > a {
-  font-weight: 600;
-}
 /* Compact hierarchy, following the handbook's separate link and caret rows. */
 .course-tree {
   list-style: none;
@@ -1714,8 +1681,7 @@ td button {
   background: #f0f0ed;
 }
 .tree-row.is-current {
-  background: #f5e6e2;
-  box-shadow: inset 2px 0 var(--accent);
+  background: #edf2f6;
 }
 .sidebar .tree-link {
   flex: 1;
@@ -1744,7 +1710,7 @@ td button {
   color: var(--ink);
 }
 .sidebar .is-current > .tree-link {
-  color: #b62e1b;
+  color: #334e66;
   font-weight: 600;
 }
 .tree-toggle {
@@ -1773,17 +1739,12 @@ td button {
   color: var(--muted);
 }
 .course-home h1 {
-  font-size: clamp(2.8rem, 5.2vw, 5rem);
-  max-width: 850px;
-  line-height: 1.02;
-  margin: 24px 0 32px;
-  letter-spacing: -0.065em;
-}
-.course-intro {
-  max-width: 540px;
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--muted);
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  font-weight: 500;
+  max-width: 900px;
+  line-height: 1.2;
+  margin: 0 0 20px;
+  letter-spacing: -0.045em;
 }
 .home-section {
   padding: 32px 0;
@@ -1882,10 +1843,7 @@ td button {
   color: var(--muted);
 }
 .course-instructor strong {
-  display: block;
-  margin-top: 4px;
   color: var(--ink);
-  font-size: 0.9rem;
   font-weight: 500;
 }
 .tutor-contact {
@@ -1903,27 +1861,10 @@ td button {
 .home-hero {
   padding-bottom: 48px;
 }
-.home-hero .eyebrow::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 10px;
-  vertical-align: 1px;
-  background: var(--accent);
-}
-.section-index {
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-}
 .material-arrow {
   flex-shrink: 0;
   color: var(--accent);
   transition: transform 150ms ease;
-}
-.material-title:hover .material-arrow {
-  transform: translateX(4px);
 }
 .course-endnote {
   margin: 24px 0 0;
@@ -1956,8 +1897,8 @@ td button {
     padding-bottom: 32px;
   }
   .course-home h1 {
-    font-size: clamp(2.65rem, 10.5vw, 4rem);
-    margin: 22px 0 28px;
+    font-size: 2rem;
+    margin: 0 0 20px;
   }
   .home-section {
     padding: 26px 0;
@@ -1970,8 +1911,5 @@ td button {
   }
   .home-materials > li {
     padding-bottom: 12px;
-  }
-  .course-intro {
-    font-size: 0.9rem;
   }
 }

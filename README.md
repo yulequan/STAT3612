@@ -12,9 +12,11 @@ Search reveals matching chapters without changing the saved expansion state. Use
 overview links or previous/next links to switch chapters. On phones, open **Menu**
 to access the same hierarchy.
 
-The Swiss-inspired interface uses a neutral palette, a restrained red accent, sans-serif
-typography and a numbered resource grid. A geometric sigma mark identifies the course in
-the header and favicon. Tailwind runs through its Vite plugin; colors and typography live
+The interface uses muted blue accents, neutral surfaces and sans-serif typography.
+Active sidebar entries use a pale background and stronger text without a vertical
+accent line. The course wordmark returns to the homepage; the sidebar has no duplicate
+Course home entry. The homepage lists course materials without decorative numbering
+or promotional copy. A plain sigma mark identifies the header and favicon. Tailwind runs through its Vite plugin; colors and typography live
 in the CSS theme. Fonts and assets stay local for offline use. The top bar carries only
 course branding and the mobile menu; course navigation lives in the sidebar. On phones,
 the menu focuses search, closes with Escape or a tap outside, and keeps the page behind

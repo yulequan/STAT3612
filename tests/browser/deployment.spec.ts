@@ -84,7 +84,7 @@ test('direct clean chapter URLs support refresh, history and rooted Python asset
   await page.goForward()
   await expect(page).toHaveURL(`${base}tutorials/tutorial04/model`)
   await expect(page).toHaveTitle('Make a prediction · STAT3612')
-  await page.getByRole('link', { name: 'Course home', exact: true }).click()
+  await page.locator('.site-brand').click()
   await expect(page).toHaveURL(base)
   expect(errors).toEqual([])
 })
@@ -100,6 +100,8 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   ).toBeVisible()
   await expect(main.getByText('Prof. Lequan Yu', { exact: true })).toBeVisible()
   await expect(page.locator('.header-links a')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Course home', exact: true })).toHaveCount(0)
+  await expect(outline).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
   for (const name of ['Tutorials', 'Demos']) {
@@ -154,6 +156,9 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   await outline.getByRole('button', { name: 'Toggle Tutorials', exact: true }).click()
   await outline.getByRole('link', { name: /Tutorial 04/ }).click()
   await expect(page).toHaveURL(`${base}tutorials/tutorial04/overview`)
+  const activeTab = outline.locator('.tree-row.is-current')
+  expect(await activeTab.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none')
+  expect(await activeTab.evaluate((el) => getComputedStyle(el).borderLeftWidth)).toBe('0px')
   await expect(page.locator('.tutorial-overview > :first-child')).toContainText(
     'Tutor: Yinghao Zhu',
   )
@@ -321,11 +326,7 @@ test('phone navigation and embedded demos fit the viewport', async ({ page }, in
     await frame.locator('body').evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy()
   await page.screenshot({ path: info.outputPath('embedded-mobile.png'), fullPage: true })
-  await page.getByRole('button', { name: 'Open course menu' }).click()
-  await page
-    .getByRole('navigation', { name: 'Course outline' })
-    .getByRole('link', { name: 'Course home', exact: true })
-    .click()
+  await page.locator('.site-brand').click()
   await expect(page.locator('iframe')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Statistical Machine Learning' })).toBeVisible()
 })

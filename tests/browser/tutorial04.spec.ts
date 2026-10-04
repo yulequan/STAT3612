@@ -193,7 +193,7 @@ test('course home offers a choice without starting Python and preserves the chos
   const worker = page.workers()[0]
   const editor = page.getByRole('textbox', { name: 'Editable Python experiment' })
   await editor.fill('print("my preserved experiment")')
-  await page.getByRole('link', { name: 'Course home', exact: true }).click()
+  await page.locator('.site-brand').click()
   await expect(
     page.getByRole('heading', { name: 'Statistical Machine Learning', exact: true }),
   ).toBeVisible()

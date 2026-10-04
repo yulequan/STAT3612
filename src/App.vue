@@ -152,12 +152,6 @@ watch(
       <input v-model="search" placeholder="Find course content…" type="search" />
     </label>
     <nav class="course-outline" aria-label="Course outline">
-      <a
-        :href="courseHref()"
-        :class="{ active: isHome }"
-        :aria-current="isHome ? 'page' : undefined"
-        >Course home</a
-      >
       <ul class="course-tree course-tree-root">
         <CourseNavItem
           v-for="item in outlineSections"
