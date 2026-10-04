@@ -12,7 +12,6 @@ const path = ref(readPath())
 const menuOpen = ref(false)
 const menuButton = ref<HTMLButtonElement>()
 const mobileViewport = window.matchMedia('(max-width: 850px)')
-const smallViewport = ref(mobileViewport.matches)
 const search = ref('')
 const sync = () => {
   path.value = readPath()
@@ -31,11 +30,10 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && menuOpen.value) closeMenu()
 }
 function onViewportChange(event: MediaQueryListEvent) {
-  smallViewport.value = event.matches
-  menuOpen.value = false
+  if (!event.matches) menuOpen.value = false
 }
 watch(menuOpen, async (open) => {
-  document.body.style.overflow = open && smallViewport.value ? 'hidden' : ''
+  document.body.style.overflow = open ? 'hidden' : ''
   if (open) {
     await nextTick()
     document.querySelector<HTMLInputElement>('.chapter-search input')?.focus()
@@ -82,11 +80,6 @@ const notebook = computed(() => courseHref(`tutorials/${lesson.value?.id}/studen
 function link(i: number) {
   return courseHref(`tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`)
 }
-function selectChapter(event: Event) {
-  const chapterId = (event.target as HTMLSelectElement).value
-  window.history.pushState(null, '', courseHref(`tutorials/${lesson.value!.id}/${chapterId}`))
-  sync()
-}
 function focusMain() {
   document.getElementById('main')?.focus()
 }
@@ -123,24 +116,15 @@ watch(
       ><span>STAT / SDST 3612<small>Statistical machine learning</small></span></a
     >
     <div class="header-links">
-      <nav class="primary-navigation" aria-label="Course sections">
-        <a
-          v-for="section in courseSections"
-          :key="section.id"
-          :href="courseHref(section.id)"
-          :aria-current="parts[0] === section.id ? 'page' : undefined"
-          >{{ section.title }}</a
-        >
-      </nav>
       <button
         ref="menuButton"
         class="mobile-menu"
         :aria-label="menuOpen ? 'Close course menu' : 'Open course menu'"
         :aria-expanded="menuOpen"
-        aria-controls="course-menu-panel"
+        aria-controls="course-sidebar"
         @click="menuOpen = !menuOpen"
       >
-        <span>Contents</span>
+        <span>Menu</span>
         <svg viewBox="0 0 20 20" width="18" height="18" fill="none" aria-hidden="true">
           <path
             :d="menuOpen ? 'm5 5 10 10M5 15 15 5' : 'M3 6h14M3 14h14'"
@@ -158,7 +142,7 @@ watch(
     aria-label="Dismiss course menu"
     @click="closeMenu"
   />
-  <aside id="course-menu-panel" class="course-menu-panel" :class="{ 'is-open': menuOpen }">
+  <aside id="course-sidebar" class="sidebar" :class="{ 'is-open': menuOpen }">
     <label class="chapter-search">
       <span class="sr-only">Find course content</span>
       <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true">
@@ -180,24 +164,12 @@ watch(
       </ul>
       <p v-if="searchQuery && !hasSearchResults" class="muted">No matching material.</p>
     </nav>
-  </aside>
-  <main id="main" tabindex="-1" class="lesson-main" :inert="menuOpen && smallViewport">
-    <div v-if="lesson" class="tutorial-navigation">
-      <label class="chapter-picker">
-        <span>Tutorial {{ lesson.number }}</span>
-        <select
-          aria-label="Tutorial chapter"
-          :value="chapter?.id || 'overview'"
-          @change="selectChapter"
-        >
-          <option value="overview">Overview</option>
-          <option v-for="item in lesson.chapters" :key="item.id" :value="item.id">
-            {{ item.title }}
-          </option>
-        </select>
-      </label>
-      <a :href="notebook" download>↓ Notebook + data</a>
+    <div v-if="lesson" class="sidebar-bottom">
+      <span class="eyebrow">TUTORIAL {{ lesson.number }} · MATERIALS</span>
+      <a class="download-link" :href="notebook" download>↓ Notebook + data</a>
     </div>
+  </aside>
+  <main id="main" tabindex="-1" class="lesson-main" :inert="menuOpen">
     <HomePage v-if="isHome" />
     <CourseCatalog v-else-if="catalog" :section="catalog" />
     <DemoPage v-else-if="demo" :key="demo.id" :demo="demo" />

@@ -214,7 +214,6 @@ test('course home offers a choice without starting Python and preserves the chos
     .getByRole('link', { name: /Overview/ })
     .click()
   await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)
-  await page.getByRole('button', { name: 'Open course menu' }).click()
   await page.getByLabel('Find course content').fill('gradient-does-not-exist')
   await expect(page.getByText('No matching material.')).toBeVisible()
   await page.goto('/tutorials/tutorial99/data')
@@ -362,8 +361,8 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
     ).toBeTruthy()
     await page.screenshot({ path: info.outputPath(`${chapter}-mobile.png`), fullPage: true })
   }
-  await expect(page.locator('.tutorial-navigation a[download]')).toBeInViewport()
   await page.getByRole('button', { name: 'Open course menu' }).click()
+  await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
   await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
   const outline = page.getByRole('navigation', { name: 'Course outline' })
   await expect(
@@ -372,6 +371,7 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   await page.screenshot({ path: info.outputPath('course-menu-mobile.png') })
   await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
   await expect(outline.getByRole('link', { name: 'Overview', exact: true })).toBeHidden()
+  await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
   await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
   await outline.getByRole('link', { name: 'Overview', exact: true }).click()
   await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)

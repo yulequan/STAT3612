@@ -3,18 +3,25 @@
 A Vue 3 + TypeScript + Tailwind CSS 4 website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
-The course homepage opens at `/` and lists **Lectures**, **Tutorials** and **Demos**.
-Desktop section links sit in the header; the course wordmark returns to the homepage.
-Content is centered without a permanent sidebar. **Contents** opens a searchable outline
-on desktop and phones. Its section and tutorial caret buttons expand independently;
-entering a tutorial reveals its chapter links. Search reveals matches without changing
-saved expansion state. Escape or an outside tap closes the outline.
+The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
+**Demos**. The homepage shows two levels: sections and their materials. The sidebar
+starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
+a tutorial (including a direct chapter URL) reveals its full chapter list. Separate caret
+buttons collapse each branch independently; navigation leaves other branches as they were.
+Search reveals matching chapters without changing the saved expansion state. Use the sidebar,
+overview links or previous/next links to switch chapters. On phones, open **Menu**
+to access the same hierarchy.
 
-Tutorial pages provide a chapter selector and one **Notebook + data** download above
-the content. Changing chapters keeps the current Python experiment alive. Previous/next
-links remain at the end of each chapter. The interface uses muted blue accents, neutral
-surfaces and sans-serif typography. Tailwind's Vite plugin supplies theme tokens and
-responsive utilities; fonts and assets stay local for offline use.
+The interface uses muted blue accents, neutral surfaces and sans-serif typography.
+Active sidebar entries use a pale background and stronger text without a vertical
+accent line. The course wordmark returns to the homepage; the sidebar has no duplicate
+Course home entry. The homepage lists course materials without decorative numbering
+or promotional copy. A plain sigma mark identifies the header and favicon. Tailwind runs through its Vite plugin; colors and typography live
+in the CSS theme. Fonts and assets stay local for offline use. The top bar carries only
+course branding and the mobile menu; course navigation lives in the sidebar. On phones,
+the menu focuses search, closes with Escape or a tap outside, and keeps the page behind
+it inactive. Search filters materials only when a query is entered. Lecture materials
+have not been published yet.
 The homepage identifies Prof. Lequan Yu as the instructor. Tutorial04's overview begins
 with the tutor's name and contact email.
 Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
@@ -96,7 +103,7 @@ Paths above are relative to the site root (`/STAT3612/` on GitHub Pages).
 The previous standalone demo overview is preserved at [`demo/`](https://yulequan.github.io/STAT3612/demo/).
 
 The original demos remain single-page HTML files in `public/`. `DemoPage.vue` embeds them
-in same-origin iframes within the course layout. Each frame resizes to its
+in same-origin iframes within the course header and sidebar. Each frame resizes to its
 content, keeping scrolling in the outer course page; navigating away removes the frame,
 including its timers and WebGL context. **Open standalone** opens the original page in a
 new tab. Demo calculations, controls and visualizations are unchanged. The only change to
@@ -175,8 +182,8 @@ restricted security sandbox; the provided namespace omits held-out test arrays.
 
 ## Notebook
 
-The single **Notebook + data** link above the tutorial content downloads a
-complete student zip on desktop and phones. Tutorial04 has
+The single **Notebook + data** link at the bottom of the tutorial sidebar downloads a
+complete student zip. On phones, open **Menu** to find it. Tutorial04 has
 one 35-cell notebook, including editable numerical functions, baseline outputs, a practical
 investigation and a bridge to alternative classifiers and convolution. Each web chapter links
 to its corresponding notebook section. File loading and image operations use its adjacent
@@ -230,7 +237,7 @@ If the default test ports (4173, 4174 and 4175) are occupied, set `TEST_PREVIEW_
 ## Add course materials
 
 Add published lecture links to `lectures` in `src/course.ts`. Add standalone demo metadata
-to `demos` in that file and place its HTML in `public/`. The shared catalogs and course outline
+to `demos` in that file and place its HTML in `public/`. The shared catalogs and sidebar
 use this registry; the course homepage never automatically opens a tutorial or demo.
 
 ## Add the next tutorial
