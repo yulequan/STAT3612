@@ -3,6 +3,42 @@ import { readFileSync, readdirSync } from 'node:fs'
 
 const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
 
+test('course shell fits small screens and mobile navigation supports dismissal', async ({
+  page,
+}) => {
+  await page.goto(base)
+  await expect(page.locator('.site-header')).not.toContainText('2026')
+  await expect(page.locator('.brand-mark svg')).toBeVisible()
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      `${width}px`,
+    ).toBeTruthy()
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
+  const open = page.getByRole('button', { name: 'Open course menu', exact: true })
+  await open.click()
+  await expect(page.getByLabel('Find course content')).toBeFocused()
+  await expect(page.locator('main')).toHaveAttribute('inert', '')
+  await page.keyboard.press('Escape')
+  await expect(open).toBeFocused()
+  await expect(open).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.locator('main')).not.toHaveAttribute('inert', '')
+  await open.click()
+  await page
+    .getByRole('button', { name: 'Dismiss course menu' })
+    .click({ position: { x: 378, y: 20 } })
+  await expect(open).toHaveAttribute('aria-expanded', 'false')
+  await expect(open).toBeFocused()
+  await open.click()
+  await page.setViewportSize({ width: 1024, height: 844 })
+  await expect(page.locator('main')).not.toHaveAttribute('inert', '')
+  await expect(page.getByRole('button', { name: 'Dismiss course menu' })).toHaveCount(0)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(open).toHaveAttribute('aria-expanded', 'false')
+})
+
 test('every generated course entry is served by an ordinary static server', async ({ request }) => {
   const entries = readdirSync('dist', { recursive: true }).filter(
     (file) =>
@@ -260,12 +296,12 @@ test('tutorial Python, downloads and standalone demos work under a Pages subdire
 test('phone navigation and embedded demos fit the viewport', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(base)
-  await page.getByRole('button', { name: 'Course menu +' }).click()
+  await page.getByRole('button', { name: 'Open course menu' }).click()
   await page
     .getByRole('navigation', { name: 'Course outline' })
     .getByRole('link', { name: 'Gradient Descent Step by Step', exact: true })
     .click()
-  await expect(page.getByRole('button', { name: 'Course menu +' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Open course menu' })).toHaveAttribute(
     'aria-expanded',
     'false',
   )
@@ -285,7 +321,7 @@ test('phone navigation and embedded demos fit the viewport', async ({ page }, in
     await frame.locator('body').evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy()
   await page.screenshot({ path: info.outputPath('embedded-mobile.png'), fullPage: true })
-  await page.getByRole('button', { name: 'Course menu +' }).click()
+  await page.getByRole('button', { name: 'Open course menu' }).click()
   await page
     .getByRole('navigation', { name: 'Course outline' })
     .getByRole('link', { name: 'Course home', exact: true })

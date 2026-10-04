@@ -8,7 +8,7 @@ const reference = JSON.parse(
 )
 
 async function selectChapter(page: Page, chapter: string) {
-  const menu = page.getByRole('button', { name: 'Course menu +' })
+  const menu = page.getByRole('button', { name: 'Open course menu' })
   if (await menu.isVisible()) await menu.click()
   await page
     .getByRole('navigation', { name: 'Course outline' })
@@ -361,7 +361,7 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
     ).toBeTruthy()
     await page.screenshot({ path: info.outputPath(`${chapter}-mobile.png`), fullPage: true })
   }
-  await page.getByRole('button', { name: 'Course menu +' }).click()
+  await page.getByRole('button', { name: 'Open course menu' }).click()
   await expect(page.locator('.sidebar-bottom a[download]')).toBeInViewport()
   await expect(page.locator('a[download][href$="student.zip"]')).toHaveCount(1)
   const outline = page.getByRole('navigation', { name: 'Course outline' })
@@ -375,7 +375,7 @@ test('phone home, chapter menu, equations and editor stay within the viewport', 
   await outline.getByRole('button', { name: /Toggle Tutorial 04/ }).click()
   await outline.getByRole('link', { name: 'Overview', exact: true }).click()
   await expect(page).toHaveURL(/\/tutorials\/tutorial04\/overview$/)
-  await expect(page.getByRole('button', { name: 'Course menu +' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Open course menu' })).toHaveAttribute(
     'aria-expanded',
     'false',
   )
