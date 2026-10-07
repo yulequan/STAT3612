@@ -30,6 +30,23 @@ export const demos: Demo[] = [
   },
 ]
 
+export const quizzes: CourseItem[] = [
+  {
+    id: 'lecture-3-classification',
+    title: 'Lecture 3 · Classification',
+    description:
+      'Check your understanding of classification, GLMs, discriminant analysis and evaluation.',
+    href: courseHref('quizzes/lecture-3-classification.html'),
+  },
+  {
+    id: 'lecture-4-model-selection',
+    title: 'Lecture 4 · Model Selection & Feature Engineering',
+    description:
+      'Reason through cross-validation, regularization, preprocessing, polynomial regression and GAM.',
+    href: courseHref('quizzes/lecture-4-model-selection.html'),
+  },
+]
+
 export const courseSections: CourseSection[] = [
   {
     id: 'lectures',
@@ -67,6 +84,12 @@ export const courseSections: CourseSection[] = [
     title: 'Demos',
     description: 'Interactive demonstrations to explore how the methods work.',
     items: demos,
+  },
+  {
+    id: 'quizzes',
+    title: 'Quizzes',
+    description: 'Self-check questions with explanations for each lecture topic.',
+    items: quizzes,
   },
 ]
 
