@@ -14,7 +14,10 @@ try {
   const { tutorials } = await server.ssrLoadModule('/src/tutorials/index.ts')
   const routes = new Set()
   function collect(item) {
-    routes.add(item.href.slice(1))
+    const route = item.href.slice(1)
+    // Public assets such as standalone quizzes are copied by Vite and already
+    // have a concrete file path. Only generate directory entries for SPA URLs.
+    if (!/\.[^/]+$/.test(route)) routes.add(route)
     item.children?.forEach(collect)
   }
   for (const section of courseSections) {
