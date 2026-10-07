@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STAT3612 Quiz: Cross-validation, Regularization & Feature Engineering</title>
+    <style>
+      :root {
+        --bg: #f7f8fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #667085;
+        --border: #d8dee9;
+        --accent: #1f5fbf;
+        --accent-soft: #edf4ff;
+        --answer: #f3f8f4;
+        --answer-border: #b7d7bd;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          Arial,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+      }
+      .container {
+        width: min(940px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 32px 0 64px;
+      }
+      .course-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 26px;
+        font-size: 14px;
+      }
+      .course-nav a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 650;
+      }
+      .course-nav a:hover {
+        text-decoration: underline;
+      }
+      header {
+        margin-bottom: 28px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.15;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin: 0;
+        font-size: 16px;
+      }
+      .quiz-meta {
+        color: var(--muted);
+        margin: 8px 0 0;
+        font-size: 14px;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 22px 0 28px;
+      }
+      button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: white;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-size: 14px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: white;
+        color: var(--accent);
+      }
+      button:hover {
+        filter: brightness(0.97);
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #93b8f0;
+        outline-offset: 3px;
+      }
+      .section-title {
+        margin: 34px 0 12px;
+        font-size: 22px;
+      }
+      .question-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 14px 0;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+      }
+      .qnum {
+        color: var(--accent);
+        font-weight: 750;
+        margin-bottom: 6px;
+      }
+      .question {
+        font-size: 17px;
+        font-weight: 650;
+        margin: 0 0 12px;
+      }
+      .options {
+        margin: 0 0 16px 0;
+        padding-left: 24px;
+      }
+      .options li {
+        margin: 7px 0;
+        padding-left: 4px;
+      }
+      .answer {
+        display: none;
+        margin-top: 14px;
+        padding: 14px 16px;
+        background: var(--answer);
+        border: 1px solid var(--answer-border);
+        border-radius: 9px;
+      }
+      .answer.show {
+        display: block;
+      }
+      .answer strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .source {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 7px;
+      }
+      .formula {
+        font-family: 'Times New Roman', serif;
+        font-size: 1.05em;
+        white-space: normal;
+      }
+      footer {
+        color: var(--muted);
+        margin-top: 36px;
+        font-size: 13px;
+        text-align: center;
+      }
+      @media (max-width: 640px) {
+        .container {
+          width: min(100% - 20px, 940px);
+          padding-top: 20px;
+        }
+        .question-card {
+          padding: 16px;
+        }
+        .question {
+          font-size: 16px;
+        }
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .container {
+          width: 100%;
+          padding: 0;
+        }
+        .course-nav,
+        .toolbar,
+        .toggle-btn {
+          display: none !important;
+        }
+        .question-card {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="course-nav" aria-label="Course navigation">
+        <a href="../">← All quizzes</a>
+        <a href="../../">Course home</a>
+      </nav>
+      <header>
+        <h1>STAT3612 Lecture 4 Quiz</h1>
+        <p class="subtitle">
+          Cross-validation, bias-variance, regularized linear models, feature engineering, and GAM
+        </p>
+        <p class="quiz-meta">
+          18 questions · 16 multiple choice + 2 true/false · Choose the single best answer.
+        </p>
+      </header>
+
+      <div class="toolbar">
+        <button id="showAll">Show All Answers</button>
+        <button id="hideAll" class="secondary">Hide All Answers</button>
+      </div>
+
+      <h2 class="section-title">Part A. Multiple Choice</h2>
+
+      <div class="question-card">
+        <div class="qnum">Question 1</div>
+        <p class="question">
+          A team uses 5-fold cross-validation to compare ridge penalties. Before making the folds,
+          it standardizes every predictor using the mean and standard deviation of the entire
+          dataset. What is the main problem?
+        </p>
+        <ol class="options" type="A">
+          <li>The ridge objective can no longer be optimized.</li>
+          <li>
+            Information from each validation fold influences its own preprocessing, making the CV
+            estimate optimistic.
+          </li>
+          <li>Standardization forces all ridge coefficients to be zero.</li>
+          <li>Five-fold CV may only be used with unscaled predictors.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Cross-validation should evaluate the whole learning procedure. The scaler must be fitted
+          on each training fold and then applied to that fold's validation data; otherwise the
+          held-out data leak into model preparation.
+          <div class="source">Lecture 4.1, slides 27 and 31; Lecture 4.2, slides 5-6.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 2</div>
+        <p class="question">
+          Five-fold CV selects a degree-3 polynomial model. Which action should normally follow?
+        </p>
+        <ol class="options" type="A">
+          <li>Keep the one fold-specific model with the smallest validation error.</li>
+          <li>Average the five coefficient vectors and deploy the average.</li>
+          <li>
+            Discard the fold-specific fits and refit the selected degree-3 procedure on all
+            available training data.
+          </li>
+          <li>Choose degree 5 because five folds were used.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: C</strong>
+          The fold-specific fits estimate the performance of a procedure. Once the procedure is
+          selected, it is trained again using the full training dataset.
+          <div class="source">Lecture 4.1, slides 30-31.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 3</div>
+        <p class="question">
+          Two researchers use different random 50/50 training-validation splits and obtain
+          noticeably different validation errors. Which explanation best matches the lecture?
+        </p>
+        <ol class="options" type="A">
+          <li>
+            A single validation estimate can be highly variable, and models fitted on only half the
+            observations may perform worse than a final model fitted on all observations.
+          </li>
+          <li>The test error of any model is undefined unless LOOCV is used.</li>
+          <li>
+            Validation error must always underestimate the error of the model fitted on all data.
+          </li>
+          <li>The two researchers must have used different response variables.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: A</strong>
+          A single split depends strongly on which observations land in each part. Because fewer
+          observations are used for fitting, its error may also overestimate the error of the final
+          all-data fit.
+          <div class="source">Lecture 4.1, slide 26.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 4</div>
+        <p class="question">
+          At the same test point, Model A has squared bias 4 and variance 9, while Model B has
+          squared bias 9 and variance 2. Assume both face the same irreducible error. Which model
+          has lower expected test MSE at that point?
+        </p>
+        <ol class="options" type="A">
+          <li>Model A, because its bias is lower.</li>
+          <li>Model B, because 9 + 2 is smaller than 4 + 9.</li>
+          <li>They are equal because bias and variance always offset exactly.</li>
+          <li>It cannot be compared without knowing the training MSE.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Ignoring the common irreducible error, Model A contributes 13 and Model B contributes 11.
+          Lower bias alone does not guarantee lower test MSE.
+          <div class="source">Lecture 4.1, slides 18-23.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 5</div>
+        <p class="question">
+          Only 5% of observations belong to the positive class. Why is stratified 5-fold CV usually
+          preferable to an ordinary random split into folds?
+        </p>
+        <ol class="options" type="A">
+          <li>It makes every fold contain exactly the same observations.</li>
+          <li>
+            It approximately preserves the class proportions in each fold, reducing the chance of
+            unrepresentative validation folds.
+          </li>
+          <li>It guarantees identical fitted coefficients across folds.</li>
+          <li>It converts the classification task into regression.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Stratification keeps each fold's target-class mix close to that of the complete dataset,
+          which is especially useful for imbalanced classification.
+          <div class="source">Lecture 4.1, slide 29.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 6</div>
+        <p class="question">
+          The same predictor is recorded once in dollars and once in thousands of dollars. With no
+          standardization, why can ridge regression produce different fitted results after this unit
+          change?
+        </p>
+        <ol class="options" type="A">
+          <li>Ridge penalizes residuals rather than coefficients.</li>
+          <li>
+            The numerical scale changes the coefficient required for the same prediction and
+            therefore changes its contribution to the penalty.
+          </li>
+          <li>Ordinary least squares is also never invariant to a change of units.</li>
+          <li>The intercept is always multiplied by the predictor's unit.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Ridge penalizes coefficient magnitudes. Rescaling a predictor changes the coefficient
+          magnitude needed to represent the same effect, so predictors should usually be
+          standardized first.
+          <div class="source">Lecture 4.1, slide 39.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 7</div>
+        <p class="question">
+          Starting from <span class="formula">λ = 0</span>, suppose the ridge penalty is gradually
+          increased. Which pattern is most consistent with the lecture?
+        </p>
+        <ol class="options" type="A">
+          <li>
+            Bias tends to decrease, variance tends to increase, and coefficients move away from
+            zero.
+          </li>
+          <li>
+            Bias tends to increase, variance tends to decrease, and coefficients move toward zero.
+          </li>
+          <li>Both bias and variance must decrease monotonically.</li>
+          <li>
+            The fit remains identical to ordinary least squares for every finite
+            <span class="formula">λ</span>.
+          </li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          At <span class="formula">λ = 0</span>, ridge equals OLS. Stronger regularization shrinks
+          coefficients, typically trading higher bias for lower variance.
+          <div class="source">Lecture 4.1, slide 43.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 8</div>
+        <p class="question">
+          You have 200 standardized predictors and believe only a small subset is useful. You also
+          want the fitted model itself to remove irrelevant predictors. Which method most directly
+          targets this goal?
+        </p>
+        <ol class="options" type="A">
+          <li>
+            Ridge regression, because every finite penalty makes many coefficients exactly zero.
+          </li>
+          <li>Lasso regression, because its L1 penalty can yield sparse coefficient estimates.</li>
+          <li>Ordinary least squares, because it automatically performs subset selection.</li>
+          <li>Row normalization, because it deletes low-variance columns.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Lasso performs shrinkage and automatic variable selection by allowing some coefficients to
+          be exactly zero.
+          <div class="source">Lecture 4.1, slides 45 and 48.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 9</div>
+        <p class="question">
+          Several genuinely useful predictors are strongly correlated. You want shrinkage but prefer
+          the group to be retained together rather than having one predictor selected somewhat
+          arbitrarily. Which choice is most appropriate?
+        </p>
+        <ol class="options" type="A">
+          <li>Pure lasso</li>
+          <li>Elastic Net</li>
+          <li>Univariate min-max scaling</li>
+          <li>Leave-one-out cross-validation without regularization</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Elastic Net combines L1 and L2 penalties and is useful when predictors are correlated;
+          compared with pure lasso, it is more likely to retain correlated predictors together.
+          <div class="source">Lecture 4.1, slide 50.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 10</div>
+        <p class="question">
+          There are <span class="formula">n = 80</span> observations and
+          <span class="formula">p = 500</span> predictors. Which statement about stepwise subset
+          selection is best?
+        </p>
+        <ol class="options" type="A">
+          <li>
+            Backward selection is natural because the full least-squares model is always available.
+          </li>
+          <li>
+            Forward selection can still be used, while backward selection cannot start from a
+            uniquely fitted full least-squares model.
+          </li>
+          <li>Best subset selection is easy because <span class="formula">n</span> is small.</li>
+          <li>
+            Neither forward nor backward selection depends on the relation between
+            <span class="formula">n</span> and <span class="formula">p</span>.
+          </li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Backward selection requires fitting the full model and therefore requires
+          <span class="formula">n &gt; p</span> in this treatment. Forward selection starts with no
+          predictors and remains viable when <span class="formula">n &lt; p</span>.
+          <div class="source">Lecture 4.1, slide 61.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 11</div>
+        <p class="question">
+          Forward stepwise selection returns a four-predictor model. What can be concluded about it?
+        </p>
+        <ol class="options" type="A">
+          <li>It must be the globally best four-predictor model among all possible subsets.</li>
+          <li>
+            It is the best model along the greedy sequence considered, but a different
+            four-predictor subset may fit better.
+          </li>
+          <li>It must match the four-predictor model chosen by lasso.</li>
+          <li>
+            It has evaluated all <span class="formula">2<sup>p</sup></span> possible subsets.
+          </li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          Stepwise methods search a restricted, greedy path. They are computationally cheaper than
+          best subset selection but are not guaranteed to find the global best subset of a given
+          size.
+          <div class="source">Lecture 4.1, slides 58-61.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 12</div>
+        <p class="question">
+          A nominal feature <em>Color</em> has values red, green, and blue, with no natural order.
+          Which representation avoids imposing an artificial ranking?
+        </p>
+        <ol class="options" type="A">
+          <li>red = 0, green = 1, blue = 2 in a single column</li>
+          <li>Three one-hot binary columns</li>
+          <li>The z-score of each color name</li>
+          <li>The L2 norm of the category label</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          One-hot encoding represents each category with its own binary indicator. A single
+          integer-coded column can suggest an ordering or spacing that is not present.
+          <div class="source">Lecture 4.2, slide 11.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 13</div>
+        <p class="question">
+          A data matrix contains one row per document and one column per word count. Which operation
+          matches <em>normalization</em> as defined in the lecture?
+        </p>
+        <ol class="options" type="A">
+          <li>Center each word column and divide by its standard deviation.</li>
+          <li>Scale each document row to have unit L1 or L2 norm.</li>
+          <li>Map every column independently to the interval [0, 1] only.</li>
+          <li>Replace every missing entry with the column mean.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          The lecture distinguishes feature-wise standardization (columns) from sample-wise
+          normalization (rows) to unit norm.
+          <div class="source">Lecture 4.2, slides 6 and 10.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 14</div>
+        <p class="question">
+          A second-degree expansion of two predictors includes
+          <span class="formula">x₁, x₂, x₁², x₁x₂, x₂²</span>. Which term lets the effect of
+          <span class="formula">x₁</span> depend on the value of <span class="formula">x₂</span>?
+        </p>
+        <ol class="options" type="A">
+          <li><span class="formula">x₁</span></li>
+          <li><span class="formula">x₁²</span></li>
+          <li><span class="formula">x₁x₂</span></li>
+          <li><span class="formula">x₂²</span></li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: C</strong>
+          The product term is an interaction: changing <span class="formula">x₂</span> changes the
+          slope associated with <span class="formula">x₁</span>.
+          <div class="source">Lecture 4.2, slides 15-16.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 15</div>
+        <p class="question">
+          Why can a polynomial regression such as
+          <span class="formula">y = β₀ + β₁x + β₂x² + ε</span> still be fitted with linear
+          regression machinery?
+        </p>
+        <ol class="options" type="A">
+          <li>Its fitted curve must be a straight line in <span class="formula">x</span>.</li>
+          <li>
+            It is linear in the unknown coefficients after the polynomial features are constructed.
+          </li>
+          <li>The squared feature is treated as a new response variable.</li>
+          <li>Polynomial regression contains no tuning choices and cannot overfit.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: B</strong>
+          The relationship can be nonlinear in the input while remaining linear in
+          <span class="formula">β₀, β₁, β₂</span>.
+          <div class="source">Lecture 4.2, slide 16.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 16</div>
+        <p class="question">
+          Consider <span class="formula">y = β₀ + f₁(x₁) + f₂(x₂) + ε</span>. Which statement best
+          describes this GAM?
+        </p>
+        <ol class="options" type="A">
+          <li>
+            Each predictor may have a nonlinear effect, while the additive structure allows the
+            effects to be inspected separately.
+          </li>
+          <li>
+            The model automatically represents every possible interaction between
+            <span class="formula">x₁</span> and <span class="formula">x₂</span>.
+          </li>
+          <li>
+            Both <span class="formula">f₁</span> and <span class="formula">f₂</span> must be
+            straight lines.
+          </li>
+          <li>Additivity guarantees zero training and test error.</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: A</strong>
+          A classical GAM combines flexible univariate effects additively. That makes each effect
+          easier to visualize, but arbitrary interactions require additional terms.
+          <div class="source">Lecture 4.2, slides 21-22.</div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Part B. True / False</h2>
+
+      <div class="question-card">
+        <div class="qnum">Question 17</div>
+        <p class="question">
+          True or False: For a finite positive value of <span class="formula">λ</span>, ridge
+          regression will typically set some predictor coefficients exactly to zero.
+        </p>
+        <ol class="options" type="A">
+          <li>True</li>
+          <li>False</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: False</strong>
+          Ridge usually shrinks all coefficients toward zero without making them exactly zero. Exact
+          sparsity is the characteristic emphasized for lasso.
+          <div class="source">Lecture 4.1, slide 45.</div>
+        </div>
+      </div>
+
+      <div class="question-card">
+        <div class="qnum">Question 18</div>
+        <p class="question">
+          True or False: If each non-constant feature is z-score standardized, its mean becomes
+          approximately zero and its standard deviation becomes one, but the transformation does not
+          by itself make a skewed distribution Gaussian.
+        </p>
+        <ol class="options" type="A">
+          <li>True</li>
+          <li>False</li>
+        </ol>
+        <button class="toggle-btn">Show Answer</button>
+        <div class="answer">
+          <strong>Answer: True</strong>
+          Z-score standardization changes location and scale. It does not generally change the
+          distributional shape.
+          <div class="source">Lecture 4.2, slides 6-7.</div>
+        </div>
+      </div>
+
+      <footer>STAT/SDST 3612 · Statistical Machine Learning · Static offline quiz</footer>
+    </div>
+
+    <script>
+      const toggleButtons = document.querySelectorAll('.toggle-btn')
+
+      toggleButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const answer = btn.nextElementSibling
+          const visible = answer.classList.toggle('show')
+          btn.textContent = visible ? 'Hide Answer' : 'Show Answer'
+          btn.setAttribute('aria-expanded', String(visible))
+        })
+        btn.setAttribute('aria-expanded', 'false')
+      })
+
+      document.getElementById('showAll').addEventListener('click', () => {
+        document.querySelectorAll('.answer').forEach((answer) => answer.classList.add('show'))
+        toggleButtons.forEach((btn) => {
+          btn.textContent = 'Hide Answer'
+          btn.setAttribute('aria-expanded', 'true')
+        })
+      })
+
+      document.getElementById('hideAll').addEventListener('click', () => {
+        document.querySelectorAll('.answer').forEach((answer) => answer.classList.remove('show'))
+        toggleButtons.forEach((btn) => {
+          btn.textContent = 'Show Answer'
+          btn.setAttribute('aria-expanded', 'false')
+        })
+      })
+    </script>
+  </body>
+</html>
