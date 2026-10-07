@@ -138,6 +138,9 @@ def cross_validate(messages, labels, representation='count', values=(.01, .1, 1.
 class Experiment:
     def __init__(self, path):
         self.messages, self.labels, self.splits, self.audit = load_data(path)
+        with open(path, encoding='utf-8-sig') as handle:
+            # The first lines exactly as stored: label, tab, message.
+            self.preview = [handle.readline().rstrip('\n') for _ in range(6)]
         self.X_train = self.messages[self.splits['train']]
         self.y_train = self.labels[self.splits['train']]
         self.X_val = self.messages[self.splits['validation']]
@@ -163,7 +166,14 @@ class Experiment:
                 counts_j = np.histogram(np.minimum(values, edges[-1] - 1e-9), edges)[0]
                 groups.append((counts_j / len(values)).tolist())
             distributions.append({'name': name, 'edges': edges.tolist(), 'groups': groups})
-        return {'raw': self.audit['raw'], 'excluded': self.audit['excluded'], 'unique': len(self.messages),
+        # Train and validation rows for the in-page data table; test stays hidden.
+        table = []
+        for split in ('train', 'validation'):
+            ix = self.splits[split]
+            for i, values in zip(ix, numerical_features(self.messages[ix])):
+                table.append({'split': split, 'label': int(self.labels[i]),
+                              'text': str(self.messages[i]), 'features': values.tolist()})
+        return {'raw': self.audit['raw'], 'preview': self.preview, 'table': table, 'excluded': self.audit['excluded'], 'unique': len(self.messages),
                 'duplicates': self.audit['raw'] - self.audit['excluded'] - len(self.messages), 'counts': counts,
                 'examples': examples, 'distributions': distributions,
                 'baseline': metrics(self.y_val, np.zeros(len(self.y_val))),
@@ -212,15 +222,23 @@ class Experiment:
                'validation': metrics(self.y_val, probability),
                'parameters': int(model.named_steps['classifier'].coef_.size)
                if hasattr(model.named_steps['classifier'], 'coef_') else len(self.X_train),
-               'thresholds': [decision_metrics(self.y_val, probability, i / 100) for i in range(101)]}
+               'thresholds': [decision_metrics(self.y_val, probability, i / 100) for i in range(101)],
+               # Validation score counts per class in 20 equal bins on [0, 1].
+               'histogram': [np.histogram(probability[self.y_val == c], 20, (0, 1))[0].tolist()
+                             for c in (0, 1)]}
         self.runs[run_id] = {'model': model, 'row': row, 'probability': probability}
         return row
 
     def regularization(self, params):
         rows = [self.fit({'C': C, 'representation': params.get('representation', 'count')})
                 for C in (.001, .01, .1, 1., 10.)]
-        return {'rows': rows, 'weights': [float(np.linalg.norm(
-            self.runs[row['id']]['model'].named_steps['classifier'].coef_)) for row in rows]}
+        models = [self.runs[row['id']]['model'] for row in rows]
+        coefficients = np.vstack([m.named_steps['classifier'].coef_[0] for m in models])
+        # Follow the eight words with the largest weights at the weakest penalty.
+        words = models[-1].named_steps['vectorizer'].get_feature_names_out()
+        top = np.argsort(-np.abs(coefficients[-1]))[:8]
+        return {'rows': rows, 'weights': np.linalg.norm(coefficients, axis=1).tolist(),
+                'paths': [{'word': str(words[j]), 'weights': coefficients[:, j].tolist()} for j in top]}
 
     def cv(self, params):
         if self.final:
