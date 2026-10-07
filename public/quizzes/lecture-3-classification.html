@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STAT3612 Quiz: Classification, GLM, LDA & Evaluation</title>
+<style>
+  :root{
+    --bg:#f7f8fb;
+    --card:#ffffff;
+    --text:#1f2937;
+    --muted:#667085;
+    --border:#d8dee9;
+    --accent:#1f5fbf;
+    --accent-soft:#edf4ff;
+    --answer:#f3f8f4;
+    --answer-border:#b7d7bd;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.55;
+  }
+  .container{
+    width:min(940px,calc(100% - 32px));
+    margin:0 auto;
+    padding:40px 0 64px;
+  }
+  header{
+    margin-bottom:28px;
+  }
+  h1{
+    margin:0 0 8px;
+    font-size:clamp(28px,4vw,42px);
+    line-height:1.15;
+  }
+  .subtitle{
+    color:var(--muted);
+    margin:0;
+    font-size:16px;
+  }
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:22px 0 28px;
+  }
+  button{
+    border:1px solid var(--accent);
+    background:var(--accent);
+    color:white;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:14px;
+    font-weight:650;
+    cursor:pointer;
+  }
+  button.secondary{
+    background:white;
+    color:var(--accent);
+  }
+  button:hover{filter:brightness(.97)}
+  .section-title{
+    margin:34px 0 12px;
+    font-size:22px;
+  }
+  .question-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
+    margin:14px 0;
+    box-shadow:0 1px 2px rgba(16,24,40,.03);
+  }
+  .qnum{
+    color:var(--accent);
+    font-weight:750;
+    margin-bottom:6px;
+  }
+  .question{
+    font-size:17px;
+    font-weight:650;
+    margin:0 0 12px;
+  }
+  .options{
+    margin:0 0 16px 0;
+    padding-left:24px;
+  }
+  .options li{
+    margin:6px 0;
+    padding-left:4px;
+  }
+  .answer{
+    display:none;
+    margin-top:14px;
+    padding:14px 16px;
+    background:var(--answer);
+    border:1px solid var(--answer-border);
+    border-radius:9px;
+  }
+  .answer.show{display:block}
+  .answer strong{display:block;margin-bottom:4px}
+  .source{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:7px;
+  }
+  .formula{
+    font-family:"Times New Roman",serif;
+    font-size:1.05em;
+    white-space:normal;
+  }
+  footer{
+    color:var(--muted);
+    margin-top:36px;
+    font-size:13px;
+    text-align:center;
+  }
+  @media (max-width:640px){
+    .container{width:min(100% - 20px,940px);padding-top:24px}
+    .question-card{padding:16px}
+    .question{font-size:16px}
+  }
+  @media print{
+    body{background:white}
+    .container{width:100%;padding:0}
+    .toolbar,.toggle-btn{display:none!important}
+    .question-card{break-inside:avoid;box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>STAT3612 Quiz</h1>
+    <p class="subtitle">Classification, Logistic Regression, GLMs, LDA/QDA/Naive Bayes, and Evaluation</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="showAll">Show All Answers</button>
+    <button id="hideAll" class="secondary">Hide All Answers</button>
+  </div>
+
+  <h2 class="section-title">Part A. Multiple Choice</h2>
+
+  <div class="question-card">
+    <div class="qnum">Question 1</div>
+    <p class="question">Why is logistic regression generally preferred over linear regression for estimating <span class="formula">P(Y=1|X)</span> in a binary classification problem?</p>
+    <ol class="options" type="A">
+      <li>Linear regression cannot use continuous predictors.</li>
+      <li>Linear regression may produce predicted probabilities below 0 or above 1.</li>
+      <li>Logistic regression always has a nonlinear decision boundary.</li>
+      <li>Logistic regression does not require parameter estimation.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Logistic regression maps the linear predictor through the sigmoid function, so the estimated probability is always between 0 and 1.
+      <div class="source">Lecture 3.1: Classification and LR, slides 12–20.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 2</div>
+    <p class="question">For logistic regression, if <span class="formula">log(p/(1-p)) = 0</span>, what is <span class="formula">p</span>?</p>
+    <ol class="options" type="A">
+      <li>0</li>
+      <li>0.25</li>
+      <li>0.5</li>
+      <li>1</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      A log-odds value of 0 means the odds are 1, so <span class="formula">p/(1-p)=1</span>, giving <span class="formula">p=0.5</span>.
+      <div class="source">Lecture 3.1, slides 19–20.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 3</div>
+    <p class="question">For a binary logistic regression classifier using a threshold of 0.5, which equation defines the decision boundary?</p>
+    <ol class="options" type="A">
+      <li><span class="formula">β₀ + βᵀx = 1</span></li>
+      <li><span class="formula">β₀ + βᵀx = 0</span></li>
+      <li><span class="formula">p(x) = 0</span></li>
+      <li><span class="formula">βᵀx = 0.5</span></li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      At threshold 0.5, the log-odds equal 0, so the linear predictor is 0.
+      <div class="source">Lecture 3.1, slides 28–30.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 4</div>
+    <p class="question">In the credit-card example, why can the coefficient for <em>student</em> change from positive in a one-predictor model to negative after <em>balance</em> is added?</p>
+    <ol class="options" type="A">
+      <li>Logistic regression cannot handle more than one predictor.</li>
+      <li>Students tend to have higher balances, which confounds the marginal relationship.</li>
+      <li>The sigmoid function changes when more predictors are added.</li>
+      <li>The class labels have been reversed.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Students tend to have higher balances, and balance is strongly related to default. Conditioning on balance can therefore reverse the marginal association.
+      <div class="source">Lecture 3.1, slides 25–27.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 5</div>
+    <p class="question">Which property must hold for the output probabilities of a K-class softmax model?</p>
+    <ol class="options" type="A">
+      <li>Each probability must be larger than 0.5.</li>
+      <li>All probabilities must be equal.</li>
+      <li>The probabilities must sum to 1.</li>
+      <li>Only one class can have a coefficient vector.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      Softmax normalizes the exponentiated class scores so that the class probabilities sum to 1.
+      <div class="source">Lecture 3.1, slides 47–50.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 6</div>
+    <p class="question">What does a generalized linear model make linear?</p>
+    <ol class="options" type="A">
+      <li>The observed response Y itself.</li>
+      <li>A link-function transformation of the conditional mean E[Y|X].</li>
+      <li>The variance of Y.</li>
+      <li>The probability density of every response distribution.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      A GLM uses a link function <span class="formula">g</span> so that <span class="formula">g(E[Y|X=x]) = β₀ + βᵀx</span>.
+      <div class="source">Lecture 3.2: Generalized Linear Models, slides 4–6.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 7</div>
+    <p class="question">You want to predict the number of hospital visits in one year. Which model/link combination is the natural choice in the slides?</p>
+    <ol class="options" type="A">
+      <li>Gaussian response + identity link</li>
+      <li>Binomial response + logit link</li>
+      <li>Poisson response + log link</li>
+      <li>Poisson response + identity link</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      Counts such as hospital visits are presented as Poisson outcomes, with a natural-log link for the conditional mean.
+      <div class="source">Lecture 3.2, slide 7.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 8</div>
+    <p class="question">Which statement best distinguishes logistic regression from LDA?</p>
+    <ol class="options" type="A">
+      <li>Logistic regression models P(X|Y), while LDA directly models P(Y|X).</li>
+      <li>Logistic regression directly models P(Y|X), while LDA models P(X|Y) and uses Bayes' theorem.</li>
+      <li>Both estimate exactly the same quantities in exactly the same way.</li>
+      <li>LDA cannot output class probabilities.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Logistic regression is presented as discriminative learning; LDA is generative and models class-conditional feature distributions before applying Bayes' theorem.
+      <div class="source">Lecture 3.3: LDA and Evaluation, slides 8–13 and 36.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 9</div>
+    <p class="question">What covariance assumption defines standard multivariate LDA in these slides?</p>
+    <ol class="options" type="A">
+      <li>Every class has the same mean.</li>
+      <li>Every class has its own unrelated covariance matrix.</li>
+      <li>Classes have different means but share a common covariance matrix.</li>
+      <li>All predictors must be conditionally independent.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      LDA assumes class-specific means but a common covariance matrix across classes.
+      <div class="source">Lecture 3.3, slides 22, 28 and 32.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 10</div>
+    <p class="question">If two classes have similar class-conditional densities at x, but class 2 has a larger prior probability than class 1, what does LDA tend to do?</p>
+    <ol class="options" type="A">
+      <li>Favor class 1.</li>
+      <li>Favor class 2.</li>
+      <li>Ignore the prior probabilities.</li>
+      <li>Automatically switch to QDA.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Bayes classification compares terms proportional to <span class="formula">πₖ fₖ(x)</span>. A larger prior increases the posterior support for that class.
+      <div class="source">Lecture 3.3, slides 12–16.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 11</div>
+    <p class="question">What changes when moving from LDA to QDA?</p>
+    <ol class="options" type="A">
+      <li>QDA assumes identical class means.</li>
+      <li>QDA allows a different covariance matrix for each class.</li>
+      <li>QDA assumes all predictors are independent.</li>
+      <li>QDA no longer uses Bayes' theorem.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      With class-specific covariance matrices, quadratic terms remain in the discriminant functions, producing quadratic decision boundaries.
+      <div class="source">Lecture 3.3, slides 32–34.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 12</div>
+    <p class="question">What is the key simplifying assumption of Naive Bayes in the slides?</p>
+    <ol class="options" type="A">
+      <li>All classes have equal priors.</li>
+      <li>Features are conditionally independent given the class.</li>
+      <li>Every decision boundary is quadratic.</li>
+      <li>Every predictor must follow the same marginal distribution.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Naive Bayes factorizes the class-conditional density into one-dimensional feature densities by assuming conditional independence.
+      <div class="source">Lecture 3.3, slides 32 and 35–41.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 13</div>
+    <p class="question">Only 100 out of 1,000,000 emails are spam. A classifier predicts every email as non-spam. Which statement is correct?</p>
+    <ol class="options" type="A">
+      <li>Accuracy is low and spam recall is high.</li>
+      <li>Accuracy is very high but spam recall is zero.</li>
+      <li>Both accuracy and spam recall are very high.</li>
+      <li>Spam precision must equal one.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Almost every email is correctly labeled as non-spam, giving very high accuracy, but no true spam is detected, so recall for the positive class is 0.
+      <div class="source">Lecture 3.3, slides 44–47.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 14</div>
+    <p class="question">Sensitivity is equivalent to which quantity?</p>
+    <ol class="options" type="A">
+      <li>Precision</li>
+      <li>Specificity</li>
+      <li>Recall / True Positive Rate</li>
+      <li>False Positive Rate</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      Sensitivity is <span class="formula">TP/(TP+FN)</span>, which is the same as recall or the true positive rate.
+      <div class="source">Lecture 3.3, slides 46 and 51.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 15</div>
+    <p class="question">A disease-screening classifier predicts positive when <span class="formula">P(Y=1|X) ≥ t</span>. If missing a positive case is very costly, what should generally happen to t?</p>
+    <ol class="options" type="A">
+      <li>Increase t.</li>
+      <li>Decrease t.</li>
+      <li>Keep t fixed at 0.5 because 0.5 is always optimal.</li>
+      <li>Set t greater than 1.</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      Lowering the threshold makes the classifier predict positive more often, which generally reduces the false-negative rate and increases sensitivity.
+      <div class="source">Lecture 3.3, slides 52–53.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 16</div>
+    <p class="question">What are the two axes of an ROC curve?</p>
+    <ol class="options" type="A">
+      <li>Precision versus Recall</li>
+      <li>True Positive Rate versus False Positive Rate</li>
+      <li>Accuracy versus Threshold</li>
+      <li>False Negative Rate versus True Negative Rate</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      The ROC curve plots TPR (sensitivity/recall) against FPR (1 − specificity) as the classification threshold varies.
+      <div class="source">Lecture 3.3, slide 54.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 17</div>
+    <p class="question">As the binary classification threshold becomes very low, toward which region of the ROC plot do we generally move?</p>
+    <ol class="options" type="A">
+      <li>Bottom-left</li>
+      <li>Top-right</li>
+      <li>Exactly the center</li>
+      <li>The threshold does not affect the ROC operating point</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: B</strong>
+      A very low threshold predicts many observations as positive, so both TPR and FPR tend to become large.
+      <div class="source">Lecture 3.3, slides 52–54.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 18</div>
+    <p class="question">If recall is more important than precision in the Fβ score, which relationship should β satisfy?</p>
+    <ol class="options" type="A">
+      <li>β &lt; 1</li>
+      <li>β = 0</li>
+      <li>β &gt; 1</li>
+      <li>β has no effect on the balance between precision and recall</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: C</strong>
+      In the slides, β &gt; 1 places relatively more weight on recall, while β &lt; 1 favors precision.
+      <div class="source">Lecture 3.3, slides 48–49.</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Part B. True / False</h2>
+
+  <div class="question-card">
+    <div class="qnum">Question 19</div>
+    <p class="question">True or False: In logistic regression, the probability <span class="formula">P(Y=1|X)</span> itself is assumed to be a linear function of X.</p>
+    <ol class="options" type="A">
+      <li>True</li>
+      <li>False</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: False</strong>
+      The log-odds are linear in X; the probability is obtained by applying the inverse-logit (sigmoid) function.
+      <div class="source">Lecture 3.1, slides 19–21.</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="qnum">Question 20</div>
+    <p class="question">True or False: Decreasing the classification threshold generally decreases both the false positive rate and the false negative rate.</p>
+    <ol class="options" type="A">
+      <li>True</li>
+      <li>False</li>
+    </ol>
+    <button class="toggle-btn">Show Answer</button>
+    <div class="answer">
+      <strong>Answer: False</strong>
+      Lowering the threshold generally reduces false negatives but increases false positives; this trade-off is why the threshold matters.
+      <div class="source">Lecture 3.3, slides 52–54.</div>
+    </div>
+  </div>
+
+  <footer>
+    STAT/SDST 3612 · Statistical Machine Learning · Static offline quiz
+  </footer>
+</div>
+
+<script>
+  const toggleButtons = document.querySelectorAll('.toggle-btn');
+
+  toggleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const answer = btn.nextElementSibling;
+      const visible = answer.classList.toggle('show');
+      btn.textContent = visible ? 'Hide Answer' : 'Show Answer';
+    });
+  });
+
+  document.getElementById('showAll').addEventListener('click', () => {
+    document.querySelectorAll('.answer').forEach(a => a.classList.add('show'));
+    toggleButtons.forEach(btn => btn.textContent = 'Hide Answer');
+  });
+
+  document.getElementById('hideAll').addEventListener('click', () => {
+    document.querySelectorAll('.answer').forEach(a => a.classList.remove('show'));
+    toggleButtons.forEach(btn => btn.textContent = 'Show Answer');
+  });
+</script>
+</body>
+</html>
