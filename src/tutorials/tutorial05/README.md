@@ -5,10 +5,11 @@ fair splits → numerical features → word counts and TF–IDF → logistic con
 regularization → training-only CV → LDA → a binomial additive spline model → KNN →
 validation threshold and errors → frozen test decision.
 
-The website and notebook cover every chapter. There are no timed routes or optional
-classroom-only discussion sections. Each chapter connects an explanation, mathematical
-notation, an interactive or plotted mechanism, the scientific Python and an editable
-experiment. All numerical computations use `experiment.py`; lesson content is shared
+The website and notebook cover every chapter. Each chapter has a one-line key idea, an
+illustrative figure, three or four short points and one equation, followed by an
+interactive experiment on the real data, the scientific Python and an editable experiment.
+The raw file and a searchable table of training/validation messages (with their measured
+features) are shown in the page, so no file needs to be opened separately. All numerical computations use `experiment.py`; lesson content is shared
 through `curriculum.json`.
 
 ## Original data and scope

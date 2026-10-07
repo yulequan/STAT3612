@@ -5,6 +5,9 @@ import MathText from '../../components/MathText.vue'
 import PythonCode from '../../components/PythonCode.vue'
 import PythonEditor from '../../components/PythonEditor.vue'
 import Plot from './Plot.vue'
+import ConceptFigure from './ConceptFigure.vue'
+import DataTable from './DataTable.vue'
+import Confusion from './Confusion.vue'
 import curriculum from './curriculum.json'
 import source from './experiment.py?raw'
 
@@ -33,6 +36,7 @@ type Run = {
   train: Metrics
   validation: Metrics
   thresholds: Omit<Metrics, 'average_precision' | 'roc_auc' | 'log_loss'>[]
+  histogram: number[][]
 }
 type Initial = {
   raw: number
@@ -44,6 +48,8 @@ type Initial = {
   baseline: Metrics
   points: { x: number; y: number; label: number }[]
   distributions: { name: string; edges: number[]; groups: number[][] }[]
+  preview: string[]
+  table: { split: string; label: number; text: string; features: number[] }[]
 }
 type Vector = {
   documents: string[]
@@ -128,12 +134,15 @@ const runs = ref<Run[]>([])
 const selected = ref('')
 const explanation = ref<Explanation>()
 const explanationRun = ref('')
-const sweep = ref<{ rows: Run[]; weights: number[] }>()
+const sweep = ref<{
+  rows: Run[]
+  weights: number[]
+  paths: { word: string; weights: number[] }[]
+}>()
 const cv = ref<CV>()
 const fold = ref(0)
 const lda = ref<LDA>()
 const gam = ref<GAM>()
-const gamFeature = ref(0)
 const threshold = ref(0.5)
 const evaluation = ref<Evaluation>()
 const evaluationRun = ref('')
@@ -157,6 +166,30 @@ const currentEvaluation = computed(() =>
 const fmt = (n: number) => (100 * n).toFixed(1) + '%'
 const label = (n: number) => (n ? 'Spam' : 'Ham')
 const pieces = (text: string) => text.split(/([a-z0-9]+)/i)
+const keywordSet = computed(() => new Set(keywords.value.toLowerCase().match(/[a-z0-9]+/g) ?? []))
+// Word → contribution for colouring the classified message in the logistic chapter.
+const contributionOf = computed(
+  () => new Map(currentExplanation.value?.contributions?.map((c) => [c.name, c.value]) ?? []),
+)
+const wordStyle = (piece: string) => {
+  const value = contributionOf.value.get(piece.toLowerCase())
+  if (!value) return undefined
+  const strength = Math.min(1, Math.abs(value) / maxContribution.value)
+  return {
+    background: `rgba(${value > 0 ? '170, 97, 61' : '69, 101, 126'}, ${0.15 + 0.6 * strength})`,
+    color: strength > 0.55 ? 'white' : undefined,
+  }
+}
+const PALETTE = [
+  '#45657e',
+  '#aa613d',
+  '#336a51',
+  '#7a5c99',
+  '#b08a2e',
+  '#3d8a96',
+  '#9a4f6b',
+  '#65717c',
+]
 const runName = (r: Run) =>
   `${r.id} · ${r.kind === 'gam' ? 'additive spline' : r.kind.toUpperCase()} · ${r.representation}${r.kind === 'knn' ? ` · k=${r.k}` : r.kind === 'lda' ? '' : ` · C=${r.C}`}`
 const distribution = computed(() => initial.value?.distributions[feature.value])
@@ -164,7 +197,6 @@ const maxHistogram = computed(() => Math.max(0.01, ...(distribution.value?.group
 const maxContribution = computed(() =>
   Math.max(0.01, ...(currentExplanation.value?.contributions?.map((v) => Math.abs(v.value)) ?? [])),
 )
-const curve = computed(() => gam.value?.curves[gamFeature.value])
 const sourceCode = computed(() =>
   section.value.functions
     .map((name) => {
@@ -208,6 +240,22 @@ const ldaLines = computed(() => {
     { name: 'Two-feature marginal boundary', color: '#65717c', points: boundary, dashed: true },
   ]
 })
+const pathLines = computed(() =>
+  (sweep.value?.paths ?? []).map((path, i) => ({
+    name: path.word,
+    color: PALETTE[i]!,
+    points: sweep.value!.rows.map((r, j) => [Math.log10(r.C), path.weights[j]!]),
+  })),
+)
+const scoreMax = computed(() => Math.max(1, ...(activeRun.value?.histogram.flat() ?? [])))
+const vectorMax = computed(() => Math.max(1e-9, ...(vector.value?.matrix.flat() ?? [])))
+const heat = (v: number) =>
+  v
+    ? {
+        background: `rgba(69, 101, 126, ${0.12 + 0.6 * Math.min(1, v / vectorMax.value)})`,
+        color: v / vectorMax.value > 0.6 ? 'white' : undefined,
+      }
+    : undefined
 const sigmoidPoints = Array.from({ length: 81 }, (_, i) => {
   const z = -8 + i / 5
   return [z, 1 / (1 + Math.exp(-z))]
@@ -215,24 +263,27 @@ const sigmoidPoints = Array.from({ length: 81 }, (_, i) => {
 const inbox = [
   {
     text: 'Claim your free prize now!',
-    rule: 'Flagged',
-    outcome: 'A useful keyword hit on an illustrative promotion.',
+    rule: 'spam',
+    verdict: 'right',
+    outcome: '✓ Caught: a typical promotion.',
   },
   {
     text: 'Are you free after class?',
-    rule: 'Flagged',
-    outcome: 'A false alarm: “free” also has an ordinary meaning.',
+    rule: 'spam',
+    verdict: 'wrong',
+    outcome: '✗ False alarm: “free” also has an everyday meaning.',
   },
   {
     text: 'Your account requires verification. Visit https://example.org',
-    rule: 'Accepted',
-    outcome:
-      'A suspicious message can avoid every selected keyword. Text alone does not establish whether this message is malicious.',
+    rule: 'ham',
+    verdict: 'wrong',
+    outcome: '✗ Probably missed: suspicious, but contains no keyword.',
   },
   {
     text: 'The internship interview is confirmed for Friday.',
-    rule: 'Accepted',
-    outcome: 'A legitimate message whose accidental removal could matter a great deal.',
+    rule: 'ham',
+    verdict: 'right',
+    outcome: '✓ Delivered: blocking this one would be costly.',
   },
 ]
 let generation = 0
@@ -438,9 +489,12 @@ onUnmounted(() => {
 <template>
   <div class="spam-lesson">
     <section id="concept" class="chapter-theory">
-      <div class="section-label"><span>01</span> UNDERSTAND THE IDEA</div>
+      <div class="section-label"><span>01</span> KEY IDEA</div>
       <h2>{{ section.idea }}</h2>
-      <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+      <ConceptFigure :chapter="chapter" />
+      <ul class="key-points">
+        <li v-for="point in section.points" :key="point">{{ point }}</li>
+      </ul>
       <div class="equation-card">
         <MathText :tex="section.equation" />
         <dl class="notation-list">
@@ -452,9 +506,9 @@ onUnmounted(() => {
       </div>
     </section>
     <section class="chapter-experiment" aria-label="Interactive experiment">
-      <div class="section-label"><span>02</span> FOLLOW THE MECHANISM</div>
+      <div class="section-label"><span>02</span> TRY IT ON REAL DATA</div>
       <ol class="mechanism">
-        <li v-for="step in section.mechanism" :key="step">{{ step }}</li>
+        <li v-for="step in section.steps" :key="step">{{ step }}</li>
       </ol>
       <p v-if="!ready && !error" role="status">{{ status }}</p>
       <div v-if="error" class="execution-error" role="alert">
@@ -464,15 +518,14 @@ onUnmounted(() => {
 
       <template v-if="chapter === 'inbox'">
         <div class="inbox">
-          <article v-for="(item, i) in inbox" :key="i" class="mail-card">
-            <span class="eyebrow">CONSTRUCTED MESSAGE {{ i + 1 }}</span>
-            <p>{{ item.text }}</p>
-            <span class="pill">Original rule: {{ item.rule }}</span>
+          <article v-for="(item, i) in inbox" :key="i" class="mail-card" :class="item.verdict">
+            <span class="eyebrow">EXAMPLE {{ i + 1 }} · rule says {{ item.rule }}</span>
+            <p class="mail-text">{{ item.text }}</p>
             <p>{{ item.outcome }}</p>
           </article>
         </div>
         <div class="panel">
-          <h3>Try a transparent rule</h3>
+          <h3>Try a keyword rule</h3>
           <label>Whole-word keywords<input v-model="keywords" type="text" /></label
           ><label>Your message<textarea v-model="message" rows="3" /></label
           ><button class="primary" :disabled="!ready || busy" @click="applyRule">
@@ -480,8 +533,13 @@ onUnmounted(() => {
           </button>
           <template v-if="rules"
             ><p>
-              Your message: <strong>{{ label(rules.custom) }}</strong>
+              Your message:
+              <span class="tag" :class="rules.custom ? 'spam' : 'ham'">{{
+                label(rules.custom)
+              }}</span>
             </p>
+            <h3>On 1,032 validation messages</h3>
+            <Confusion :matrix="rules.metrics.confusion" label="Keyword rule confusion matrix" />
             <div class="spam-metrics">
               <span
                 >Validation accuracy<strong>{{ fmt(rules.metrics.accuracy) }}</strong></span
@@ -492,11 +550,18 @@ onUnmounted(() => {
               >
             </div>
             <h3>Actual validation errors</h3>
+            <p class="muted">Keywords are highlighted.</p>
             <article v-for="(item, i) in rules.errors" :key="i" class="error-card">
               <span class="pill"
-                >True {{ label(item.label) }} → predicted {{ label(item.prediction) }}</span
+                >{{ item.label ? 'Missed spam (FN)' : 'False alarm (FP)' }} · true
+                {{ label(item.label) }} → predicted {{ label(item.prediction) }}</span
               >
-              <p>{{ item.text }}</p>
+              <p>
+                <template v-for="(piece, index) in pieces(item.text)" :key="index"
+                  ><mark v-if="keywordSet.has(piece.toLowerCase())">{{ piece }}</mark
+                  ><template v-else>{{ piece }}</template></template
+                >
+              </p>
             </article></template
           >
         </div>
@@ -504,29 +569,37 @@ onUnmounted(() => {
 
       <template v-if="chapter === 'data' && initial">
         <div class="panel">
-          <h3>Original research data, packaged locally</h3>
+          <h3>1 · The raw file, exactly as stored</h3>
           <p>
+            <code>SMSSpamCollection.txt</code>: one message per line, label
+            <span class="tab-mark">⇥ tab</span> message. Source:
             <a
               href="https://archive.ics.uci.edu/dataset/228/sms+spam+collection"
               target="_blank"
               rel="noopener"
               >UCI SMS Spam Collection ↗</a
             >
-            ·
-            <a href="https://doi.org/10.1145/2034691.2034742" target="_blank" rel="noopener"
-              >Almeida, Gómez Hidalgo &amp; Yamakami (2011) ↗</a
-            >
           </p>
-          <p>
-            English SMS compiled from Grumbletext, NUS volunteers, Caroline Tagg’s research and an
-            earlier SMS corpus. Short messages make the complete classification calculation
-            inspectable. There are no email headers or subjects.
-          </p>
+          <div class="raw-file" aria-label="First lines of the raw data file">
+            <div v-for="(line, i) in initial.preview" :key="i">
+              <span class="line-no">{{ i + 1 }}</span
+              ><span class="tag" :class="line.startsWith('spam') ? 'spam' : 'ham'">{{
+                line.split('\t')[0]
+              }}</span
+              ><span class="tab-mark">⇥</span>{{ line.split('\t').slice(1).join('\t') }}
+            </div>
+            <div class="muted">
+              … {{ (initial.raw - initial.preview.length).toLocaleString() }} more lines
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>2 · Clean and split</h3>
           <div class="audit">
-            <span>{{ initial.raw }}<small>Original UCI records</small></span
-            ><b>→</b><span>{{ initial.excluded }}<small>Invalid texts excluded</small></span
-            ><b>→</b><span>{{ initial.duplicates }}<small>Repeated identities removed</small></span
-            ><b>→</b><span>{{ initial.unique }}<small>Distinct retained messages</small></span>
+            <span>{{ initial.raw }}<small>raw records</small></span
+            ><b>→</b><span>{{ initial.excluded }}<small>empty texts removed</small></span
+            ><b>→</b><span>{{ initial.duplicates }}<small>duplicates removed</small></span
+            ><b>→</b><span>{{ initial.unique }}<small>unique messages</small></span>
           </div>
           <div v-for="(counts, name) in initial.counts" :key="name" class="split-row">
             <strong>{{ name }} · {{ counts.total }}</strong>
@@ -541,37 +614,26 @@ onUnmounted(() => {
             </div>
             <small>Spam {{ fmt(counts.spam / counts.total) }}</small>
           </div>
-          <p>
-            Training fits models; five-fold CV stays inside training. Validation selects the
-            complete candidate and threshold. Test is reserved for the frozen decision.
-          </p>
         </div>
         <div class="panel">
-          <h3>A high accuracy with no spam detection</h3>
+          <h3>3 · The always-ham trap</h3>
           <div class="spam-metrics">
             <span
-              >Always-ham validation accuracy<strong>{{
-                fmt(initial.baseline.accuracy)
+              >Accuracy<strong>{{ fmt(initial.baseline.accuracy) }}</strong></span
+            ><span
+              >Spam recall<strong class="spam-text">{{
+                fmt(initial.baseline.recall)
               }}</strong></span
-            ><span
-              >Spam recall<strong>{{ fmt(initial.baseline.recall) }}</strong></span
-            ><span
-              >Average precision<strong>{{ fmt(initial.baseline.average_precision) }}</strong></span
             >
           </div>
-          <p>
-            A constant score has average precision equal to the measured spam prevalence. No
-            messages are flagged; precision is undefined and reported as zero by our metrics
-            function.
-          </p>
+          <Confusion :matrix="initial.baseline.confusion" label="Always-ham confusion matrix" />
         </div>
-        <h3>Labelled training messages</h3>
-        <div class="inbox">
-          <article v-for="(item, i) in initial.examples" :key="i" class="mail-card">
-            <span class="pill">{{ label(item.label) }}</span>
-            <p>{{ item.text }}</p>
-          </article>
-        </div>
+        <h3>4 · Browse the data</h3>
+        <p class="muted">
+          Training and validation messages. The 1,032 test messages stay hidden until the final
+          chapter.
+        </p>
+        <DataTable :rows="initial.table" caption="Cleaned dataset (train + validation)" />
       </template>
 
       <template v-if="chapter === 'features'">
@@ -587,8 +649,16 @@ onUnmounted(() => {
             >
           </div>
         </div>
+        <h3>Every message as a row of five numbers</h3>
+        <p class="muted">Sort by a feature: which label rises to the top?</p>
+        <DataTable
+          v-if="initial"
+          :rows="initial.table"
+          features
+          caption="Feature table (train + validation)"
+        />
         <div v-if="distribution" class="panel">
-          <h3>Compare within-class distributions</h3>
+          <h3>Ham vs spam, one feature at a time</h3>
           <label
             >Measured feature<select v-model.number="feature">
               <option v-for="(d, i) in initial?.distributions" :key="i" :value="i">
@@ -618,13 +688,19 @@ onUnmounted(() => {
                   fill="#aa613d"
                 />
               </g>
-              <text x="50" y="20">Within-class proportion (maximum {{ fmt(maxHistogram) }})</text>
-              <text x="50" y="250">0</text>
-              <text x="575" y="250" text-anchor="end">
-                {{ distribution.edges.at(-1)?.toFixed(0) }}+
+              <line x1="46" x2="580" y1="230" y2="230" stroke="#9dabb5" />
+              <text x="50" y="20">Share of each class (tallest bar {{ fmt(maxHistogram) }})</text>
+              <text
+                v-for="(edge, i) in distribution.edges.slice(0, -1)"
+                :key="i"
+                :x="68 + i * 44"
+                y="248"
+                text-anchor="middle"
+              >
+                {{ edge.toFixed(0) }}{{ i === distribution.edges.length - 2 ? '+' : '' }}
               </text>
-              <text x="300" y="275" text-anchor="middle">
-                {{ distribution.name }} · final bin includes the tail
+              <text x="300" y="274" text-anchor="middle">
+                {{ distribution.name }} (bin start; last bin includes the tail)
               </text>
             </svg>
             <figcaption>
@@ -705,7 +781,9 @@ onUnmounted(() => {
                     <td
                       v-for="(v, j) in row"
                       :key="j"
+                      class="heat"
                       :class="{ highlight: word === vector.vocabulary[j] }"
+                      :style="heat(v)"
                     >
                       {{ v.toFixed(vector.representation === 'count' ? 0 : 3) }}
                     </td>
@@ -715,7 +793,9 @@ onUnmounted(() => {
                     <td
                       v-for="(v, j) in vector.transformed"
                       :key="j"
+                      class="heat"
                       :class="{ highlight: word === vector.vocabulary[j] }"
+                      :style="heat(v)"
                     >
                       {{ v.toFixed(vector.representation === 'count' ? 0 : 3) }}
                     </td>
@@ -732,9 +812,9 @@ onUnmounted(() => {
             <p>
               Ignored unknown words: <strong>{{ vector.unknown.join(', ') || '(none)' }}</strong>
             </p>
-            <p>
-              The toy matrix is dense for inspection. Real text pipelines use sparse matrices,
-              min_df=2 and at most 2,500 columns.
+            <p class="muted">
+              Real pipelines: sparse matrices, words seen in ≥ 2 training messages, at most 2,500
+              columns.
             </p></template
           >
         </div>
@@ -789,7 +869,18 @@ onUnmounted(() => {
         </div>
         <template v-if="currentExplanation"
           ><div class="panel">
-            <p>Prediction for: {{ currentExplanation.text }}</p>
+            <p class="colored-message">
+              <template v-for="(piece, index) in pieces(currentExplanation.text)" :key="index"
+                ><span v-if="wordStyle(piece)" class="word-chip" :style="wordStyle(piece)">{{
+                  piece
+                }}</span
+                ><template v-else>{{ piece }}</template></template
+              >
+            </p>
+            <p v-if="currentExplanation.contributions" class="muted">
+              Word colour = contribution: <span class="spam-text">orange → spam</span>,
+              <span class="ham-key">blue → ham</span>, darker = stronger.
+            </p>
             <div class="spam-metrics">
               <span
                 >Spam score<strong>{{ fmt(currentExplanation.probability) }}</strong></span
@@ -801,10 +892,7 @@ onUnmounted(() => {
             </div>
             <template v-if="currentExplanation.contributions"
               ><h3>Message-specific contributions wⱼxⱼ</h3>
-              <p>
-                Largest 14 contributions shown. The total score includes every contribution and the
-                intercept. Blue favors ham; orange favors spam.
-              </p>
+              <p class="muted">Largest 14 shown. z = intercept + sum of all contributions.</p>
               <div
                 v-for="item in currentExplanation.contributions.slice(0, 14)"
                 :key="item.name"
@@ -822,17 +910,31 @@ onUnmounted(() => {
             >
             <template v-if="currentExplanation.neighbors"
               ><h3>The neighbours that voted</h3>
-              <article v-for="(item, i) in currentExplanation.neighbors" :key="i" class="mail-card">
-                <span class="pill"
-                  >Neighbour {{ i + 1 }} · {{ label(item.label) }} · distance
-                  {{ item.distance.toFixed(3) }}</span
+              <div class="vote-bar" aria-label="Neighbour vote">
+                <span
+                  v-for="(item, i) in currentExplanation.neighbors"
+                  :key="i"
+                  :class="item.label ? 'spam' : 'ham'"
+                  >{{ label(item.label) }}</span
                 >
+              </div>
+              <article
+                v-for="(item, i) in currentExplanation.neighbors"
+                :key="i"
+                class="mail-card neighbour"
+              >
+                <div class="neighbour-head">
+                  <span class="tag" :class="item.label ? 'spam' : 'ham'">{{
+                    label(item.label)
+                  }}</span>
+                  <span class="distance-track"
+                    ><i :style="{ width: `${Math.min(100, item.distance * 100)}%` }"
+                  /></span>
+                  <span class="muted">distance {{ item.distance.toFixed(3) }}</span>
+                </div>
                 <p>{{ item.text }}</p>
               </article>
-              <p>
-                Uniform spam vote = spam neighbours / k. Repeated or zero-overlap distances can make
-                the vote sensitive to ties.
-              </p></template
+              <p class="muted">Spam vote = spam neighbours / k.</p></template
             >
           </div>
           <Plot
@@ -870,6 +972,22 @@ onUnmounted(() => {
             :lines="sweepLines"
             :bounds="[-3, 1, 0, 1]"
           /><Plot
+            title="Word weights shrink as the penalty grows"
+            x-label="log₁₀(C) · stronger penalty ← → weaker penalty"
+            y-label="Weight w (count model)"
+            :lines="pathLines"
+            :bounds="[
+              -3,
+              1,
+              Math.min(0, ...pathLines.flatMap((l) => l.points.map((p) => p[1]!))),
+              Math.max(1, ...pathLines.flatMap((l) => l.points.map((p) => p[1]!))),
+            ]"
+          />
+          <p class="muted">
+            The eight words with the largest weights at C = 10. Do they all look like genuine spam
+            evidence?
+          </p>
+          <Plot
             title="Coefficient magnitude along the path"
             x-label="log₁₀(C)"
             y-label="L2 coefficient norm"
@@ -1039,30 +1157,28 @@ onUnmounted(() => {
           </p>
         </div>
         <template v-if="gam"
-          ><label
-            >Displayed smooth effect<select v-model.number="gamFeature">
-              <option v-for="(c, i) in gam.curves" :key="i" :value="i">{{ c.name }}</option>
-            </select></label
-          ><Plot
-            v-if="curve"
-            :title="`Additive effect of ${curve.name}`"
-            :x-label="curve.name + ' · raw count'"
-            y-label="Change in log-odds from training median"
-            :lines="[
-              {
-                name: 'Centered model effect',
-                color: '#45657e',
-                points: curve.x.map((x, i) => [x, curve!.effect[i]!]),
-              },
-            ]"
-          />
+          ><div class="small-multiples">
+            <Plot
+              v-for="c in gam.curves"
+              :key="c.name"
+              :title="`Additive effect of ${c.name}`"
+              :x-label="c.name + ' (raw count)'"
+              y-label="Change in log-odds"
+              :lines="[
+                {
+                  name: 'f(x)',
+                  color: '#aa613d',
+                  points: c.x.map((x, i) => [x, c.effect[i]!]),
+                },
+              ]"
+            />
+          </div>
           <p>
-            Reference raw feature values: {{ gam.reference.join(', ') }}. Other features are held at
-            these training medians. Validation AP: {{ fmt(gam.run.validation.average_precision) }}.
-          </p>
-          <p>
-            The curve explains a fitted effect, not an observed spam rate or a causal relationship.
-            The L2 penalty shrinks basis coefficients; it is not a spline roughness penalty.
+            Each curve varies one feature; the others stay at their training medians ({{
+              gam.reference.join(', ')
+            }}). 0 = the median message. Validation AP:
+            <strong>{{ fmt(gam.run.validation.average_precision) }}</strong
+            >.
           </p></template
         >
       </template>
@@ -1134,40 +1250,71 @@ onUnmounted(() => {
               >F1<strong>{{ fmt(liveMetrics.f1) }}</strong></span
             >
           </div>
+          <figure v-if="activeRun" class="score-histogram">
+            <svg
+              viewBox="0 0 600 270"
+              role="img"
+              aria-label="Validation score histograms with the threshold"
+            >
+              <g v-for="(count, i) in activeRun.histogram[0]" :key="'h' + i">
+                <rect
+                  :x="40 + i * 26"
+                  :y="125 - (Math.sqrt(count) / Math.sqrt(scoreMax)) * 92"
+                  width="24"
+                  :height="(Math.sqrt(count) / Math.sqrt(scoreMax)) * 92"
+                  :fill="i / 20 >= threshold ? '#aa613d' : '#45657e'"
+                  :opacity="0.85"
+                />
+                <text
+                  v-if="count"
+                  :x="52 + i * 26"
+                  :y="120 - (Math.sqrt(count) / Math.sqrt(scoreMax)) * 92"
+                  text-anchor="middle"
+                >
+                  {{ count }}
+                </text>
+              </g>
+              <g v-for="(count, i) in activeRun.histogram[1]" :key="'s' + i">
+                <rect
+                  :x="40 + i * 26"
+                  y="129"
+                  width="24"
+                  :height="(Math.sqrt(count) / Math.sqrt(scoreMax)) * 92"
+                  :fill="i / 20 >= threshold ? '#aa613d' : '#45657e'"
+                  :opacity="0.85"
+                />
+                <text
+                  v-if="count"
+                  :x="52 + i * 26"
+                  :y="141 + (Math.sqrt(count) / Math.sqrt(scoreMax)) * 92"
+                  text-anchor="middle"
+                >
+                  {{ count }}
+                </text>
+              </g>
+              <line x1="38" x2="562" y1="127" y2="127" stroke="#9dabb5" />
+              <line
+                :x1="40 + threshold * 520"
+                :x2="40 + threshold * 520"
+                y1="12"
+                y2="240"
+                stroke="#202e3a"
+                stroke-width="2"
+              />
+              <text :x="44 + threshold * 520" y="22">t = {{ threshold.toFixed(2) }}</text>
+              <text x="560" y="22" text-anchor="end" class="strong">Actual ham ↑</text>
+              <text x="560" y="240" text-anchor="end" class="strong">Actual spam ↓</text>
+              <text x="40" y="262">score 0</text>
+              <text x="560" y="262" text-anchor="end">1</text>
+              <text x="300" y="262" text-anchor="middle">
+                validation messages per score bin (√ scale) · orange = blocked
+              </text>
+            </svg>
+          </figure>
           <div class="confusion-wrap">
             <h3>Validation confusion matrix</h3>
-            <p>Rows: actual class · columns: predicted class. Positive class = spam.</p>
-            <table class="confusion" aria-label="Validation confusion matrix">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Predicted ham</th>
-                  <th>Predicted spam</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th>Actual ham</th>
-                  <td>
-                    TN<strong>{{ liveMetrics.confusion[0]![0] }}</strong>
-                  </td>
-                  <td class="mistake">
-                    FP · legitimate blocked<strong>{{ liveMetrics.confusion[0]![1] }}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <th>Actual spam</th>
-                  <td class="mistake">
-                    FN · spam accepted<strong>{{ liveMetrics.confusion[1]![0] }}</strong>
-                  </td>
-                  <td>
-                    TP<strong>{{ liveMetrics.confusion[1]![1] }}</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div></template
-        >
+            <Confusion :matrix="liveMetrics.confusion" label="Validation confusion matrix" /></div
+        ></template>
         <template v-if="currentEvaluation"
           ><div class="inbox">
             <Plot
@@ -1261,17 +1408,16 @@ onUnmounted(() => {
                 >Test AP<strong>{{ fmt(final.test.average_precision) }}</strong></span
               >
             </div>
-            <p>
-              Test confusion [[TN, FP], [FN, TP]]: {{ JSON.stringify(final.test.confusion) }}. Test
-              data has now been used; further fitting requires a fresh experiment and cannot make
-              this test unseen again.
+            <Confusion :matrix="final.test.confusion" label="Test confusion matrix" />
+            <p class="muted">
+              The test set has now been used. Refitting cannot make it unseen again.
             </p></template
           ><button :disabled="!runs.length" @click="exportResults">Export experiment record</button>
         </div>
       </template>
       <aside class="concept-note">
-        <span>Interpret what you observed</span>
-        <p>{{ section.interpretation }}</p>
+        <span>Takeaway</span>
+        <p>{{ section.takeaway }}</p>
       </aside>
     </section>
     <section id="python" class="chapter-python">
@@ -1323,6 +1469,166 @@ onUnmounted(() => {
 <style scoped>
 .spam-lesson {
   padding-bottom: 28px;
+}
+.key-points {
+  margin: 8px 0 22px;
+  padding-left: 0;
+  list-style: none;
+}
+.key-points li {
+  position: relative;
+  padding: 9px 0 9px 26px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.98rem;
+}
+.key-points li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 19px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.spam-text {
+  color: #aa613d;
+}
+.tag {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: white;
+  background: #45657e;
+}
+.tag.spam {
+  background: #aa613d;
+}
+.spam-lesson mark {
+  background: #f6dccb;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.mail-card.right {
+  border-left: 3px solid #45657e;
+}
+.mail-card.wrong {
+  border-left: 3px solid #aa613d;
+}
+.mail-text {
+  font-size: 1rem !important;
+  font-weight: 500;
+}
+.raw-file {
+  font:
+    0.78rem/1.7 ui-monospace,
+    Menlo,
+    monospace;
+  background: #f5f7f9;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+}
+.raw-file > div {
+  white-space: nowrap;
+}
+.raw-file .tag {
+  font-family: var(--font-sans);
+  min-width: 42px;
+  text-align: center;
+}
+.line-no {
+  display: inline-block;
+  width: 24px;
+  color: #9dabb5;
+}
+.tab-mark {
+  color: #aa613d;
+  margin: 0 6px;
+}
+.heat {
+  text-align: center !important;
+  font-variant-numeric: tabular-nums;
+}
+.spam-table td.highlight {
+  outline: 2px solid #aa613d;
+  outline-offset: -2px;
+}
+.colored-message {
+  font-size: 1.1rem;
+  line-height: 2;
+}
+.word-chip {
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.vote-bar {
+  display: flex;
+  gap: 3px;
+  margin: 10px 0 16px;
+}
+.vote-bar span {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #45657e;
+  border-radius: 3px;
+}
+.vote-bar .spam {
+  background: #aa613d;
+}
+.neighbour {
+  margin: 8px 0;
+  padding: 12px 16px;
+}
+.neighbour p {
+  margin: 6px 0 0;
+}
+.neighbour-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.75rem;
+}
+.distance-track {
+  flex: 0 1 160px;
+  height: 8px;
+  background: #eef1f3;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.distance-track i {
+  display: block;
+  height: 100%;
+  background: #84929c;
+}
+.small-multiples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0 20px;
+}
+.score-histogram svg {
+  width: 100%;
+  display: block;
+}
+.score-histogram text {
+  font: 11px system-ui;
+  fill: #65717c;
+}
+.score-histogram .strong {
+  font-weight: 600;
+  fill: #202e3a;
 }
 .mechanism {
   padding-left: 22px;
@@ -1568,31 +1874,6 @@ onUnmounted(() => {
 .confusion-wrap {
   margin: 25px 0;
 }
-.confusion {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.75rem;
-  table-layout: fixed;
-}
-.confusion th,
-.confusion td {
-  padding: 14px 8px;
-  border: 1px solid var(--line);
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-.confusion strong {
-  display: block;
-  font-size: 1.7rem;
-  color: var(--ink);
-  font-weight: 500;
-}
-.confusion td {
-  background: #edf3f7;
-}
-.confusion td.mistake {
-  background: #f8eee6;
-}
 .final-panel {
   margin-top: 30px;
 }
@@ -1623,17 +1904,15 @@ onUnmounted(() => {
   .spam-metrics strong {
     font-size: 1.3rem;
   }
+  .small-multiples {
+    grid-template-columns: 1fr;
+  }
   .contribution {
     grid-template-columns: 80px minmax(0, 1fr) 48px;
     gap: 5px;
   }
   .audit {
     gap: 10px;
-  }
-  .confusion th,
-  .confusion td {
-    font-size: 0.66rem;
-    padding: 10px 5px;
   }
   .spam-table th:first-child {
     min-width: 150px;

@@ -54,15 +54,19 @@ X_val, y_val = lab.X_val.copy(), lab.y_val.copy()
 initial = lab.initialize()
 print("Original / excluded / duplicate / retained:", initial["raw"], initial["excluded"], initial["duplicates"], initial["unique"])
 print("Splits:", initial["counts"])
+print("First lines of the raw file:")
+for line in initial["preview"][:4]:
+    print("  ", line.replace("\\t", " ⇥ "))
 plt.rcParams.update({"figure.figsize": (9, 4), "axes.spines.top": False, "axes.spines.right": False})
 HAM, SPAM = "#45657e", "#aa613d\"""")
     seen = set()
     for i, section in enumerate(CONTENT['chapters']):
         identity = section['id']
         md(f'## {i + 1}. {section["title"]}\n\n**{section["question"]}**\n\n' +
-           '\n\n'.join(section['paragraphs']) + '\n\n$$' + section['equation'] + '$$\n\n' +
+           f'**Key idea:** {section["idea"]}\n\n' +
+           '\n'.join('- ' + point for point in section['points']) + '\n\n$$' + section['equation'] + '$$\n\n' +
            '\n'.join(f'- ${symbol}$: {meaning}' for symbol, meaning in section['notation']) +
-           '\n\n**Follow the mechanism**\n\n' + '\n'.join(f'{j + 1}. {s}' for j, s in enumerate(section['mechanism'])))
+           '\n\n**Try it**\n\n' + '\n'.join(f'{j + 1}. {s}' for j, s in enumerate(section['steps'])))
         for function in section['functions']:
             if function not in seen:
                 md(f'### Inspect the implementation: `{function}`\n\nThis cell is copied from `experiment.py`. Subsequent direct experiments use this editable function. The assignment also updates the shared lab implementation for later fits.')
@@ -131,13 +135,17 @@ print("Intercept / score / probability:", explanation["bias"], explanation["scor
         elif identity == 'regularization':
             code("""sweep = lab.regularization({"representation": "count"})
 Cs = [row["C"] for row in sweep["rows"]]
-fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 for split, color in [("train", HAM), ("validation", SPAM)]:
     axes[0].semilogx(Cs, [row[split]["average_precision"] for row in sweep["rows"]], "o-", label=split, color=color)
 axes[0].set(xlabel="C (smaller = stronger penalty)", ylabel="Average precision", ylim=(0, 1))
 axes[0].legend()
 axes[1].semilogx(Cs, sweep["weights"], "o-", color=HAM)
 axes[1].set(xlabel="C", ylabel="L2 coefficient norm")
+for path in sweep["paths"]:
+    axes[2].semilogx(Cs, path["weights"], "o-", label=path["word"])
+axes[2].set(xlabel="C", ylabel="Word weight", title="Largest weights at C = 10")
+axes[2].legend(fontsize=8)
 plt.tight_layout()
 plt.show()""")
         elif identity == 'validation':
@@ -225,7 +233,7 @@ for item in validation_result["errors"][:8]:
     print("True", item["label"], "predicted", item["prediction"], "p", round(item["probability"], 3), item["text"])""")
         md('### Run and explain\n\n' + section['experiment'])
         code(section['starter'])
-        md('**Interpretation:** ' + section['interpretation'])
+        md('**Takeaway:** ' + section['takeaway'])
     md("""## Freeze the decision and evaluate the test set
 
 Write your own rationale using validation evidence, the inbox error tradeoff and a data limitation. This cell runs only when the rationale is nonempty. The lab freezes the selected model and threshold after testing. Restarting a kernel does not make a repeatedly inspected test set unseen again.""")

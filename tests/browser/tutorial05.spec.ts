@@ -56,6 +56,8 @@ test('every chapter connects valid maths, actual Python and an executable experi
   for (const [i, section] of curriculum.chapters.entries()) {
     await chapter(page, section.id)
     await expect(page.locator('#concept .katex').first()).toBeVisible()
+    await expect(page.locator('#concept .concept-figure svg[role="img"]')).toBeVisible()
+    await expect(page.locator('#concept .key-points li').first()).toBeVisible()
     await expect(page.locator('.katex-error')).toHaveCount(0)
     await expect(page.locator('#python .hljs-keyword').first()).toBeVisible()
     await runPython(page).click()
@@ -77,6 +79,11 @@ test('interactive representations, learned models, CV and frozen test decision f
   await chapter(page, 'data')
   await expect(page.locator('.audit > span').first()).toContainText('5574')
   await expect(page.locator('.audit > span').last()).toContainText('5159')
+  await expect(page.getByLabel('First lines of the raw data file')).toContainText('Go until jurong')
+  await page.getByLabel('Search messages').fill('prize')
+  await page.getByRole('combobox', { name: 'Label', exact: true }).selectOption('1')
+  await expect(page.locator('.data-table tbody mark').first()).toHaveText(/prize/i)
+  await expect(page.locator('.data-table tbody .tag.ham')).toHaveCount(0)
   await chapter(page, 'features')
   await page.getByLabel('Message to measure').fill('free 123!!!')
   await page.getByRole('button', { name: 'Measure message features' }).click()
@@ -104,6 +111,9 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(page.getByRole('img', { name: 'Coefficient magnitude along the path' })).toBeVisible(
     { timeout: 90_000 },
   )
+  await expect(
+    page.getByRole('img', { name: 'Word weights shrink as the penalty grows' }),
+  ).toBeVisible()
   await chapter(page, 'validation')
   await page.getByRole('combobox', { name: 'Held-out fold', exact: true }).selectOption('2')
   await expect(page.locator('.folds .heldout')).toContainText('Fold 3')
@@ -122,9 +132,6 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(page.getByRole('img', { name: 'Additive effect of Characters' })).toBeVisible({
     timeout: 60_000,
   })
-  await page
-    .getByRole('combobox', { name: 'Displayed smooth effect', exact: true })
-    .selectOption('3')
   await expect(page.getByRole('img', { name: 'Additive effect of Digits' })).toBeVisible()
   await page.screenshot({ path: info.outputPath('additive-effects.png'), fullPage: true })
   await chapter(page, 'neighbors')
@@ -137,6 +144,9 @@ test('interactive representations, learned models, CV and frozen test decision f
   })
   await expect(page.locator('.mail-card')).toHaveCount(5)
   await chapter(page, 'decision')
+  await expect(
+    page.getByRole('img', { name: 'Validation score histograms with the threshold' }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Inspect validation errors and curves' }).click()
   await expect(page.getByRole('img', { name: 'Validation precision–recall curve' })).toBeVisible()
   const matrixBefore = await page

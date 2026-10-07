@@ -7,8 +7,10 @@ Tutorial05 develops **Spam Email Classification** from inbox consequences and ke
 rules through original-data inspection, numerical features, count/TF–IDF representations,
 logistic regression, regularization and training-only CV. It then compares LDA, a binomial
 additive spline model and KNN before choosing a validation threshold and freezing the
-final test decision. Every chapter is taught through explanations, interactive mechanisms,
-actual Python and a runnable notebook experiment. The original UCI SMS Spam Collection
+final test decision. Each chapter opens with a one-line key idea, an illustrative figure
+for lecturing and a few short points, then an interactive experiment on the real data,
+actual Python and a runnable notebook experiment. The dataset itself (raw file preview and a
+searchable, sortable table of messages and features) is browsable in the page. The original UCI SMS Spam Collection
 is bundled unchanged; its provenance and the limits of using historical SMS to learn
 email-filtering methods are explained in the lesson and [dataset documentation](src/tutorials/tutorial05/data/README.md).
 Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overview)
