@@ -104,7 +104,7 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   await expect(outline).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
-  for (const name of ['Tutorials', 'Demos']) {
+  for (const name of ['Tutorials', 'Demos', 'Quizzes']) {
     await expect(
       outline.getByRole('button', { name: `Toggle ${name}`, exact: true }),
     ).toHaveAttribute('aria-expanded', 'true')
@@ -113,6 +113,8 @@ test('course outline reveals chapters and preserves independent expansion', asyn
     `${new URL(base).pathname}tutorials/tutorial04/overview`,
     `${new URL(base).pathname}demos/gradient-descent`,
     `${new URL(base).pathname}demos/gd-vs-sgd`,
+    `${new URL(base).pathname}quizzes/lecture-3-classification.html`,
+    `${new URL(base).pathname}quizzes/lecture-4-model-selection.html`,
   ]) {
     await expect(main.locator(`a[href="${href}"]`)).toBeVisible()
     await expect(outline.locator(`a[href="${href}"]`).first()).toBeVisible()
@@ -205,6 +207,27 @@ test('course outline reveals chapters and preserves independent expansion', asyn
     'aria-current',
     'page',
   )
+})
+
+test('quiz pages are linked, responsive and reveal answers', async ({ page }) => {
+  await page.goto(base)
+  const main = page.getByRole('main')
+  await expect(main.getByRole('heading', { name: 'Quizzes', exact: true })).toBeVisible()
+  await main.getByRole('link', { name: /Lecture 4/ }).click()
+  await expect(page).toHaveURL(`${base}quizzes/lecture-4-model-selection.html`)
+  await expect(page.getByRole('heading', { name: 'STAT3612 Lecture 4 Quiz' })).toBeVisible()
+  await expect(page.locator('.question-card')).toHaveCount(18)
+  await expect(page.locator('.answer.show')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Show All Answers' }).click()
+  await expect(page.locator('.answer.show')).toHaveCount(18)
+  await page.setViewportSize({ width: 320, height: 900 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+  await page.getByRole('link', { name: 'All quizzes' }).click()
+  await expect(page).toHaveURL(`${base}quizzes`)
+  await expect(page.getByRole('heading', { name: 'Quizzes', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /Lecture 3/ }).click()
+  await expect(page).toHaveURL(`${base}quizzes/lecture-3-classification.html`)
+  await expect(page.locator('.question-card')).toHaveCount(20)
 })
 
 test('embedded demos retain 3D, playback and standalone links without external requests', async ({
