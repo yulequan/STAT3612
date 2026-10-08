@@ -14,7 +14,7 @@ export type Lesson = {
     outcome: string
   }
   component: Component
-  chapters: { id: string; title: string; question: string }[]
+  chapters: { id: string; title: string; question: string; heading?: string }[]
 }
 // Vite discovers each lesson at build time; no shared navigation edits are needed.
 const modules = import.meta.glob<{ default: Lesson }>('./*/lesson.ts', { eager: true })

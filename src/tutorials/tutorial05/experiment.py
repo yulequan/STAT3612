@@ -7,24 +7,32 @@ import re
 import traceback
 
 import numpy as np
+from nltk.tokenize import TreebankWordTokenizer
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (average_precision_score, confusion_matrix, log_loss,
                              precision_recall_curve, roc_auc_score, roc_curve)
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, SplineTransformer, StandardScaler
 
 SEED = 3612
-FEATURES = ['Characters', 'Words', 'Links', 'Digits', 'Exclamation marks']
-TOKEN_PATTERN = r'(?u)\b[a-z0-9]+\b'
+FEATURES = ['Characters', 'Tokens', 'Links', 'Digits', 'Exclamation marks']
 
 
 def tokens(text):
-    """Simple, explicit tokenizer; the vectorizers use the same pattern."""
-    return re.findall(TOKEN_PATTERN, text.lower())
+    """NLTK splits punctuation; retain alphanumeric tokens for this baseline."""
+    return [word for word in TreebankWordTokenizer().tokenize(text.lower())
+            if word.isalnum()]
+
+
+def text_vectorizer(representation='count', **options):
+    """Use the SAME NLTK preprocessing in toy examples and real classifiers."""
+    vectorizer = CountVectorizer if representation == 'count' else TfidfVectorizer
+    return vectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, **options)
 
 
 def numerical_features(messages):
@@ -64,12 +72,6 @@ def load_data(path):
     return messages, labels, {'train': train, 'validation': validation, 'test': test}, {'raw': len(rows), 'excluded': excluded}
 
 
-def rule_predict(messages, keywords=('free', 'win', 'prize')):
-    """A transparent rule: flag when any selected whole-word token appears."""
-    selected = set(keywords)
-    return np.asarray([int(bool(selected.intersection(tokens(s)))) for s in messages])
-
-
 def decision_metrics(y, probability, threshold=.5):
     """Threshold-dependent decisions, computed once in the scientific layer."""
     p = np.asarray(probability, dtype=float)
@@ -92,8 +94,14 @@ def metrics(y, probability, threshold=.5):
             'roc_auc': float(roc_auc_score(y, p))}
 
 
-def build_model(kind='logistic', representation='count', C=1., k=5):
+def build_model(kind='logistic', representation='count', C=1., k=5, alpha=1.):
     """Keep every learned transformation inside the pipeline."""
+    if kind not in ('logistic', 'nb', 'knn', 'lda', 'gam'):
+        raise ValueError('Unknown model.')
+    if representation not in ('count', 'tfidf', 'numeric'):
+        raise ValueError('Unknown representation.')
+    if kind == 'nb' and (representation == 'numeric' or alpha <= 0):
+        raise ValueError('Naive Bayes needs nonnegative text features and alpha > 0.')
     if representation == 'numeric' or kind in ('lda', 'gam'):
         steps = [('features', FunctionTransformer(numerical_features)),
                  ('log', FunctionTransformer(np.log1p))]
@@ -103,14 +111,15 @@ def build_model(kind='logistic', representation='count', C=1., k=5):
                                                     include_bias=False))]
         steps += [('scale', StandardScaler())]
     else:
-        vectorizer = CountVectorizer if representation == 'count' else TfidfVectorizer
-        steps = [('vectorizer', vectorizer(token_pattern=TOKEN_PATTERN, min_df=2,
-                                          max_features=2500))]
+        steps = [('vectorizer', text_vectorizer(representation, min_df=2,
+                                               max_features=2500))]
     if kind == 'lda':
         classifier = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
     elif kind == 'knn':
         classifier = KNeighborsClassifier(n_neighbors=int(k), algorithm='brute',
                                            metric='euclidean' if representation == 'numeric' else 'cosine')
+    elif kind == 'nb':
+        classifier = MultinomialNB(alpha=float(alpha))
     else:
         classifier = LogisticRegression(C=float(C), solver='liblinear', max_iter=1000,
                                          random_state=SEED)
@@ -180,28 +189,31 @@ class Experiment:
                 'points': [{'x': float(r[0]), 'y': float(r[3]), 'label': int(y)}
                            for r, y in zip(numeric[:350], self.y_train[:350])]}
 
-    def rules(self, params):
-        keywords = tokens(params.get('keywords', 'free win prize'))
-        predictions = rule_predict(self.X_val, keywords)
-        errors = np.flatnonzero(predictions != self.y_val)
-        return {'metrics': metrics(self.y_val, predictions), 'errors': [
-            {'text': str(self.X_val[i]), 'label': int(self.y_val[i]), 'prediction': int(predictions[i])}
-            for i in errors[:10]], 'custom': int(rule_predict([params.get('text', '')], keywords)[0])}
-
     def vectorize(self, params):
         documents = params.get('documents', ['Free prize now', 'Are you free after class', 'Win a prize prize'])
         use_tfidf = params.get('representation', 'count') == 'tfidf'
-        vectorizer = (TfidfVectorizer if use_tfidf else CountVectorizer)(token_pattern=TOKEN_PATTERN)
+        vectorizer = text_vectorizer('tfidf' if use_tfidf else 'count')
         matrix = vectorizer.fit_transform(documents)
         text = params.get('text', 'free meeting tomorrow')
         test = vectorizer.transform([text])
         idf = vectorizer.idf_.tolist() if use_tfidf else [1.] * matrix.shape[1]
+        counts = text_vectorizer('count', vocabulary=vectorizer.vocabulary_).fit_transform(documents).toarray()
+        weighted = counts * np.asarray(idf)
+        norms = np.linalg.norm(weighted, axis=1)
         return {'documents': documents, 'text': text, 'representation': params.get('representation', 'count'),
                 'vocabulary': vectorizer.get_feature_names_out().tolist(),
                 'matrix': matrix.toarray().tolist(), 'transformed': test.toarray()[0].tolist(),
+                'counts': counts.tolist(), 'df': (counts > 0).sum(axis=0).tolist(),
+                'weighted': weighted.tolist(), 'norms': norms.tolist(),
                 'idf': idf, 'tokens': tokens(text),
                 'unknown': sorted(set(tokens(text)) - set(vectorizer.vocabulary_)),
                 'numeric': numerical_features([text])[0].tolist()}
+
+    def tokenize(self, params):
+        text = params.get('text', 'Congratulations! Claim your FREE prize now!')
+        return {'text': text, 'lowercase': text.lower(),
+                'raw_tokens': TreebankWordTokenizer().tokenize(text.lower()),
+                'tokens': tokens(text)}
 
     def fit(self, config, progress_callback=None):
         if self.final:
@@ -209,19 +221,22 @@ class Experiment:
         kind = config.get('kind', 'logistic')
         representation = 'numeric' if kind in ('lda', 'gam') else config.get('representation', 'count')
         C, k = float(config.get('C', 1.)), int(config.get('k', 5))
+        alpha = float(config.get('alpha', 1.))
         if C <= 0 or not 1 <= k <= len(self.y_train):
             raise ValueError('C must be positive and k must fit the training set.')
-        if kind not in ('logistic', 'lda', 'gam', 'knn') or representation not in ('count', 'tfidf', 'numeric'):
+        if kind not in ('logistic', 'nb', 'lda', 'gam', 'knn') or representation not in ('count', 'tfidf', 'numeric'):
             raise ValueError('Unknown model or representation.')
-        model = build_model(kind, representation, C, k)
+        model = build_model(kind, representation, C, k, alpha)
         model.fit(self.X_train, self.y_train)
         probability = model.predict_proba(self.X_val)[:, 1]
         run_id = f'run{len(self.runs) + 1}'
-        row = {'id': run_id, 'kind': kind, 'representation': representation, 'C': C, 'k': k,
+        row = {'id': run_id, 'kind': kind, 'representation': representation, 'C': C, 'k': k, 'alpha': alpha,
                'train': metrics(self.y_train, model.predict_proba(self.X_train)[:, 1]),
                'validation': metrics(self.y_val, probability),
                'parameters': int(model.named_steps['classifier'].coef_.size)
-               if hasattr(model.named_steps['classifier'], 'coef_') else len(self.X_train),
+               if hasattr(model.named_steps['classifier'], 'coef_') else
+               int(model.named_steps['classifier'].feature_log_prob_.size)
+               if kind == 'nb' else len(self.X_train),
                'thresholds': [decision_metrics(self.y_val, probability, i / 100) for i in range(101)],
                # Validation score counts per class in 20 equal bins on [0, 1].
                'histogram': [np.histogram(probability[self.y_val == c], 20, (0, 1))[0].tolist()
@@ -247,7 +262,7 @@ class Experiment:
         rows = cross_validate(self.X_train, self.y_train, representation)
         best = max(rows, key=lambda row: row['mean'])
         train, heldout = next(StratifiedKFold(5, shuffle=True, random_state=SEED).split(self.X_train, self.y_train))
-        vectorizer = CountVectorizer(token_pattern=TOKEN_PATTERN, min_df=2, max_features=2500)
+        vectorizer = text_vectorizer('count', min_df=2, max_features=2500)
         vectorizer.fit(self.X_train[train])
         unknown = sorted(set(t for s in self.X_train[heldout] for t in tokens(s)) - set(vectorizer.vocabulary_))
         return {'rows': rows, 'best': best['C'], 'fold_sizes': [len(train), len(heldout)],
@@ -259,6 +274,21 @@ class Experiment:
         text = params.get('text', 'Congratulations! Claim your free prize now!')
         vector = model[:-1].transform([text])
         classifier = model.named_steps['classifier']
+        if isinstance(classifier, MultinomialNB):
+            values = vector.toarray()[0]
+            names = model.named_steps['vectorizer'].get_feature_names_out()
+            log_ratio = classifier.feature_log_prob_[1] - classifier.feature_log_prob_[0]
+            contributions = values * log_ratio
+            active = np.flatnonzero(values)
+            order = active[np.argsort(-np.abs(contributions[active]))]
+            bias = float(classifier.class_log_prior_[1] - classifier.class_log_prior_[0])
+            return {'text': text, 'bias': bias, 'score': float(bias + contributions.sum()),
+                    'probability': float(model.predict_proba([text])[0, 1]),
+                    'priors': np.exp(classifier.class_log_prior_).tolist(),
+                    'evidence': [{'word': str(names[j]), 'value': float(values[j]),
+                                  'ham': float(np.exp(classifier.feature_log_prob_[0, j])),
+                                  'spam': float(np.exp(classifier.feature_log_prob_[1, j])),
+                                  'contribution': float(contributions[j])} for j in order]}
         if not hasattr(classifier, 'coef_'):
             distances, indices = classifier.kneighbors(vector)
             return {'text': text, 'neighbors': [{'text': str(self.X_train[i]), 'label': int(self.y_train[i]),
@@ -357,7 +387,7 @@ class Experiment:
         ix = self.splits['test']
         probability = run['model'].predict_proba(self.messages[ix])[:, 1]
         self.final = {'id': identity, 'threshold': threshold, 'reason': reason,
-                      'configuration': {k: run['row'][k] for k in ('kind', 'representation', 'C', 'k')},
+                      'configuration': {k: run['row'][k] for k in ('kind', 'representation', 'C', 'k', 'alpha')},
                       'validation': metrics(self.y_val, run['probability'], threshold),
                       'test': metrics(self.labels[ix], probability, threshold)}
         return self.final
@@ -365,8 +395,8 @@ class Experiment:
     def execute(self, params):
         # A fresh namespace for each snippet; intentionally omit held-out test arrays.
         namespace = {name: globals()[name] for name in ('np', 'tokens', 'numerical_features',
-                     'rule_predict', 'metrics', 'build_model', 'cross_validate',
-                     'CountVectorizer', 'TfidfVectorizer')}
+                     'metrics', 'build_model', 'cross_validate',
+                     'text_vectorizer', 'CountVectorizer', 'TfidfVectorizer')}
         namespace.update(X_train=self.X_train.copy(), y_train=self.y_train.copy(),
                          X_val=self.X_val.copy(), y_val=self.y_val.copy())
         output, error = io.StringIO(), None
@@ -378,8 +408,8 @@ class Experiment:
         return {'stdout': output.getvalue(), 'error': error}
 
     def dispatch(self, action, params):
-        handlers = {'initialize': lambda p: self.initialize(), 'rules': self.rules,
-                    'vectorize': self.vectorize, 'regularization': self.regularization,
+        handlers = {'initialize': lambda p: self.initialize(),
+                    'tokenize': self.tokenize, 'vectorize': self.vectorize, 'regularization': self.regularization,
                     'cv': self.cv, 'explain': self.explain, 'lda': self.lda, 'gam': self.gam,
                     'evaluate': self.evaluate, 'final_test': self.final_test, 'execute': self.execute}
         if action not in handlers:

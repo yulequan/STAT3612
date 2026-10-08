@@ -3,6 +3,7 @@ import ast
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -49,8 +50,7 @@ class SpamExperimentTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Conflicting labels'):
                 science.load_data(path)
 
-    def test_rules_whole_words_and_threshold_confusion_conventions(self):
-        np.testing.assert_array_equal(science.rule_predict(['window', 'Free prize', 'Are you free?'], ['free', 'win']), [0, 1, 1])
+    def test_threshold_confusion_conventions(self):
         result = science.metrics(np.array([0, 0, 1, 1]), [.1, .6, .4, .9], .5)
         self.assertEqual(result['confusion'], [[1, 1], [1, 1]])
         self.assertEqual(result['precision'], .5)
@@ -82,9 +82,68 @@ class SpamExperimentTests(unittest.TestCase):
             self.assertNotIn('totallyunseenword3612', vectorizer.vocabulary_)
             self.assertLessEqual(vector.shape[1], 2500)
             if representation == 'tfidf':
-                count = science.CountVectorizer(vocabulary=vectorizer.vocabulary_, token_pattern=science.TOKEN_PATTERN).fit_transform(self.lab.X_train)
+                count = science.text_vectorizer('count', vocabulary=vectorizer.vocabulary_).fit_transform(self.lab.X_train)
                 df = np.asarray((count > 0).sum(axis=0)).ravel()
                 np.testing.assert_allclose(vectorizer.idf_, np.log((1 + len(self.lab.X_train)) / (1 + df)) + 1)
+
+    def test_nltk_tokenization_is_shared_with_vectorizers(self):
+        text = 'Congratulations! Claim your FREE prize now!'
+        result = self.lab.tokenize({'text': text})
+        self.assertEqual(result['raw_tokens'], ['congratulations', '!', 'claim', 'your', 'free', 'prize', 'now', '!'])
+        self.assertEqual(result['tokens'], ['congratulations', 'claim', 'your', 'free', 'prize', 'now'])
+        vectorizer = science.text_vectorizer()
+        self.assertEqual(vectorizer.build_analyzer()(text), result['tokens'])
+
+    def test_worked_tfidf_values_df_counts_and_zero_rows_match_sklearn(self):
+        documents = ['claim your prize', 'check your timetable', 'send your notes']
+        result = self.lab.vectorize({'documents': documents, 'representation': 'tfidf', 'text': 'unknown3612'})
+        your, prize = map(result['vocabulary'].index, ['your', 'prize'])
+        self.assertEqual([result['df'][your], result['df'][prize]], [3, 1])
+        self.assertAlmostEqual(result['idf'][your], 1)
+        self.assertAlmostEqual(result['idf'][prize], np.log(2) + 1)
+        self.assertAlmostEqual(result['norms'][0], np.sqrt(2 * (1 + np.log(2)) ** 2 + 1))
+        manual = np.asarray(result['weighted']) / np.asarray(result['norms'])[:, None]
+        np.testing.assert_allclose(manual, result['matrix'])
+        self.assertFalse(np.any(result['transformed']))
+        repeated = self.lab.vectorize({'documents': ['prize prize', 'prize'], 'representation': 'tfidf'})
+        self.assertEqual(repeated['df'], [2])
+        self.assertEqual(repeated['counts'], [[2], [1]])
+
+    def test_naive_bayes_hand_calculation_and_real_evidence(self):
+        messages = ['meet after class', 'meet for lunch', 'claim your prize', 'win your prize']
+        vectorizer = science.text_vectorizer()
+        matrix = vectorizer.fit_transform(messages)
+        classifier = science.MultinomialNB(alpha=1).fit(matrix, [0, 0, 1, 1])
+        self.assertEqual(matrix.shape[1], 9)
+        np.testing.assert_array_equal(classifier.feature_count_.sum(axis=1), [6, 6])
+        self.assertAlmostEqual(classifier.predict_proba(vectorizer.transform(['claim prize']))[0, 1], 6 / 7)
+        lab = science.Experiment(self.path)
+        for representation in ('count', 'tfidf'):
+            row = lab.fit({'kind': 'nb', 'representation': representation, 'alpha': .5})
+            model = lab.runs[row['id']]['model']
+            result = lab.explain({'id': row['id'], 'text': 'Claim your free prize now!'})
+            log_p = model.predict_log_proba([result['text']])[0]
+            self.assertAlmostEqual(result['score'], log_p[1] - log_p[0])
+            self.assertAlmostEqual(result['bias'] + sum(item['contribution'] for item in result['evidence']), result['score'])
+            self.assertAlmostEqual(result['probability'], model.predict_proba([result['text']])[0, 1])
+            empty = lab.explain({'id': row['id'], 'text': 'unknown3612'})
+            self.assertEqual(empty['evidence'], [])
+            self.assertAlmostEqual(empty['probability'], lab.y_train.mean())
+        with self.assertRaisesRegex(ValueError, 'nonnegative'):
+            science.build_model(kind='nb', representation='numeric')
+
+    def test_core_starters_work_without_running_extensions(self):
+        curriculum = json.loads((FOLDER / 'curriculum.json').read_text())
+        lab = science.Experiment(self.path)
+        for chapter in curriculum['chapters']:
+            if not chapter['extension']:
+                with self.subTest(chapter=chapter['id']):
+                    # Other tutorials also have an experiment.py; mirror this
+                    # lesson's isolated worker/module when importing helpers.
+                    with patch.dict(sys.modules, {'experiment': science}):
+                        result = lab.execute({'code': chapter['starter']})
+                    self.assertIsNone(result['error'], result['error'])
+        self.assertEqual(lab.runs, {})  # Snippet examples do not register UI candidates.
 
     def test_cv_refits_every_pipeline_without_heldout_inputs(self):
         messages = np.array([f'class{label} shared uniquetoken{i}' for i in range(30) for label in [0, 1]])

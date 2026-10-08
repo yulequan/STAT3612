@@ -3,16 +3,17 @@
 A Vue 3 + TypeScript + Tailwind CSS 4 website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
-Tutorial05 develops **Spam Email Classification** from inbox consequences and keyword
-rules through original-data inspection, numerical features, count/TF–IDF representations,
-logistic regression, regularization and training-only CV. It then compares LDA, a binomial
-additive spline model and KNN before choosing a validation threshold and freezing the
-final test decision. Each chapter opens with a one-line key idea, an illustrative figure
-for lecturing and a few short points, then an interactive experiment on the real data,
-actual Python and a runnable notebook experiment. The dataset itself (raw file preview and a
-searchable, sortable table of messages and features) is browsable in the page. The original UCI SMS Spam Collection
-is bundled unchanged; its provenance and the limits of using historical SMS to learn
-email-filtering methods are explained in the lesson and [dataset documentation](src/tutorials/tutorial05/data/README.md).
+Tutorial05 teaches **Spam Message Classification** through a guided workflow:
+messages → NLTK tokenization → Bag of Words → TF–IDF → Naive Bayes, logistic
+regression and KNN → evaluation and error analysis. Small worked examples expose
+vocabulary columns, smoothed IDF, normalization and NB evidence before fitting
+real classifiers. Explicit NLTK/sklearn imports connect each concept to Python.
+Complete extensions retain regularization, training-only CV, numerical features,
+LDA and a binomial additive spline model (GAM) for instructor selection; the core
+route can skip them. Both the website and notebook share the teaching content.
+The original UCI SMS Spam Collection is bundled unchanged and browsable in the
+page. Data provenance and limitations are explained in the lesson and
+[dataset documentation](src/tutorials/tutorial05/data/README.md).
 Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overview)
 or see its [student instructions](src/tutorials/tutorial05/README.md).
 
@@ -134,7 +135,7 @@ and serve it locally:
 python3 -m http.server 8000 --directory dist
 ```
 
-Open **http://localhost:8000**. The complete build is about 47 MB, mostly Python and numerical
+Open **http://localhost:8000**. The complete build is about 49 MB, mostly Python and numerical
 libraries. It works without internet access once built. Serve it over HTTP(S), not `file://`.
 
 ## A single source tree
@@ -180,7 +181,7 @@ The original standalone course demos are retained separately in `public/`.
 ## Python in the browser
 
 [Pyodide](https://pyodide.org/) is a mature CPython-on-WebAssembly runtime. This site pins
-**Pyodide 0.27.7 / Python 3.12.7, NumPy 2.0.2, SciPy 1.14.1 and scikit-learn 1.6.1** as a compatible browser stack.
+**Pyodide 0.27.7 / Python 3.12.7, NumPy 2.0.2, SciPy 1.14.1 and scikit-learn 1.6.1** (Tutorial05 also bundles NLTK 3.8.1) as a compatible browser stack.
 The notebook environment is pinned separately. Not every desktop Python package works in
 WASM; declare and verify packages per lesson.
 
@@ -270,7 +271,8 @@ The small authoring contract:
 - `lesson.ts` exports id, number, title, subtitle, overview, ordered chapters and a Vue component.
   The required `overview` defines the task, motivation, learning stages (with chapter ids),
   objectives, prerequisites and expected work. The shared shell renders it before loading the
-  practical lesson, and passes the selected `chapter` to the lesson component. The scaffold
+  practical lesson, and passes the selected `chapter` to the lesson component. Chapters may
+  supply an optional `heading` for a topic title; otherwise the shell displays their `question`. The scaffold
   includes this structure for every new tutorial.
 - `tutorial.json` declares the Python `experiment`, optional `dataset`, `python_packages`,
   `web_assets` and `student_files`. The build packages every discovered tutorial.

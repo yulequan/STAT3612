@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 type Row = { split: string; label: number; text: string; features: number[] }
 const props = defineProps<{ rows: Row[]; features?: boolean; caption: string }>()
-const FEATURES = ['Chars', 'Words', 'Links', 'Digits', '!']
+const FEATURES = ['Chars', 'Tokens', 'Links', 'Digits', '!']
 const query = ref('')
 const label = ref('all')
 const split = ref('all')

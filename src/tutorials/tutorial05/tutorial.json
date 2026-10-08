@@ -1,13 +1,14 @@
 {
   "id": "tutorial05",
-  "title": "Spam Email Classification",
-  "subtitle": "From simple rules to reliable decisions",
+  "title": "Spam Message Classification",
+  "subtitle": "From text to features to predictions",
   "experiment": "experiment.py",
   "dataset": "data/SMSSpamCollection.txt",
   "python_packages": [
     "numpy",
     "scipy",
-    "scikit-learn"
+    "scikit-learn",
+    "nltk"
   ],
   "web_assets": [
     "experiment.py",

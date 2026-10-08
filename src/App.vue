@@ -189,7 +189,7 @@ watch(
           {{ String(lesson.chapters.length).padStart(2, '0') }} chapters</span
         >
       </div>
-      <h1>{{ chapter?.question ?? lesson.title }}</h1>
+      <h1>{{ chapter?.heading ?? chapter?.question ?? lesson.title }}</h1>
     </div>
     <div class="content" v-show="lesson">
       <TutorialOverview v-if="lesson && !chapter" :lesson="lesson" />
