@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 const curriculum = JSON.parse(readFileSync('src/tutorials/tutorial05/curriculum.json', 'utf8')) as {
-  chapters: { id: string; title: string }[]
+  chapters: { id: string; title: string; idea: string }[]
 }
 
 async function chapter(page: Page, id: string) {
@@ -27,7 +27,7 @@ test('overview motivates the complete case study without starting Python', async
   await expect(page.getByRole('link', { name: '↓ Notebook + data', exact: true })).toBeVisible()
 })
 
-test('every chapter connects valid maths, actual Python and an executable experiment', async ({
+test('every chapter connects guided explanations, explicit Python and an executable experiment', async ({
   page,
 }) => {
   test.setTimeout(240_000)
@@ -40,28 +40,35 @@ test('every chapter connects valid maths, actual Python and an executable experi
   })
   await page.goto('/tutorials/tutorial05/inbox')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
-  const outputs = [
-    'Rule confusion:',
-    'Always-ham recall:',
-    'Numerical baseline AP:',
-    'Vocabulary:',
-    'Score / probability:',
-    'weight norm=',
-    'Selected C:',
-    'lda validation AP:',
-    'gam validation AP:',
-    'Spam vote:',
-    'Threshold:',
-  ]
-  for (const [i, section] of curriculum.chapters.entries()) {
+  const outputs: Record<string, string> = {
+    inbox: 'Keyword prediction:',
+    data: 'Always-ham recall:',
+    tokenize: 'NLTK tokens:',
+    text: 'Vocabulary:',
+    tfidf: 'IDF:',
+    naive: 'NB representation comparison:',
+    logistic: 'LR prediction:',
+    neighbors: 'Spam vote:',
+    regularization: 'weight norm=',
+    validation: 'Selected C:',
+    features: 'Numerical baseline AP:',
+    lda: 'lda validation AP:',
+    gam: 'gam validation AP:',
+    decision: 'Classifier:',
+  }
+  for (const section of curriculum.chapters) {
     await chapter(page, section.id)
-    await expect(page.locator('#concept .katex').first()).toBeVisible()
-    await expect(page.locator('#concept .concept-figure svg[role="img"]')).toBeVisible()
+    await expect(page.locator('.chapter-heading h1')).toHaveText(section.title)
+    await expect(page.locator('#concept h2')).toHaveText(section.idea)
+    if (['tfidf', 'naive'].includes(section.id))
+      await expect(page.locator('#concept .katex').first()).toBeVisible()
     await expect(page.locator('#concept .key-points li').first()).toBeVisible()
     await expect(page.locator('.katex-error')).toHaveCount(0)
     await expect(page.locator('#python .hljs-keyword').first()).toBeVisible()
     await runPython(page).click()
-    await expect(page.getByLabel('Python output')).toContainText(outputs[i]!, { timeout: 90_000 })
+    await expect(page.getByLabel('Python output')).toContainText(outputs[section.id]!, {
+      timeout: 90_000,
+    })
     await expect(page.getByRole('alert')).toHaveCount(0)
   }
   expect(errors).toEqual([])
@@ -74,8 +81,8 @@ test('interactive representations, learned models, CV and frozen test decision f
   test.setTimeout(240_000)
   await page.goto('/tutorials/tutorial05/inbox')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
-  await page.getByRole('button', { name: 'Apply keyword rule', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Actual validation errors' })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'One keyword is not enough' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Apply keyword rule' })).toHaveCount(0)
   await chapter(page, 'data')
   await expect(page.locator('.audit > span').first()).toContainText('5574')
   await expect(page.locator('.audit > span').last()).toContainText('5159')
@@ -84,6 +91,11 @@ test('interactive representations, learned models, CV and frozen test decision f
   await page.getByRole('combobox', { name: 'Label', exact: true }).selectOption('1')
   await expect(page.locator('.data-table tbody mark').first()).toHaveText(/prize/i)
   await expect(page.locator('.data-table tbody .tag.ham')).toHaveCount(0)
+  await chapter(page, 'tokenize')
+  await page.getByLabel('Message to tokenize').fill('FREE prize!!!')
+  await page.getByRole('button', { name: 'Tokenize message', exact: true }).click()
+  await expect(page.locator('.token-stages')).toContainText('["free","prize","!","!","!"]')
+  await expect(page.locator('.token-stages dd').last()).toHaveText('["free","prize"]')
   await chapter(page, 'features')
   await page.getByLabel('Message to measure').fill('free 123!!!')
   await page.getByRole('button', { name: 'Measure message features' }).click()
@@ -94,15 +106,30 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(page.getByText('Ignored unknown words:')).toContainText('newword3612')
   await page.getByRole('button', { name: 'prize', exact: true }).click()
   await expect(page.locator('.spam-table th.highlight').first()).toHaveText('prize')
-  await page.getByRole('combobox', { name: 'Representation', exact: true }).selectOption('tfidf')
+  await chapter(page, 'tfidf')
+  await page.getByRole('button', { name: 'your', exact: true }).click()
+  await expect(page.getByRole('table', { name: 'TF–IDF calculation' })).toContainText('0.385')
+  await page.getByRole('button', { name: 'prize', exact: true }).click()
+  await expect(page.getByRole('table', { name: 'TF–IDF calculation' })).toContainText('1.693')
   await page.getByRole('button', { name: 'Build and transform toy vectors' }).click()
   await expect(page.getByRole('rowheader', { name: 'Training IDF', exact: true })).toBeVisible()
   await page.screenshot({ path: info.outputPath('text-vectors.png'), fullPage: true })
+  await chapter(page, 'naive')
+  await page.getByRole('button', { name: 'Fit Naive Bayes classifier', exact: true }).click()
+  await expect(page.getByRole('table', { name: 'Naive Bayes word evidence' })).toContainText(
+    'prize',
+    { timeout: 60_000 },
+  )
+  await page.getByLabel('Message for Naive Bayes').fill('unknown3612')
+  await page.getByRole('button', { name: 'Inspect Naive Bayes evidence' }).click()
+  await expect(page.getByText('No known words remain.', { exact: false })).toBeVisible()
+  await page.screenshot({ path: info.outputPath('naive-bayes.png'), fullPage: true })
   await chapter(page, 'logistic')
   await page.getByRole('button', { name: 'Fit logistic classifier', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Message-specific contributions wⱼxⱼ' }),
   ).toBeVisible({ timeout: 60_000 })
+  await page.getByText('Recall the score-to-probability mapping', { exact: true }).click()
   await expect(
     page.getByRole('img', { name: 'Linear score mapped through the sigmoid' }),
   ).toBeVisible()
@@ -182,7 +209,9 @@ test('interactive representations, learned models, CV and frozen test decision f
   const exported = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export experiment record' }).click()
   const record = JSON.parse(readFileSync((await (await exported).path())!, 'utf8'))
-  expect(record.runs).toHaveLength(10)
+  expect(record.runs.map((r: { kind: string }) => r.kind)).toEqual(
+    expect.arrayContaining(['nb', 'logistic', 'knn', 'lda', 'gam']),
+  )
   expect(record.final.threshold).toBe(0.8)
   expect(record.final.test.confusion.flat().reduce((a: number, b: number) => a + b, 0)).toBe(1032)
   const downloaded = page.waitForEvent('download')
@@ -201,7 +230,16 @@ test('mobile layout, edited snippets and cancellation preserve a usable lesson',
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/tutorials/tutorial05/text')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
-  for (const id of ['text', 'data', 'validation', 'gam', 'decision']) {
+  for (const id of [
+    'text',
+    'tfidf',
+    'tokenize',
+    'naive',
+    'data',
+    'validation',
+    'gam',
+    'decision',
+  ]) {
     await chapter(page, id)
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -243,4 +281,43 @@ test('original SMS file and sklearn run under a static subdirectory; loading fai
   await runPython(page).click()
   await expect(page.getByLabel('Python output')).toContainText('Always-ham recall:')
   await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
+test('core comparison and test evaluation work without visiting extension chapters', async ({
+  page,
+}, info) => {
+  test.setTimeout(180_000)
+  await page.goto('/tutorials/tutorial05/decision')
+  await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
+  await page.getByRole('button', { name: 'Compare BoW and TF–IDF with NB', exact: true }).click()
+  await expect(page.locator('.chapter-experiment .spam-table tbody tr')).toHaveCount(2, {
+    timeout: 60_000,
+  })
+  await page
+    .getByRole('button', { name: 'Compare NB, LR and KNN with TF–IDF', exact: true })
+    .click()
+  await expect(page.locator('.chapter-experiment .spam-table tbody tr')).toHaveCount(5, {
+    timeout: 60_000,
+  })
+  const rows = await page.locator('.chapter-experiment .spam-table tbody').innerText()
+  expect(rows).toContain('NB')
+  expect(rows).toContain('LOGISTIC')
+  expect(rows).toContain('KNN')
+  await page
+    .getByRole('combobox', { name: 'Comparison group', exact: true })
+    .selectOption('numeric')
+  await expect(page.locator('.chapter-experiment .spam-table tbody tr')).toHaveCount(0)
+  await page.getByRole('combobox', { name: 'Comparison group', exact: true }).selectOption('text')
+  await page
+    .getByLabel('Model and threshold rationale')
+    .fill(
+      'Compared text representations with NB fixed and models with TF–IDF fixed on validation. Avoid false alarms; English SMS has limited scope.',
+    )
+  await page
+    .getByRole('button', { name: 'Freeze decision and evaluate test set', exact: true })
+    .click()
+  await expect(
+    page.getByRole('heading', { name: 'Final test result · decision frozen' }),
+  ).toBeVisible()
+  await page.screenshot({ path: info.outputPath('core-comparison.png'), fullPage: true })
 })

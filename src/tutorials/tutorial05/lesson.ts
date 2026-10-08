@@ -16,5 +16,10 @@ export default {
     outcome: curriculum.outcome,
   },
   component: defineAsyncComponent(() => import('./Tutorial05.vue')),
-  chapters: curriculum.chapters.map(({ id, title, question }) => ({ id, title, question })),
+  chapters: curriculum.chapters.map(({ id, title, question }) => ({
+    id,
+    title,
+    question,
+    heading: title,
+  })),
 } satisfies Lesson

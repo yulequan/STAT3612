@@ -22,10 +22,10 @@ random sample of today's inboxes. Messages are not chronologically ordered.
 
 Why use it: short inspectable examples, explicit binary labels, manageable local training,
 class imbalance and repeated messages make representation and evaluation choices visible.
-Despite the tutorial title Spam Email Classification, these are SMS messages, without
+These are SMS messages, without
 email senders, subjects, attachments or headers. Text-classification methods transfer;
 measured performance does not establish results on modern email, phishing, other
-languages or another population. Constructed inbox cards are illustrative examples.
+languages or another population. Constructed teaching examples illustrate the methods.
 
 The loader checks empty/placeholder messages, normalizes case/whitespace solely for
 message identity, rejects conflicting labels, and keeps one record per identity before

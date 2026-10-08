@@ -8,6 +8,7 @@ import Plot from './Plot.vue'
 import ConceptFigure from './ConceptFigure.vue'
 import DataTable from './DataTable.vue'
 import Confusion from './Confusion.vue'
+import { courseHref } from '../../navigation'
 import curriculum from './curriculum.json'
 import source from './experiment.py?raw'
 
@@ -31,6 +32,7 @@ type Run = {
   kind: string
   representation: string
   C: number
+  alpha: number
   k: number
   parameters: number
   train: Metrics
@@ -62,6 +64,10 @@ type Vector = {
   unknown: string[]
   numeric: number[]
   idf: number[]
+  counts: number[][]
+  df: number[]
+  weighted: number[][]
+  norms: number[]
 }
 type Explanation = {
   text: string
@@ -70,6 +76,8 @@ type Explanation = {
   probability: number
   contributions?: { name: string; value: number }[]
   neighbors?: { text: string; label: number; distance: number }[]
+  priors?: number[]
+  evidence?: { word: string; value: number; ham: number; spam: number; contribution: number }[]
 }
 type Evaluation = {
   threshold: number
@@ -114,13 +122,14 @@ const error = ref('')
 const busy = ref(false)
 const running = ref(false)
 const operation = ref('')
-const rules = ref<{
-  metrics: Metrics
-  custom: number
-  errors: { text: string; label: number; prediction: number }[]
-}>()
-const keywords = ref('free win prize')
 const message = ref('Congratulations! Claim your free prize now!')
+const tokenText = ref('Congratulations! Claim your FREE prize now!')
+const tokenResult = ref<{
+  text: string
+  lowercase: string
+  raw_tokens: string[]
+  tokens: string[]
+}>()
 const toyDocuments = ref('Free prize now\nAre you free after class\nWin a prize prize')
 const toyText = ref('free meeting tomorrow')
 const toyRepresentation = ref('count')
@@ -129,6 +138,7 @@ const word = ref('free')
 const feature = ref(0)
 const representation = ref('count')
 const C = ref(1)
+const alpha = ref(1)
 const k = ref(5)
 const runs = ref<Run[]>([])
 const selected = ref('')
@@ -165,21 +175,6 @@ const currentEvaluation = computed(() =>
 )
 const fmt = (n: number) => (100 * n).toFixed(1) + '%'
 const label = (n: number) => (n ? 'Spam' : 'Ham')
-const pieces = (text: string) => text.split(/([a-z0-9]+)/i)
-const keywordSet = computed(() => new Set(keywords.value.toLowerCase().match(/[a-z0-9]+/g) ?? []))
-// Word → contribution for colouring the classified message in the logistic chapter.
-const contributionOf = computed(
-  () => new Map(currentExplanation.value?.contributions?.map((c) => [c.name, c.value]) ?? []),
-)
-const wordStyle = (piece: string) => {
-  const value = contributionOf.value.get(piece.toLowerCase())
-  if (!value) return undefined
-  const strength = Math.min(1, Math.abs(value) / maxContribution.value)
-  return {
-    background: `rgba(${value > 0 ? '170, 97, 61' : '69, 101, 126'}, ${0.15 + 0.6 * strength})`,
-    color: strength > 0.55 ? 'white' : undefined,
-  }
-}
 const PALETTE = [
   '#45657e',
   '#aa613d',
@@ -191,7 +186,22 @@ const PALETTE = [
   '#65717c',
 ]
 const runName = (r: Run) =>
-  `${r.id} · ${r.kind === 'gam' ? 'additive spline' : r.kind.toUpperCase()} · ${r.representation}${r.kind === 'knn' ? ` · k=${r.k}` : r.kind === 'lda' ? '' : ` · C=${r.C}`}`
+  `${r.id} · ${r.kind === 'gam' ? 'additive spline' : r.kind.toUpperCase()} · ${r.representation}${r.kind === 'knn' ? ` · k=${r.k}` : r.kind === 'nb' ? ` · α=${r.alpha}` : r.kind === 'lda' ? '' : ` · C=${r.C}`}`
+const chapterModel = computed(
+  () =>
+    ({ naive: 'nb', logistic: 'logistic', neighbors: 'knn' })[
+      props.chapter as 'naive' | 'logistic' | 'neighbors'
+    ],
+)
+const comparisonGroup = ref('text')
+const comparisonRuns = computed(() =>
+  runs.value.filter(
+    (row) =>
+      comparisonGroup.value === 'all' ||
+      (row.representation === 'numeric') === (comparisonGroup.value === 'numeric'),
+  ),
+)
+const wordIndex = computed(() => vector.value?.vocabulary.indexOf(word.value) ?? -1)
 const distribution = computed(() => initial.value?.distributions[feature.value])
 const maxHistogram = computed(() => Math.max(0.01, ...(distribution.value?.groups.flat() ?? [])))
 const maxContribution = computed(() =>
@@ -260,32 +270,6 @@ const sigmoidPoints = Array.from({ length: 81 }, (_, i) => {
   const z = -8 + i / 5
   return [z, 1 / (1 + Math.exp(-z))]
 })
-const inbox = [
-  {
-    text: 'Claim your free prize now!',
-    rule: 'spam',
-    verdict: 'right',
-    outcome: '✓ Caught: a typical promotion.',
-  },
-  {
-    text: 'Are you free after class?',
-    rule: 'spam',
-    verdict: 'wrong',
-    outcome: '✗ False alarm: “free” also has an everyday meaning.',
-  },
-  {
-    text: 'Your account requires verification. Visit https://example.org',
-    rule: 'ham',
-    verdict: 'wrong',
-    outcome: '✗ Probably missed: suspicious, but contains no keyword.',
-  },
-  {
-    text: 'The internship interview is confirmed for Friday.',
-    rule: 'ham',
-    verdict: 'right',
-    outcome: '✓ Delivered: blocking this one would be costly.',
-  },
-]
 let generation = 0
 async function act<T>(
   name: string,
@@ -326,12 +310,13 @@ async function vectorize() {
     if (!value.vocabulary.includes(word.value)) word.value = value.vocabulary[0] ?? ''
   }
 }
-async function applyRule() {
-  const value = await act<typeof rules.value>('Evaluating the keyword rule', 'rules', {
-    keywords: keywords.value,
-    text: message.value,
-  })
-  if (value) rules.value = value
+async function tokenize() {
+  const value = await act<NonNullable<typeof tokenResult.value>>(
+    'Tokenizing the message',
+    'tokenize',
+    { text: tokenText.value },
+  )
+  if (value) tokenResult.value = value
 }
 async function fit(kind = 'logistic', input = representation.value) {
   const row = await act<Run>('Fitting the classifier', 'fit', {
@@ -339,10 +324,31 @@ async function fit(kind = 'logistic', input = representation.value) {
     representation: input,
     C: C.value,
     k: k.value,
+    alpha: alpha.value,
   })
   if (row) {
     addRun(row)
-    if (['logistic', 'neighbors'].includes(props.chapter)) await explain()
+    if (['naive', 'logistic', 'neighbors'].includes(props.chapter)) await explain()
+  }
+}
+async function compareCore(mode: 'representation' | 'classifier') {
+  comparisonGroup.value = 'text'
+  const configs =
+    mode === 'representation'
+      ? [
+          { kind: 'nb', representation: 'count' },
+          { kind: 'nb', representation: 'tfidf' },
+        ]
+      : ['nb', 'logistic', 'knn'].map((kind) => ({ kind, representation: 'tfidf' }))
+  for (const config of configs) {
+    const row = await act<Run>('Fitting comparison candidates', 'fit', {
+      ...config,
+      C: 1,
+      k: 5,
+      alpha: 1,
+    })
+    if (!row) break
+    addRun(row)
   }
 }
 async function explain() {
@@ -466,9 +472,11 @@ async function start() {
   cv.value = undefined
   lda.value = undefined
   gam.value = undefined
+  tokenResult.value = undefined
   try {
     initial.value = await runtime.start<Initial>()
     await vectorize()
+    await tokenize()
   } catch (e) {
     error.value = String(e)
   }
@@ -477,7 +485,22 @@ watch(
   () => props.chapter,
   () => {
     error.value = ''
+    if (props.chapter === 'neighbors') representation.value = 'tfidf'
+    if (props.chapter === 'naive' && representation.value === 'numeric')
+      representation.value = 'count'
+    if (['text', 'tfidf'].includes(props.chapter)) {
+      vector.value = undefined
+      toyRepresentation.value = props.chapter === 'tfidf' ? 'tfidf' : 'count'
+      toyDocuments.value =
+        props.chapter === 'tfidf'
+          ? 'claim your prize\ncheck your timetable\nsend your notes'
+          : 'free prize now\nare you free after class\nwin a prize prize'
+      toyText.value =
+        props.chapter === 'tfidf' ? 'claim your prize tomorrow' : 'free meeting tomorrow'
+      if (ready.value && !busy.value) void vectorize()
+    }
   },
+  { immediate: true },
 )
 onMounted(start)
 onUnmounted(() => {
@@ -488,14 +511,45 @@ onUnmounted(() => {
 
 <template>
   <div class="spam-lesson">
+    <nav class="learning-route" aria-label="Text classification workflow">
+      <span>Message</span><span aria-hidden="true">→</span><span>Tokens</span
+      ><span aria-hidden="true">→</span><span>BoW / TF–IDF</span><span aria-hidden="true">→</span
+      ><span>Classifier</span><span aria-hidden="true">→</span><span>Prediction</span>
+    </nav>
+    <aside v-if="section.extension" class="extension-note">
+      <strong>Extension</strong> · Complete material for further study. You can follow the core
+      route directly to
+      <a :href="courseHref('tutorials/tutorial05/decision')">Evaluation and Error Analysis →</a>
+    </aside>
     <section id="concept" class="chapter-theory">
-      <div class="section-label"><span>01</span> KEY IDEA</div>
+      <div class="section-label">UNDERSTAND THE IDEA</div>
       <h2>{{ section.idea }}</h2>
-      <ConceptFigure :chapter="chapter" />
       <ul class="key-points">
         <li v-for="point in section.points" :key="point">{{ point }}</li>
       </ul>
-      <div class="equation-card">
+      <article v-for="item in section.worked" :key="item.title" class="worked-example">
+        <h3>{{ item.title }}</h3>
+        <p v-for="paragraph in item.text" :key="paragraph">{{ paragraph }}</p>
+        <div v-if="item.columns.length" class="table-scroll">
+          <table class="spam-table" :aria-label="item.title">
+            <thead>
+              <tr>
+                <th v-for="column in item.columns" :key="column">{{ column }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, i) in item.rows" :key="i">
+                <template v-for="(value, j) in row" :key="j"
+                  ><th v-if="j === 0" scope="row">{{ value }}</th>
+                  <td v-else>{{ value }}</td></template
+                >
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+      <ConceptFigure v-if="section.extension" :chapter="chapter" />
+      <div v-if="section.equation && ['tfidf', 'naive'].includes(chapter)" class="equation-card">
         <MathText :tex="section.equation" />
         <dl class="notation-list">
           <div v-for="[symbol, meaning] in section.notation" :key="symbol">
@@ -504,9 +558,24 @@ onUnmounted(() => {
           </div>
         </dl>
       </div>
+      <details v-else-if="section.equation" class="formula-recap">
+        <summary>Formula recap</summary>
+        <div class="equation-card">
+          <MathText :tex="section.equation" />
+          <dl class="notation-list">
+            <div v-for="[symbol, meaning] in section.notation" :key="symbol">
+              <dt><MathText :tex="symbol!" inline /></dt>
+              <dd>{{ meaning }}</dd>
+            </div>
+          </dl>
+        </div>
+      </details>
+      <p v-for="[title, url] in section.links" :key="url" class="documentation-link">
+        <a :href="url" target="_blank" rel="noreferrer">{{ title }} ↗</a>
+      </p>
     </section>
     <section class="chapter-experiment" aria-label="Interactive experiment">
-      <div class="section-label"><span>02</span> TRY IT ON REAL DATA</div>
+      <div class="section-label">EXPLORE THE RESULT</div>
       <ol class="mechanism">
         <li v-for="step in section.steps" :key="step">{{ step }}</li>
       </ol>
@@ -517,53 +586,40 @@ onUnmounted(() => {
       <p v-if="busy" role="status">{{ operation }}…</p>
 
       <template v-if="chapter === 'inbox'">
-        <div class="inbox">
-          <article v-for="(item, i) in inbox" :key="i" class="mail-card" :class="item.verdict">
-            <span class="eyebrow">EXAMPLE {{ i + 1 }} · rule says {{ item.rule }}</span>
-            <p class="mail-text">{{ item.text }}</p>
-            <p>{{ item.outcome }}</p>
-          </article>
+        <div class="task-flow" aria-label="A text classification example">
+          <p>
+            <strong>Training example:</strong> “Claim your free prize!” + label
+            <span class="tag spam">Spam</span>
+          </p>
+          <p>
+            <strong>New input:</strong> “Are you free after class?” → tokens → vector → trained
+            classifier → predicted label
+          </p>
+          <p>The classifier must learn from the surrounding words as well as “free”.</p>
         </div>
+      </template>
+
+      <template v-if="chapter === 'tokenize'">
         <div class="panel">
-          <h3>Try a keyword rule</h3>
-          <label>Whole-word keywords<input v-model="keywords" type="text" /></label
-          ><label>Your message<textarea v-model="message" rows="3" /></label
-          ><button class="primary" :disabled="!ready || busy" @click="applyRule">
-            Apply keyword rule
+          <h3>Follow your message through preprocessing</h3>
+          <label>Message to tokenize<textarea v-model="tokenText" rows="3" /></label>
+          <button class="primary" :disabled="!ready || busy" @click="tokenize">
+            Tokenize message
           </button>
-          <template v-if="rules"
-            ><p>
-              Your message:
-              <span class="tag" :class="rules.custom ? 'spam' : 'ham'">{{
-                label(rules.custom)
-              }}</span>
-            </p>
-            <h3>On 1,032 validation messages</h3>
-            <Confusion :matrix="rules.metrics.confusion" label="Keyword rule confusion matrix" />
-            <div class="spam-metrics">
-              <span
-                >Validation accuracy<strong>{{ fmt(rules.metrics.accuracy) }}</strong></span
-              ><span
-                >Precision<strong>{{ fmt(rules.metrics.precision) }}</strong></span
-              ><span
-                >Recall<strong>{{ fmt(rules.metrics.recall) }}</strong></span
-              >
-            </div>
-            <h3>Actual validation errors</h3>
-            <p class="muted">Keywords are highlighted.</p>
-            <article v-for="(item, i) in rules.errors" :key="i" class="error-card">
-              <span class="pill"
-                >{{ item.label ? 'Missed spam (FN)' : 'False alarm (FP)' }} · true
-                {{ label(item.label) }} → predicted {{ label(item.prediction) }}</span
-              >
-              <p>
-                <template v-for="(piece, index) in pieces(item.text)" :key="index"
-                  ><mark v-if="keywordSet.has(piece.toLowerCase())">{{ piece }}</mark
-                  ><template v-else>{{ piece }}</template></template
-                >
-              </p>
-            </article></template
-          >
+          <dl v-if="tokenResult" class="token-stages">
+            <dt>Original</dt>
+            <dd>{{ tokenResult.text }}</dd>
+            <dt>Lowercase</dt>
+            <dd>{{ tokenResult.lowercase }}</dd>
+            <dt>NLTK tokens</dt>
+            <dd>
+              <code>{{ JSON.stringify(tokenResult.raw_tokens) }}</code>
+            </dd>
+            <dt>Retained tokens</dt>
+            <dd>
+              <code>{{ JSON.stringify(tokenResult.tokens) }}</code>
+            </dd>
+          </dl>
         </div>
       </template>
 
@@ -644,7 +700,7 @@ onUnmounted(() => {
           <p v-if="vector">Measured message: {{ vector.text }}</p>
           <div v-if="vector" class="spam-metrics">
             <span v-for="(value, i) in vector.numeric" :key="i"
-              >{{ ['Characters', 'Words', 'Links', 'Digits', 'Exclamation marks'][i]
+              >{{ ['Characters', 'Tokens', 'Links', 'Digits', 'Exclamation marks'][i]
               }}<strong>{{ value }}</strong></span
             >
           </div>
@@ -727,7 +783,7 @@ onUnmounted(() => {
         </p>
       </template>
 
-      <template v-if="chapter === 'text'">
+      <template v-if="['text', 'tfidf'].includes(chapter)">
         <div class="panel">
           <h3>Build a vocabulary from these training documents</h3>
           <label
@@ -759,8 +815,45 @@ onUnmounted(() => {
               Selected word: <strong>{{ word }}</strong
               >. Each column keeps its meaning for every message.
             </p>
+            <div
+              v-if="vector.representation === 'tfidf' && wordIndex >= 0"
+              class="calculation panel"
+            >
+              <h3>Calculate the weight of “{{ word }}”</h3>
+              <p>
+                {{ vector.documents.length }} training documents; {{ vector.df[wordIndex] }} contain
+                this word. IDF = log((1 + {{ vector.documents.length }}) / (1 +
+                {{ vector.df[wordIndex] }})) + 1 = {{ vector.idf[wordIndex]!.toFixed(3) }}.
+              </p>
+              <div class="table-scroll">
+                <table class="spam-table" aria-label="TF–IDF calculation">
+                  <thead>
+                    <tr>
+                      <th>Document</th>
+                      <th>TF</th>
+                      <th>TF × IDF</th>
+                      <th>Row L2 norm</th>
+                      <th>Normalized value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, i) in vector.counts" :key="i">
+                      <th>{{ vector.documents[i] }}</th>
+                      <td>{{ row[wordIndex] }}</td>
+                      <td>{{ vector.weighted[i]![wordIndex]!.toFixed(3) }}</td>
+                      <td>{{ vector.norms[i]!.toFixed(3) }}</td>
+                      <td>{{ vector.matrix[i]![wordIndex]!.toFixed(3) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                A word repeated twice has TF = 2, but adds only one to DF for that document. Row
+                norms use all vocabulary columns.
+              </p>
+            </div>
             <div class="table-scroll">
-              <table class="spam-table">
+              <table class="spam-table" aria-label="Document–term matrix">
                 <thead>
                   <tr>
                     <th>Document</th>
@@ -773,10 +866,7 @@ onUnmounted(() => {
                   <tr v-for="(row, i) in vector.matrix" :key="i">
                     <th>
                       {{ i + 1 }} ·
-                      <template v-for="(piece, index) in pieces(vector.documents[i]!)" :key="index"
-                        ><mark v-if="piece.toLowerCase() === word">{{ piece }}</mark
-                        ><template v-else>{{ piece }}</template></template
-                      >
+                      {{ vector.documents[i] }}
                     </th>
                     <td
                       v-for="(v, j) in row"
@@ -820,6 +910,95 @@ onUnmounted(() => {
         </div>
       </template>
 
+      <template v-if="chapter === 'naive'">
+        <div class="panel">
+          <h3>Fit Naive Bayes on the real messages</h3>
+          <div class="control-row">
+            <label
+              >NB representation<select v-model="representation">
+                <option value="count">Word counts</option>
+                <option value="tfidf">TF–IDF</option>
+              </select></label
+            >
+            <label
+              >Smoothing alpha<input
+                v-model.number="alpha"
+                type="number"
+                min="0.01"
+                max="100"
+                step="0.1"
+            /></label>
+          </div>
+          <button
+            class="primary"
+            :disabled="!ready || busy || !!final"
+            @click="fit('nb', representation === 'numeric' ? 'count' : representation)"
+          >
+            Fit Naive Bayes classifier
+          </button>
+          <template v-if="activeRun?.kind === 'nb'">
+            <p>
+              {{ runName(activeRun) }} · Validation AP
+              {{ fmt(activeRun.validation.average_precision) }} · Precision
+              {{ fmt(activeRun.validation.precision) }} · Recall
+              {{ fmt(activeRun.validation.recall) }}
+            </p>
+            <label>Message for Naive Bayes<textarea v-model="message" rows="3" /></label>
+            <button :disabled="!ready || busy" @click="explain">
+              Inspect Naive Bayes evidence
+            </button>
+          </template>
+        </div>
+        <div v-if="activeRun?.kind === 'nb' && currentExplanation?.evidence" class="panel">
+          <h3>Class priors and word evidence</h3>
+          <p>
+            Training priors: Ham {{ fmt(currentExplanation.priors![0]!) }} · Spam
+            {{ fmt(currentExplanation.priors![1]!) }}
+          </p>
+          <div class="table-scroll">
+            <table class="spam-table" aria-label="Naive Bayes word evidence">
+              <thead>
+                <tr>
+                  <th>Word</th>
+                  <th>Feature value</th>
+                  <th>P(word | ham)</th>
+                  <th>P(word | spam)</th>
+                  <th>Log evidence for spam</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in currentExplanation.evidence" :key="item.word">
+                  <th>{{ item.word }}</th>
+                  <td>{{ item.value.toFixed(3) }}</td>
+                  <td>{{ item.ham.toPrecision(3) }}</td>
+                  <td>{{ item.spam.toPrecision(3) }}</td>
+                  <td :class="item.contribution > 0 ? 'spam-text' : 'ham-key'">
+                    {{ item.contribution.toFixed(3) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-if="!currentExplanation.evidence.length">
+            No known words remain. This prediction uses only the learned class priors.
+          </p>
+          <p>
+            Positive log evidence favours spam; negative favours ham. Each term is feature value ×
+            log(P(word | spam) / P(word | ham)). Add the log prior ratio
+            {{ currentExplanation.bias!.toFixed(3) }} to get
+            {{ currentExplanation.score!.toFixed(3) }}.
+          </p>
+          <p><strong>Message:</strong> {{ currentExplanation.text }}</p>
+          <p>
+            <strong>Estimated spam probability: {{ fmt(currentExplanation.probability) }}</strong>
+          </p>
+          <p v-if="activeRun.representation === 'tfidf'" class="muted">
+            With TF–IDF, these are fitted nonnegative weight-based estimates rather than literal
+            token frequencies.
+          </p>
+        </div>
+      </template>
+
       <template v-if="['logistic', 'neighbors'].includes(chapter)">
         <div class="panel">
           <h3>
@@ -836,19 +1015,24 @@ onUnmounted(() => {
                 <option value="tfidf">TF–IDF</option>
                 <option value="numeric">Five numerical features</option>
               </select></label
-            ><label v-if="chapter === 'logistic'"
-              >Inverse regularization C<input
-                v-model.number="C"
-                type="number"
-                min="0.001"
-                max="100"
-                step="0.1" /></label
-            ><label v-else
+            ><label v-if="chapter === 'neighbors'"
               >Neighbour count k<select v-model.number="k">
                 <option v-for="n in [1, 3, 5, 9, 15, 31]" :key="n" :value="n">{{ n }}</option>
               </select></label
             >
           </div>
+          <details v-if="chapter === 'logistic'" class="formula-recap">
+            <summary>Optional: LR regularization setting</summary>
+            <label
+              >Inverse regularization C<input
+                v-model.number="C"
+                type="number"
+                min="0.001"
+                max="100"
+                step="0.1"
+            /></label>
+            <p>Use the default C = 1 first. Explore its effect in the Regularization extension.</p>
+          </details>
           <button
             class="primary"
             :disabled="!ready || busy || !!final"
@@ -856,7 +1040,7 @@ onUnmounted(() => {
           >
             {{ chapter === 'neighbors' ? 'Fit KNN classifier' : 'Fit logistic classifier' }}
           </button>
-          <template v-if="activeRun"
+          <template v-if="activeRun?.kind === chapterModel"
             ><p>
               {{ runName(activeRun) }} · Training AP {{ fmt(activeRun.train.average_precision) }} ·
               Validation AP {{ fmt(activeRun.validation.average_precision) }}
@@ -867,20 +1051,9 @@ onUnmounted(() => {
             </button></template
           >
         </div>
-        <template v-if="currentExplanation"
+        <template v-if="activeRun?.kind === chapterModel && currentExplanation"
           ><div class="panel">
-            <p class="colored-message">
-              <template v-for="(piece, index) in pieces(currentExplanation.text)" :key="index"
-                ><span v-if="wordStyle(piece)" class="word-chip" :style="wordStyle(piece)">{{
-                  piece
-                }}</span
-                ><template v-else>{{ piece }}</template></template
-              >
-            </p>
-            <p v-if="currentExplanation.contributions" class="muted">
-              Word colour = contribution: <span class="spam-text">orange → spam</span>,
-              <span class="ham-key">blue → ham</span>, darker = stronger.
-            </p>
+            <p class="colored-message">{{ currentExplanation.text }}</p>
             <div class="spam-metrics">
               <span
                 >Spam score<strong>{{ fmt(currentExplanation.probability) }}</strong></span
@@ -937,15 +1110,19 @@ onUnmounted(() => {
               <p class="muted">Spam vote = spam neighbours / k.</p></template
             >
           </div>
-          <Plot
-            v-if="currentExplanation.score !== undefined"
-            title="Linear score mapped through the sigmoid"
-            x-label="Linear score z"
-            y-label="Spam probability"
-            :lines="[{ name: 'Sigmoid', color: '#45657e', points: sigmoidPoints }]"
-            :points="[{ x: currentExplanation.score, y: currentExplanation.probability, label: 1 }]"
-            :bounds="[-8, 8, 0, 1]"
-        /></template>
+          <details v-if="currentExplanation.score !== undefined" class="formula-recap">
+            <summary>Recall the score-to-probability mapping</summary>
+            <Plot
+              title="Linear score mapped through the sigmoid"
+              x-label="Linear score z"
+              y-label="Spam probability"
+              :lines="[{ name: 'Sigmoid', color: '#45657e', points: sigmoidPoints }]"
+              :points="[
+                { x: currentExplanation.score, y: currentExplanation.probability, label: 1 },
+              ]"
+              :bounds="[-8, 8, 0, 1]"
+            /></details
+        ></template>
       </template>
 
       <template v-if="chapter === 'regularization'">
@@ -1185,7 +1362,30 @@ onUnmounted(() => {
 
       <template v-if="chapter === 'decision'">
         <div class="panel">
-          <h3>Compare the candidates you have fitted</h3>
+          <h3>Compare representations, then classifiers</h3>
+          <p>
+            These comparisons work even if you skipped the extensions. All candidates use the same
+            train / validation split.
+          </p>
+          <div class="control-row">
+            <button
+              class="primary"
+              :disabled="!ready || busy || !!final"
+              @click="compareCore('representation')"
+            >
+              Compare BoW and TF–IDF with NB
+            </button>
+            <button :disabled="!ready || busy || !!final" @click="compareCore('classifier')">
+              Compare NB, LR and KNN with TF–IDF
+            </button>
+          </div>
+          <label v-if="runs.length"
+            >Comparison group<select v-model="comparisonGroup">
+              <option value="text">Text features</option>
+              <option value="numeric">Numerical features</option>
+              <option value="all">All candidates (different representations)</option>
+            </select></label
+          >
           <p v-if="!runs.length">
             Fit a baseline here or visit the model chapters. Every candidate is evaluated on the
             same validation split.
@@ -1205,7 +1405,7 @@ onUnmounted(() => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in runs" :key="row.id">
+                <tr v-for="row in comparisonRuns" :key="row.id">
                   <th>{{ runName(row) }}</th>
                   <td>{{ fmt(row.validation.average_precision) }}</td>
                   <td>{{ fmt(row.validation.roc_auc) }}</td>
@@ -1422,8 +1622,12 @@ onUnmounted(() => {
     </section>
     <section id="python" class="chapter-python">
       <div class="section-label"><span>03</span> READ THE PYTHON</div>
-      <h2>The implementation behind this chapter</h2>
-      <PythonCode :code="sourceCode" :title="`experiment.py · ${section.functions.join(', ')}`" />
+      <h2>Connect the idea to Python</h2>
+      <PythonCode :code="section.example" :title="`${section.title} · worked example`" />
+      <details v-if="section.functions.length" class="implementation-details">
+        <summary>Inspect the supporting functions</summary>
+        <PythonCode :code="sourceCode" :title="`experiment.py · ${section.functions.join(', ')}`" />
+      </details>
     </section>
     <section class="python-practice">
       <div class="section-label"><span>04</span> RUN AND EXPLAIN</div>
@@ -1446,10 +1650,11 @@ onUnmounted(() => {
         </p>
       </div>
       <p class="muted">
-        Available: np, X_train, y_train, X_val, y_val, tokens, numerical_features, rule_predict,
-        metrics, build_model, cross_validate, CountVectorizer and TfidfVectorizer. Arrays are copied
-        for each run; no test arrays are supplied.
+        Setup supplies np, X_train, y_train, X_val, y_val and the metrics helper. Import the NLTK
+        and sklearn tools in your code. Each browser run starts with fresh copies of the train /
+        validation arrays; no test arrays are supplied.
       </p>
+      <p v-if="section.transition" class="lesson-transition">{{ section.transition }}</p>
       <div class="notebook-bridge">
         <div>
           <span class="eyebrow">THE SAME EXPERIMENT IN YOUR NOTEBOOK</span>
@@ -1470,6 +1675,64 @@ onUnmounted(() => {
 .spam-lesson {
   padding-bottom: 28px;
 }
+.learning-route {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.extension-note {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: #edf3f7;
+  border-radius: 5px;
+  line-height: 1.7;
+}
+.worked-example {
+  margin: 24px 0;
+}
+.worked-example p {
+  max-width: 75ch;
+}
+.formula-recap,
+.implementation-details {
+  margin: 20px 0;
+}
+summary {
+  cursor: pointer;
+  color: var(--accent);
+  padding: 10px 0;
+  font-weight: 500;
+}
+.token-stages {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+.token-stages dt {
+  font-weight: 600;
+}
+.token-stages dd {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+.task-flow {
+  background: #f4f7f9;
+  border-radius: 5px;
+  padding: 14px 20px;
+}
+.lesson-transition {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.documentation-link {
+  font-size: 0.85rem;
+}
+
 .key-points {
   margin: 8px 0 22px;
   padding-left: 0;
@@ -1516,16 +1779,6 @@ onUnmounted(() => {
   padding: 0 2px;
   border-radius: 2px;
 }
-.mail-card.right {
-  border-left: 3px solid #45657e;
-}
-.mail-card.wrong {
-  border-left: 3px solid #aa613d;
-}
-.mail-text {
-  font-size: 1rem !important;
-  font-weight: 500;
-}
 .raw-file {
   font:
     0.78rem/1.7 ui-monospace,
@@ -1566,10 +1819,7 @@ onUnmounted(() => {
   font-size: 1.1rem;
   line-height: 2;
 }
-.word-chip {
-  padding: 2px 5px;
-  border-radius: 3px;
-}
+
 .vote-bar {
   display: flex;
   gap: 3px;
