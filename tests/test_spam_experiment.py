@@ -136,23 +136,22 @@ class SpamExperimentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'nonnegative'):
             science.build_model(kind='nb', representation='numeric')
 
-    def test_core_starters_work_without_running_extensions(self):
+    def test_all_starters_work_independently_with_train_and_validation(self):
         curriculum = json.loads((FOLDER / 'curriculum.json').read_text())
         lab = science.Experiment(self.path)
         for chapter in curriculum['chapters']:
-            if not chapter['extension']:
-                with self.subTest(chapter=chapter['id']):
-                    # Other tutorials also have an experiment.py; mirror this
-                    # lesson's isolated worker/module when importing helpers.
+            with self.subTest(chapter=chapter['id']):
+                # Other tutorials also have an experiment.py; mirror this
+                # lesson's isolated worker/module when importing helpers.
+                with patch.dict(sys.modules, {'experiment': science}):
+                    result = lab.execute({'code': chapter['starter']})
+                self.assertIsNone(result['error'], result['error'])
+                if chapter['focus']:
+                    lines = chapter['starter'].splitlines()
+                    excerpt = '\n'.join(line for start, end in chapter['focus']['ranges'] for line in lines[start:end])
                     with patch.dict(sys.modules, {'experiment': science}):
-                        result = lab.execute({'code': chapter['starter']})
-                    self.assertIsNone(result['error'], result['error'])
-                    if chapter['focus']:
-                        lines = chapter['starter'].splitlines()
-                        excerpt = '\n'.join(line for start, end in chapter['focus']['ranges'] for line in lines[start:end])
-                        with patch.dict(sys.modules, {'experiment': science}):
-                            focused = lab.execute({'code': excerpt})
-                        self.assertIsNone(focused['error'], focused['error'])
+                        focused = lab.execute({'code': excerpt})
+                    self.assertIsNone(focused['error'], focused['error'])
         self.assertEqual(lab.runs, {})  # Snippet examples do not register UI candidates.
 
     def test_cv_refits_every_pipeline_without_heldout_inputs(self):
@@ -202,27 +201,46 @@ class SpamExperimentTests(unittest.TestCase):
             self.assertEqual(result['probability'], sum(n['label'] for n in result['neighbors']) / 5)
             self.assertEqual([n['distance'] for n in result['neighbors']], sorted(n['distance'] for n in result['neighbors']))
 
-    def test_nb_illustration_matches_sklearn_on_the_worked_messages(self):
-        from sklearn.naive_bayes import MultinomialNB
-        documents = ['meet after class', 'meet for lunch', 'claim your prize', 'win your prize']
-        labels = [0, 0, 1, 1]
-        vectorizer = science.text_vectorizer('count', min_df=1, max_features=None)
-        counts = vectorizer.fit_transform(documents)
+    def test_nb_illustration_matches_full_training_pipeline_on_real_sms(self):
         source = figures.EXAMPLES['nb']
+        model = science.build_model(kind='nb', representation='count').fit(self.lab.X_train, self.lab.y_train)
+        vectorizer = model.named_steps['vectorizer']
+        classifier = model.named_steps['classifier']
+        self.assertIn(source['text'], self.lab.X_val)
         self.assertEqual(len(vectorizer.vocabulary_), source['vocabulary'])
-        for label in (0, 1):
-            class_counts = np.asarray(counts[np.array(labels) == label].sum(axis=0)).ravel()
-            self.assertEqual(class_counts.sum(), source['totals'][label])
-            for word in source['words']:
-                self.assertEqual(class_counts[vectorizer.vocabulary_[word['name']]], word['counts'][label])
+        np.testing.assert_allclose(np.exp(classifier.class_log_prior_), source['priors'])
+        np.testing.assert_array_equal(classifier.feature_count_.sum(axis=1), source['totals'])
+        for word in source['words']:
+            np.testing.assert_array_equal(classifier.feature_count_[:, vectorizer.vocabulary_[word['name']]], word['counts'])
+            self.assertEqual(word['initial'], science.tokens(source['text']).count(word['name']))
         for alpha in (.1, 1, 5):
-            model = MultinomialNB(alpha=alpha).fit(counts, labels)
-            for text in ('claim prize', 'claim prize meet', '', 'prize prize class meet'):
-                features = {word: text.split().count(word) for word in vectorizer.vocabulary_}
+            model.set_params(classifier__alpha=alpha).fit(self.lab.X_train, self.lab.y_train)
+            for text in (source['text'], 'claim prize', '', 'prize prize class meet'):
+                features = {word['name']: science.tokens(text).count(word['name']) for word in source['words']}
                 example = figures.nb_example(features, alpha)
-                self.assertAlmostEqual(example['probability'], model.predict_proba(vectorizer.transform([text]))[0, 1])
+                self.assertAlmostEqual(example['probability'], model.predict_proba([text])[0, 1])
                 self.assertAlmostEqual(example['bias'] + sum(t['value'] for t in example['contributions']), example['score'])
-        self.assertAlmostEqual(figures.nb_example()['probability'], 6 / 7)
+
+    def test_walkthrough_sms_provenance_and_complete_model_lifecycle(self):
+        examples = figures.EXAMPLES
+        for kind, key in [('logistic', 'training'), ('knn', 'points')]:
+            words = [w['name'] for w in examples[kind]['words']] if kind == 'logistic' else examples[kind]['words']
+            for row in examples[kind][key]:
+                ix = list(self.lab.X_train).index(row['text'])
+                self.assertEqual(int(self.lab.y_train[ix]), row['label'])
+                self.assertEqual(row['counts'], [science.tokens(row['text']).count(w) for w in words])
+            for query in examples[kind]['queries']:
+                self.assertIn(query['text'], self.lab.X_val)
+        curriculum = json.loads((FOLDER / 'curriculum.json').read_text())
+        self.assertEqual(curriculum['chapters'][0]['id'], 'data')
+        self.assertEqual(curriculum['dataset']['preview'][0]['text'], self.lab.preview[0].split('\t', 1)[1])
+        self.assertNotIn('optional', json.dumps(curriculum).lower())
+        for section in curriculum['chapters']:
+            if section['id'] in ('naive', 'logistic', 'neighbors', 'features', 'lda', 'gam', 'validation', 'regularization'):
+                stages = section['workflow']['stages']
+                self.assertIn('Train', stages[0]['title'])
+                self.assertIn('Validate', stages[1]['title'])
+                self.assertIn('Test', stages[2]['title'])
 
     def test_knn_illustration_uses_actual_cosine_distances_and_uniform_votes(self):
         from sklearn.neighbors import KNeighborsClassifier
@@ -256,7 +274,8 @@ class SpamExperimentTests(unittest.TestCase):
         for query in source['queries']:
             state = figures.lr_example(query['counts'])
             self.assertAlmostEqual(state['probability'], model.predict_proba(vectorizer.transform([query['text']]))[0, 1])
-        self.assertAlmostEqual(example['probability'], model.predict_proba([[1, 1, 0, 0]])[0, 1])
+        initial = [w['initial'] for w in source['words']]
+        self.assertAlmostEqual(example['probability'], model.predict_proba([initial])[0, 1])
         for representation in ('count', 'tfidf', 'numeric'):
             model = science.build_model(kind='logistic', representation=representation).fit(self.lab.X_train, self.lab.y_train)
             text = 'Claim your FREE £1000 prize now!!!'
@@ -288,6 +307,18 @@ class SpamExperimentTests(unittest.TestCase):
             for i in [0, 20, 59]:
                 values = raw.copy(); values[0, j] = curve['x'][i]
                 self.assertAlmostEqual(curve['effect'][i], score(values) - base, places=10)
+
+    def test_lda_validation_settings_are_fitted_and_preserved_in_final_record(self):
+        lab = science.Experiment(self.path)
+        candidates = [lab.fit({'kind': 'lda', 'shrinkage': value}) for value in ('auto', .1, .5)]
+        for row in candidates:
+            model = lab.runs[row['id']]['model']
+            self.assertEqual(model.named_steps['classifier'].shrinkage, row['shrinkage'])
+            actual = science.metrics(lab.y_val, model.predict_proba(lab.X_val)[:, 1])
+            self.assertEqual(row['validation'], actual)
+        chosen = max(candidates, key=lambda row: row['validation']['average_precision'])
+        result = lab.final_test({'id': chosen['id'], 'reason': 'Selected shrinkage using validation AP.'})
+        self.assertEqual(result['configuration']['shrinkage'], chosen['shrinkage'])
 
     def test_test_set_not_used_during_fitting_and_decision_freezes(self):
         a, b = science.Experiment(self.path), science.Experiment(self.path)
@@ -362,8 +393,9 @@ class SpamExperimentTests(unittest.TestCase):
         tokenization = by_title['Follow one message through preprocessing']
         code = tokenization.findall(".//svg:text[@class='code']", ns)
         literal = ' '.join(node.text for node in code)
-        self.assertIn('Congratulations! Claim your FREE prize now!', literal)
-        self.assertIn('["congratulations", "!", "claim",', literal)
+        token_flow = next(c['flow'] for c in curriculum['chapters'] if c['id'] == 'tokenize')
+        self.assertIn(token_flow['stages'][0]['nodes'][0]['code'], literal)
+        self.assertIn(token_flow['stages'][2]['nodes'][0]['code'], literal)
         self.assertIn('font-family:Consolas,monospace', ''.join(tokenization.itertext()))
 
 

@@ -94,7 +94,7 @@ def metrics(y, probability, threshold=.5):
             'roc_auc': float(roc_auc_score(y, p))}
 
 
-def build_model(kind='logistic', representation='count', C=1., k=5, alpha=1.):
+def build_model(kind='logistic', representation='count', C=1., k=5, alpha=1., shrinkage='auto'):
     """Keep every learned transformation inside the pipeline."""
     if kind not in ('logistic', 'nb', 'knn', 'lda', 'gam'):
         raise ValueError('Unknown model.')
@@ -114,7 +114,7 @@ def build_model(kind='logistic', representation='count', C=1., k=5, alpha=1.):
         steps = [('vectorizer', text_vectorizer(representation, min_df=2,
                                                max_features=2500))]
     if kind == 'lda':
-        classifier = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
+        classifier = LinearDiscriminantAnalysis(solver='lsqr', shrinkage=shrinkage)
     elif kind == 'knn':
         classifier = KNeighborsClassifier(n_neighbors=int(k), algorithm='brute',
                                            metric='euclidean' if representation == 'numeric' else 'cosine')
@@ -195,6 +195,7 @@ def cross_validate(messages, labels, representation='count', values=(.01, .1, 1.
 
 class Experiment:
     def __init__(self, path):
+        self.path = str(path)
         self.messages, self.labels, self.splits, self.audit = load_data(path)
         with open(path, encoding='utf-8-sig') as handle:
             # The first lines exactly as stored: label, tab, message.
@@ -271,15 +272,17 @@ class Experiment:
         representation = 'numeric' if kind in ('lda', 'gam') else config.get('representation', 'count')
         C, k = float(config.get('C', 1.)), int(config.get('k', 5))
         alpha = float(config.get('alpha', 1.))
+        shrinkage = config.get('shrinkage', 'auto')
         if C <= 0 or not 1 <= k <= len(self.y_train):
             raise ValueError('C must be positive and k must fit the training set.')
         if kind not in ('logistic', 'nb', 'lda', 'gam', 'knn') or representation not in ('count', 'tfidf', 'numeric'):
             raise ValueError('Unknown model or representation.')
-        model = build_model(kind, representation, C, k, alpha)
+        model = build_model(kind, representation, C, k, alpha, shrinkage)
         model.fit(self.X_train, self.y_train)
         probability = model.predict_proba(self.X_val)[:, 1]
         run_id = f'run{len(self.runs) + 1}'
         row = {'id': run_id, 'kind': kind, 'representation': representation, 'C': C, 'k': k, 'alpha': alpha,
+               'shrinkage': shrinkage,
                'train': metrics(self.y_train, model.predict_proba(self.X_train)[:, 1]),
                'validation': metrics(self.y_val, probability),
                'parameters': int(model.named_steps['classifier'].coef_.size)
@@ -397,7 +400,7 @@ class Experiment:
         ix = self.splits['test']
         probability = run['model'].predict_proba(self.messages[ix])[:, 1]
         self.final = {'id': identity, 'threshold': threshold, 'reason': reason,
-                      'configuration': {k: run['row'][k] for k in ('kind', 'representation', 'C', 'k', 'alpha')},
+                      'configuration': {k: run['row'][k] for k in ('kind', 'representation', 'C', 'k', 'alpha', 'shrinkage')},
                       'validation': metrics(self.y_val, run['probability'], threshold),
                       'test': metrics(self.labels[ix], probability, threshold)}
         return self.final
@@ -408,7 +411,7 @@ class Experiment:
                      'metrics', 'build_model', 'cross_validate',
                      'text_vectorizer', 'CountVectorizer', 'TfidfVectorizer')}
         namespace.update(X_train=self.X_train.copy(), y_train=self.y_train.copy(),
-                         X_val=self.X_val.copy(), y_val=self.y_val.copy())
+                         X_val=self.X_val.copy(), y_val=self.y_val.copy(), dataset_path=self.path)
         output, error = io.StringIO(), None
         try:
             with contextlib.redirect_stdout(output):

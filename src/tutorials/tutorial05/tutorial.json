@@ -1,7 +1,7 @@
 {
   "id": "tutorial05",
   "title": "Spam Message Classification",
-  "subtitle": "From text to features to predictions",
+  "subtitle": "Real SMS data, training, validation selection and final testing",
   "experiment": "experiment.py",
   "dataset": "data/SMSSpamCollection.txt",
   "python_packages": [
