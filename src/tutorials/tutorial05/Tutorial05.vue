@@ -6,6 +6,8 @@ import PythonCode from '../../components/PythonCode.vue'
 import PythonEditor from '../../components/PythonEditor.vue'
 import Plot from './Plot.vue'
 import ConceptFigure from './ConceptFigure.vue'
+import FlowDiagram from './FlowDiagram.vue'
+import InlineText from './InlineText.vue'
 import DataTable from './DataTable.vue'
 import Confusion from './Confusion.vue'
 import { courseHref } from '../../navigation'
@@ -16,6 +18,12 @@ const props = defineProps<{ chapter: string }>()
 const section = computed(
   () => curriculum.chapters.find((c) => c.id === props.chapter) ?? curriculum.chapters[0]!,
 )
+const focusCode = computed(() => {
+  const lines = section.value.starter.split('\n')
+  return (
+    section.value.focus?.ranges.flatMap(([start, end]) => lines.slice(start, end)).join('\n') ?? ''
+  )
+})
 type Metrics = {
   accuracy: number
   precision: number
@@ -130,6 +138,24 @@ const tokenResult = ref<{
   raw_tokens: string[]
   tokens: string[]
 }>()
+const tokenFlow = computed(() => {
+  const flow = section.value.flow
+  const result = tokenResult.value
+  if (!flow || !result) return flow
+  const values = [
+    result.text,
+    result.lowercase,
+    JSON.stringify(result.raw_tokens).replaceAll(',', ', '),
+    JSON.stringify(result.tokens).replaceAll(',', ', '),
+  ]
+  return {
+    ...flow,
+    stages: flow.stages.map((stage, i) => ({
+      ...stage,
+      nodes: stage.nodes.map((node) => ({ ...node, code: values[i] ?? node.code })),
+    })),
+  }
+})
 const toyDocuments = ref('Free prize now\nAre you free after class\nWin a prize prize')
 const toyText = ref('free meeting tomorrow')
 const toyRepresentation = ref('count')
@@ -511,44 +537,84 @@ onUnmounted(() => {
 
 <template>
   <div class="spam-lesson">
-    <nav class="learning-route" aria-label="Text classification workflow">
-      <span>Message</span><span aria-hidden="true">→</span><span>Tokens</span
-      ><span aria-hidden="true">→</span><span>BoW / TF–IDF</span><span aria-hidden="true">→</span
-      ><span>Classifier</span><span aria-hidden="true">→</span><span>Prediction</span>
-    </nav>
     <aside v-if="section.extension" class="extension-note">
       <strong>Extension</strong> · Complete material for further study. You can follow the core
       route directly to
-      <a :href="courseHref('tutorials/tutorial05/decision')">Evaluation and Error Analysis →</a>
+      <a :href="courseHref('tutorials/tutorial05/decision')"
+        >Evaluation: Compare Models and Inspect Errors →</a
+      >
     </aside>
     <section id="concept" class="chapter-theory">
-      <div class="section-label">UNDERSTAND THE IDEA</div>
-      <h2>{{ section.idea }}</h2>
-      <ul class="key-points">
-        <li v-for="point in section.points" :key="point">{{ point }}</li>
+      <h2>{{ section.conceptTitle }}</h2>
+      <p class="concept-intro"><InlineText :text="section.idea" /></p>
+      <ul v-if="section.points.length" class="key-points">
+        <li v-for="point in section.points" :key="point"><InlineText :text="point" /></li>
       </ul>
+      <PythonCode
+        v-if="section.focus && chapter === 'tokenize'"
+        :code="focusCode"
+        :title="section.focus.title"
+      />
+      <div v-if="chapter === 'tokenize' && tokenFlow" class="panel">
+        <h3>{{ section.activityTitle }}</h3>
+        <p><InlineText :text="section.experiment" /></p>
+        <label>Message to tokenize<textarea v-model="tokenText" rows="3" /></label>
+        <button class="primary" :disabled="!ready || busy" @click="tokenize">
+          Tokenize message
+        </button>
+        <p v-if="!ready && !error" role="status">{{ status }}</p>
+        <p v-if="busy" role="status">{{ operation }}…</p>
+        <div v-if="error" class="execution-error" role="alert">
+          {{ error }} <button @click="start">Restart Python</button>
+        </div>
+        <FlowDiagram :flow="tokenFlow" />
+      </div>
+      <FlowDiagram
+        v-if="section.flow && !['tfidf', 'tokenize'].includes(chapter)"
+        :flow="section.flow"
+        :values="initial"
+      />
       <article v-for="item in section.worked" :key="item.title" class="worked-example">
-        <h3>{{ item.title }}</h3>
-        <p v-for="paragraph in item.text" :key="paragraph">{{ paragraph }}</p>
+        <h3><InlineText :text="item.title" /></h3>
+        <p v-for="paragraph in item.text" :key="paragraph"><InlineText :text="paragraph" /></p>
         <div v-if="item.columns.length" class="table-scroll">
           <table class="spam-table" :aria-label="item.title">
             <thead>
               <tr>
-                <th v-for="column in item.columns" :key="column">{{ column }}</th>
+                <th v-for="column in item.columns" :key="column"><InlineText :text="column" /></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, i) in item.rows" :key="i">
                 <template v-for="(value, j) in row" :key="j"
-                  ><th v-if="j === 0" scope="row">{{ value }}</th>
-                  <td v-else>{{ value }}</td></template
-                >
+                  ><th v-if="j === 0" scope="row"><InlineText :text="value" /></th>
+                  <td v-else><InlineText :text="value" /></td
+                ></template>
               </tr>
             </tbody>
           </table>
         </div>
       </article>
-      <ConceptFigure v-if="section.extension" :chapter="chapter" />
+      <FlowDiagram v-if="section.flow && chapter === 'tfidf'" :flow="section.flow" />
+      <PythonCode
+        v-if="section.focus && chapter !== 'tokenize'"
+        :code="focusCode"
+        :title="section.focus.title"
+      />
+      <details
+        v-if="chapter === 'regularization' || chapter === 'validation'"
+        class="implementation-details"
+      >
+        <summary>
+          {{
+            chapter === 'regularization'
+              ? 'Illustration: underfitting, overfitting and weight shrinkage'
+              : 'Illustration: five rounds of cross-validation'
+          }}
+        </summary>
+        <ConceptFigure :chapter="chapter" />
+      </details>
+      <ConceptFigure v-else-if="section.extension" :chapter="chapter" />
       <div v-if="section.equation && ['tfidf', 'naive'].includes(chapter)" class="equation-card">
         <MathText :tex="section.equation" />
         <dl class="notation-list">
@@ -574,58 +640,22 @@ onUnmounted(() => {
         <a :href="url" target="_blank" rel="noreferrer">{{ title }} ↗</a>
       </p>
     </section>
-    <section class="chapter-experiment" aria-label="Interactive experiment">
-      <div class="section-label">EXPLORE THE RESULT</div>
-      <ol class="mechanism">
-        <li v-for="step in section.steps" :key="step">{{ step }}</li>
-      </ol>
+    <section
+      v-if="!['inbox', 'tokenize'].includes(chapter)"
+      class="chapter-experiment"
+      aria-label="Interactive experiment"
+    >
+      <h2>{{ section.activityTitle }}</h2>
+      <p><InlineText :text="section.experiment" /></p>
       <p v-if="!ready && !error" role="status">{{ status }}</p>
       <div v-if="error" class="execution-error" role="alert">
         {{ error }} <button @click="start">Restart Python</button>
       </div>
       <p v-if="busy" role="status">{{ operation }}…</p>
 
-      <template v-if="chapter === 'inbox'">
-        <div class="task-flow" aria-label="A text classification example">
-          <p>
-            <strong>Training example:</strong> “Claim your free prize!” + label
-            <span class="tag spam">Spam</span>
-          </p>
-          <p>
-            <strong>New input:</strong> “Are you free after class?” → tokens → vector → trained
-            classifier → predicted label
-          </p>
-          <p>The classifier must learn from the surrounding words as well as “free”.</p>
-        </div>
-      </template>
-
-      <template v-if="chapter === 'tokenize'">
-        <div class="panel">
-          <h3>Follow your message through preprocessing</h3>
-          <label>Message to tokenize<textarea v-model="tokenText" rows="3" /></label>
-          <button class="primary" :disabled="!ready || busy" @click="tokenize">
-            Tokenize message
-          </button>
-          <dl v-if="tokenResult" class="token-stages">
-            <dt>Original</dt>
-            <dd>{{ tokenResult.text }}</dd>
-            <dt>Lowercase</dt>
-            <dd>{{ tokenResult.lowercase }}</dd>
-            <dt>NLTK tokens</dt>
-            <dd>
-              <code>{{ JSON.stringify(tokenResult.raw_tokens) }}</code>
-            </dd>
-            <dt>Retained tokens</dt>
-            <dd>
-              <code>{{ JSON.stringify(tokenResult.tokens) }}</code>
-            </dd>
-          </dl>
-        </div>
-      </template>
-
       <template v-if="chapter === 'data' && initial">
         <div class="panel">
-          <h3>1 · The raw file, exactly as stored</h3>
+          <h3>Read the labelled SMS file</h3>
           <p>
             <code>SMSSpamCollection.txt</code>: one message per line, label
             <span class="tab-mark">⇥ tab</span> message. Source:
@@ -644,35 +674,15 @@ onUnmounted(() => {
               }}</span
               ><span class="tab-mark">⇥</span>{{ line.split('\t').slice(1).join('\t') }}
             </div>
-            <div class="muted">
-              … {{ (initial.raw - initial.preview.length).toLocaleString() }} more lines
-            </div>
+            <div class="muted">… preview only</div>
           </div>
         </div>
         <div class="panel">
-          <h3>2 · Clean and split</h3>
-          <div class="audit">
-            <span>{{ initial.raw }}<small>raw records</small></span
-            ><b>→</b><span>{{ initial.excluded }}<small>empty texts removed</small></span
-            ><b>→</b><span>{{ initial.duplicates }}<small>duplicates removed</small></span
-            ><b>→</b><span>{{ initial.unique }}<small>unique messages</small></span>
-          </div>
-          <div v-for="(counts, name) in initial.counts" :key="name" class="split-row">
-            <strong>{{ name }} · {{ counts.total }}</strong>
-            <div
-              class="class-bar"
-              :aria-label="`${name}: ${counts.ham} ham and ${counts.spam} spam`"
-            >
-              <span :style="{ width: fmt(counts.ham / counts.total) }">Ham {{ counts.ham }}</span
-              ><span class="spam" :style="{ width: fmt(counts.spam / counts.total) }">{{
-                counts.spam
-              }}</span>
-            </div>
-            <small>Spam {{ fmt(counts.spam / counts.total) }}</small>
-          </div>
-        </div>
-        <div class="panel">
-          <h3>3 · The always-ham trap</h3>
+          <h3>High accuracy can still miss every spam message</h3>
+          <p>
+            Only about 12% of messages are spam. On validation, predicting ham for every message
+            gives:
+          </p>
           <div class="spam-metrics">
             <span
               >Accuracy<strong>{{ fmt(initial.baseline.accuracy) }}</strong></span
@@ -682,13 +692,9 @@ onUnmounted(() => {
               }}</strong></span
             >
           </div>
-          <Confusion :matrix="initial.baseline.confusion" label="Always-ham confusion matrix" />
         </div>
-        <h3>4 · Browse the data</h3>
-        <p class="muted">
-          Training and validation messages. The 1,032 test messages stay hidden until the final
-          chapter.
-        </p>
+        <h3>Browse training and validation messages</h3>
+        <p class="muted">Test messages stay hidden until the final evaluation.</p>
         <DataTable :rows="initial.table" caption="Cleaned dataset (train + validation)" />
       </template>
 
@@ -808,18 +814,20 @@ onUnmounted(() => {
                 :aria-pressed="word === v"
                 @click="word = v"
               >
-                {{ v }}
+                <code>{{ v }}</code>
               </button>
             </div>
             <p>
-              Selected word: <strong>{{ word }}</strong
+              Selected word: <code>{{ word }}</code>
               >. Each column keeps its meaning for every message.
             </p>
             <div
               v-if="vector.representation === 'tfidf' && wordIndex >= 0"
               class="calculation panel"
             >
-              <h3>Calculate the weight of “{{ word }}”</h3>
+              <h3>
+                Calculate the weight of <code>{{ word }}</code>
+              </h3>
               <p>
                 {{ vector.documents.length }} training documents; {{ vector.df[wordIndex] }} contain
                 this word. IDF = log((1 + {{ vector.documents.length }}) / (1 +
@@ -838,7 +846,9 @@ onUnmounted(() => {
                   </thead>
                   <tbody>
                     <tr v-for="(row, i) in vector.counts" :key="i">
-                      <th>{{ vector.documents[i] }}</th>
+                      <th>
+                        <code>{{ vector.documents[i] }}</code>
+                      </th>
                       <td>{{ row[wordIndex] }}</td>
                       <td>{{ vector.weighted[i]![wordIndex]!.toFixed(3) }}</td>
                       <td>{{ vector.norms[i]!.toFixed(3) }}</td>
@@ -858,7 +868,7 @@ onUnmounted(() => {
                   <tr>
                     <th>Document</th>
                     <th v-for="v in vector.vocabulary" :key="v" :class="{ highlight: word === v }">
-                      {{ v }}
+                      <code>{{ v }}</code>
                     </th>
                   </tr>
                 </thead>
@@ -866,7 +876,7 @@ onUnmounted(() => {
                   <tr v-for="(row, i) in vector.matrix" :key="i">
                     <th>
                       {{ i + 1 }} ·
-                      {{ vector.documents[i] }}
+                      <code>{{ vector.documents[i] }}</code>
                     </th>
                     <td
                       v-for="(v, j) in row"
@@ -897,10 +907,14 @@ onUnmounted(() => {
                 </tbody>
               </table>
             </div>
-            <p>Transformed message: {{ vector.text }}</p>
-            <p>Tokens in new message: {{ vector.tokens.join(' · ') || '(none)' }}</p>
             <p>
-              Ignored unknown words: <strong>{{ vector.unknown.join(', ') || '(none)' }}</strong>
+              Transformed message: <code>{{ vector.text }}</code>
+            </p>
+            <p>
+              Tokens in new message: <code>{{ JSON.stringify(vector.tokens) }}</code>
+            </p>
+            <p>
+              Ignored unknown words: <code>{{ vector.unknown.join(', ') || '(none)' }}</code>
             </p>
             <p class="muted">
               Real pipelines: sparse matrices, words seen in ≥ 2 training messages, at most 2,500
@@ -968,7 +982,9 @@ onUnmounted(() => {
               </thead>
               <tbody>
                 <tr v-for="item in currentExplanation.evidence" :key="item.word">
-                  <th>{{ item.word }}</th>
+                  <th>
+                    <code>{{ item.word }}</code>
+                  </th>
                   <td>{{ item.value.toFixed(3) }}</td>
                   <td>{{ item.ham.toPrecision(3) }}</td>
                   <td>{{ item.spam.toPrecision(3) }}</td>
@@ -1127,7 +1143,7 @@ onUnmounted(() => {
 
       <template v-if="chapter === 'regularization'">
         <div class="panel">
-          <h3>Keep the representation fixed; change C</h3>
+          <h3>Keep the representation fixed; change <code>C</code></h3>
           <label
             >Text representation<select v-model="representation">
               <option value="count">Word counts</option>
@@ -1151,7 +1167,7 @@ onUnmounted(() => {
           /><Plot
             title="Word weights shrink as the penalty grows"
             x-label="log₁₀(C) · stronger penalty ← → weaker penalty"
-            y-label="Weight w (count model)"
+            y-label="Fitted word weight"
             :lines="pathLines"
             :bounds="[
               -3,
@@ -1164,38 +1180,41 @@ onUnmounted(() => {
             The eight words with the largest weights at C = 10. Do they all look like genuine spam
             evidence?
           </p>
-          <Plot
-            title="Coefficient magnitude along the path"
-            x-label="log₁₀(C)"
-            y-label="L2 coefficient norm"
-            :lines="[
-              {
-                name: 'Weight norm',
-                color: '#45657e',
-                points: sweep.rows.map((r, i) => [Math.log10(r.C), sweep!.weights[i]!]),
-              },
-            ]"
-          />
-          <div class="table-scroll">
-            <table class="spam-table">
-              <thead>
-                <tr>
-                  <th>C</th>
-                  <th>Training AP</th>
-                  <th>Validation AP</th>
-                  <th>Weight norm</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, i) in sweep.rows" :key="row.id">
-                  <td>{{ row.C }}</td>
-                  <td>{{ fmt(row.train.average_precision) }}</td>
-                  <td>{{ fmt(row.validation.average_precision) }}</td>
-                  <td>{{ sweep.weights[i]?.toFixed(2) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div></template
+          <details class="implementation-details">
+            <summary>Exact results and coefficient norms</summary>
+            <Plot
+              title="Coefficient magnitude along the path"
+              x-label="log₁₀(C)"
+              y-label="L2 coefficient norm"
+              :lines="[
+                {
+                  name: 'Weight norm',
+                  color: '#45657e',
+                  points: sweep.rows.map((r, i) => [Math.log10(r.C), sweep!.weights[i]!]),
+                },
+              ]"
+            />
+            <div class="table-scroll">
+              <table class="spam-table">
+                <thead>
+                  <tr>
+                    <th>C</th>
+                    <th>Training AP</th>
+                    <th>Validation AP</th>
+                    <th>Weight norm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, i) in sweep.rows" :key="row.id">
+                    <td>{{ row.C }}</td>
+                    <td>{{ fmt(row.train.average_precision) }}</td>
+                    <td>{{ fmt(row.validation.average_precision) }}</td>
+                    <td>{{ sweep.weights[i]?.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details></template
         >
       </template>
 
@@ -1212,14 +1231,7 @@ onUnmounted(() => {
               >Fold {{ i }}<small>{{ fold === i - 1 ? 'Score only' : 'Fit pipeline' }}</small></span
             >
           </div>
-          <div class="pipeline">
-            <span>Four training folds</span><b>→</b><span>Fit vocabulary / IDF</span><b>→</b
-            ><span>Fit classifier</span><b>→</b><span>Transform &amp; score held-out fold</span>
-          </div>
-          <p>
-            The fold selector illustrates data roles. Computed results below come from all five
-            actual training-only folds.
-          </p>
+          <p>The selector shows one round. Run CV to compute all five rounds.</p>
           <label
             >CV representation<select v-model="representation">
               <option value="count">Word counts</option>
@@ -1386,10 +1398,7 @@ onUnmounted(() => {
               <option value="all">All candidates (different representations)</option>
             </select></label
           >
-          <p v-if="!runs.length">
-            Fit a baseline here or visit the model chapters. Every candidate is evaluated on the
-            same validation split.
-          </p>
+
           <button v-if="!runs.length" class="primary" :disabled="!ready || busy" @click="fit()">
             Fit logistic baseline for evaluation
           </button>
@@ -1516,7 +1525,7 @@ onUnmounted(() => {
             <Confusion :matrix="liveMetrics.confusion" label="Validation confusion matrix" /></div
         ></template>
         <template v-if="currentEvaluation"
-          ><div class="inbox">
+          ><div class="evaluation-curves">
             <Plot
               title="Validation precision–recall curve"
               x-label="Recall"
@@ -1537,35 +1546,39 @@ onUnmounted(() => {
                 liveMetrics ? [{ x: liveMetrics.recall, y: liveMetrics.precision, label: 1 }] : []
               "
               :bounds="[0, 1, 0, 1]"
-            /><Plot
-              title="Validation ROC curve"
-              x-label="False positive rate"
-              y-label="Recall"
-              :lines="[
-                { name: 'Selected classifier', color: '#45657e', points: currentEvaluation.roc },
-                {
-                  name: 'Diagonal reference',
-                  color: '#84929c',
-                  points: [
-                    [0, 0],
-                    [1, 1],
-                  ],
-                  dashed: true,
-                },
-              ]"
-              :points="
-                liveMetrics
-                  ? [
-                      {
-                        x: liveMetrics.false_positive_rate,
-                        y: liveMetrics.recall,
-                        label: 1,
-                      },
-                    ]
-                  : []
-              "
-              :bounds="[0, 1, 0, 1]"
             />
+            <details class="implementation-details">
+              <summary>Optional: ROC curve and false-positive rate</summary>
+              <Plot
+                title="Validation ROC curve"
+                x-label="False positive rate"
+                y-label="Recall"
+                :lines="[
+                  { name: 'Selected classifier', color: '#45657e', points: currentEvaluation.roc },
+                  {
+                    name: 'Diagonal reference',
+                    color: '#84929c',
+                    points: [
+                      [0, 0],
+                      [1, 1],
+                    ],
+                    dashed: true,
+                  },
+                ]"
+                :points="
+                  liveMetrics
+                    ? [
+                        {
+                          x: liveMetrics.false_positive_rate,
+                          y: liveMetrics.recall,
+                          label: 1,
+                        },
+                      ]
+                    : []
+                "
+                :bounds="[0, 1, 0, 1]"
+              />
+            </details>
           </div>
           <h3>Inspect false alarms and missed spam</h3>
           <p>Most confident mistakes at the selected threshold are shown first.</p>
@@ -1615,24 +1628,17 @@ onUnmounted(() => {
           ><button :disabled="!runs.length" @click="exportResults">Export experiment record</button>
         </div>
       </template>
-      <aside class="concept-note">
-        <span>Takeaway</span>
-        <p>{{ section.takeaway }}</p>
-      </aside>
     </section>
-    <section id="python" class="chapter-python">
-      <div class="section-label"><span>03</span> READ THE PYTHON</div>
-      <h2>Connect the idea to Python</h2>
-      <PythonCode :code="section.example" :title="`${section.title} · worked example`" />
-      <details v-if="section.functions.length" class="implementation-details">
-        <summary>Inspect the supporting functions</summary>
-        <PythonCode :code="sourceCode" :title="`experiment.py · ${section.functions.join(', ')}`" />
-      </details>
-    </section>
-    <section class="python-practice">
-      <div class="section-label"><span>04</span> RUN AND EXPLAIN</div>
-      <h2>{{ section.title }} · a runnable experiment</h2>
-      <p>{{ section.experiment }}</p>
+    <section id="python" class="chapter-python python-practice">
+      <h2>{{ section.pythonTitle }}</h2>
+      <p v-if="chapter === 'inbox'"><InlineText :text="section.experiment" /></p>
+      <p v-else class="muted">
+        Run the example, change one input or choice, then explain the output.
+      </p>
+      <p v-if="chapter === 'inbox' && !ready && !error" role="status">{{ status }}</p>
+      <div v-if="chapter === 'inbox' && error" class="execution-error" role="alert">
+        {{ error }} <button @click="start">Restart Python</button>
+      </div>
       <div class="editor-toolbar">
         <span>Python · editable experiment</span
         ><button :disabled="running" @click="code = section.starter">Reset example</button>
@@ -1649,41 +1655,24 @@ onUnmounted(() => {
           {{ outputs[chapter]!.error }}
         </p>
       </div>
-      <p class="muted">
-        Setup supplies np, X_train, y_train, X_val, y_val and the metrics helper. Import the NLTK
-        and sklearn tools in your code. Each browser run starts with fresh copies of the train /
-        validation arrays; no test arrays are supplied.
-      </p>
-      <p v-if="section.transition" class="lesson-transition">{{ section.transition }}</p>
-      <div class="notebook-bridge">
-        <div>
-          <span class="eyebrow">THE SAME EXPERIMENT IN YOUR NOTEBOOK</span>
-          <h3>
-            §{{ curriculum.chapters.findIndex((c) => c.id === chapter) + 1 }} · {{ section.title }}
-          </h3>
-          <p>
-            The downloadable notebook covers every chapter with the same scientific functions,
-            figures and executable experiments. Record what you changed, what the evidence shows and
-            what it cannot establish.
-          </p>
-        </div>
-      </div>
+      <details class="implementation-details">
+        <summary>Python setup and available variables</summary>
+        <p>
+          Setup supplies <code>np</code>, <code>X_train</code>, <code>y_train</code>,
+          <code>X_val</code>, <code>y_val</code> and <code>metrics</code>. Each run uses fresh
+          training / validation arrays. Test arrays are reserved for final evaluation.
+        </p>
+      </details>
+      <details v-if="section.functions.length" class="implementation-details">
+        <summary>Supporting functions in experiment.py</summary>
+        <PythonCode :code="sourceCode" :title="`experiment.py · ${section.functions.join(', ')}`" />
+      </details>
     </section>
   </div>
 </template>
 <style scoped>
 .spam-lesson {
   padding-bottom: 28px;
-}
-.learning-route {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.84rem;
 }
 .extension-note {
   margin-top: 20px;
@@ -1707,27 +1696,6 @@ summary {
   color: var(--accent);
   padding: 10px 0;
   font-weight: 500;
-}
-.token-stages {
-  display: grid;
-  gap: 10px;
-  margin-top: 20px;
-}
-.token-stages dt {
-  font-weight: 600;
-}
-.token-stages dd {
-  margin: 0 0 10px;
-  overflow-wrap: anywhere;
-}
-.task-flow {
-  background: #f4f7f9;
-  border-radius: 5px;
-  padding: 14px 20px;
-}
-.lesson-transition {
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
 }
 .documentation-link {
   font-size: 0.85rem;
@@ -1880,14 +1848,6 @@ summary {
   font-weight: 600;
   fill: #202e3a;
 }
-.mechanism {
-  padding-left: 22px;
-  font-size: 0.88rem;
-  color: var(--muted);
-}
-.mechanism li {
-  margin: 10px 0;
-}
 .inbox {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1945,53 +1905,6 @@ summary {
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--ink);
-}
-.audit {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 15px;
-  margin: 25px 0;
-}
-.audit > span {
-  font-size: 1.5rem;
-  color: var(--accent);
-}
-.audit small {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--muted);
-  max-width: 120px;
-}
-.audit b {
-  font-weight: 400;
-  color: var(--muted);
-}
-.split-row {
-  padding: 15px 0;
-  border-top: 1px solid var(--line);
-  font-size: 0.8rem;
-}
-.split-row small {
-  color: var(--muted);
-}
-.class-bar {
-  display: flex;
-  height: 34px;
-  color: white;
-  border-radius: 3px;
-  overflow: hidden;
-  margin: 9px 0;
-}
-.class-bar > span {
-  background: #45657e;
-  padding: 6px;
-  font-size: 0.72rem;
-  white-space: nowrap;
-  min-width: 0;
-}
-.class-bar > .spam {
-  background: #aa613d;
 }
 .table-scroll {
   max-width: 100%;
@@ -2109,18 +2022,6 @@ summary {
   border-color: #b77855;
   color: #8d4e2a;
 }
-.pipeline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  font-size: 0.78rem;
-}
-.pipeline span {
-  padding: 10px;
-  background: #f1f4f6;
-  border: 1px solid var(--line);
-}
 .confusion-wrap {
   margin: 25px 0;
 }
@@ -2160,9 +2061,6 @@ summary {
   .contribution {
     grid-template-columns: 80px minmax(0, 1fr) 48px;
     gap: 5px;
-  }
-  .audit {
-    gap: 10px;
   }
   .spam-table th:first-child {
     min-width: 150px;

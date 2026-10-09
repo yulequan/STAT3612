@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 import numpy as np
@@ -143,6 +144,12 @@ class SpamExperimentTests(unittest.TestCase):
                     with patch.dict(sys.modules, {'experiment': science}):
                         result = lab.execute({'code': chapter['starter']})
                     self.assertIsNone(result['error'], result['error'])
+                    if chapter['focus']:
+                        lines = chapter['starter'].splitlines()
+                        excerpt = '\n'.join(line for start, end in chapter['focus']['ranges'] for line in lines[start:end])
+                        with patch.dict(sys.modules, {'experiment': science}):
+                            focused = lab.execute({'code': excerpt})
+                        self.assertIsNone(focused['error'], focused['error'])
         self.assertEqual(lab.runs, {})  # Snippet examples do not register UI candidates.
 
     def test_cv_refits_every_pipeline_without_heldout_inputs(self):
@@ -248,11 +255,43 @@ class SpamExperimentTests(unittest.TestCase):
         self.assertEqual(seen, set(functions))
         curriculum = json.loads((FOLDER / 'curriculum.json').read_text())
         markdown = '\n'.join(''.join(c['source']) for c in notebook['cells'] if c['cell_type'] == 'markdown')
+        code_cells = [''.join(c['source']) for c in notebook['cells'] if c['cell_type'] == 'code']
         for c in curriculum['chapters']:
             for symbol, _ in c['notation']:
                 self.assertFalse(any(ord(char) < 32 for char in symbol), repr(symbol))
-            self.assertIn(c['question'], markdown)
+            self.assertIn(c['conceptTitle'], markdown)
+            self.assertIn(c['pythonTitle'], markdown)
             self.assertIn(c['experiment'], markdown)
+            self.assertEqual(code_cells.count(c['starter']), 1, c['id'])
+            if c['focus']:
+                lines = c['starter'].splitlines()
+                excerpt = '\n'.join(line for start, end in c['focus']['ranges'] for line in lines[start:end])
+                self.assertIn('```python\n' + excerpt + '\n```', markdown)
+
+    def test_notebook_diagrams_use_actual_audit_and_code_typography(self):
+        notebook = json.loads((FOLDER / 'tutorial05.ipynb').read_text())
+        figures = [ET.fromstring(''.join(output['data']['image/svg+xml']))
+                   for cell in notebook['cells'] for output in cell.get('outputs', [])
+                   if 'image/svg+xml' in output.get('data', {})]
+        ns = {'svg': 'http://www.w3.org/2000/svg'}
+        by_title = {f.find('svg:title', ns).text: f for f in figures}
+        curriculum = json.loads((FOLDER / 'curriculum.json').read_text())
+        for chapter in curriculum['chapters']:
+            if chapter['flow']:
+                self.assertIn(chapter['flow']['title'], by_title)
+        data = by_title['Raw messages → deduplication → data splits']
+        text = ' '.join(data.itertext())
+        initial = self.lab.initialize()
+        for value in [initial['raw'], initial['duplicates'], initial['unique'],
+                      *(split['total'] for split in initial['counts'].values())]:
+            self.assertIn(f'{value:,}', text)
+        self.assertNotRegex(text, r'\{(?:counts\.|raw|unique|duplicates)')
+        tokenization = by_title['Follow one message through preprocessing']
+        code = tokenization.findall(".//svg:text[@class='code']", ns)
+        literal = ' '.join(node.text for node in code)
+        self.assertIn('Congratulations! Claim your FREE prize now!', literal)
+        self.assertIn('["congratulations", "!", "claim",', literal)
+        self.assertIn('font-family:Consolas,monospace', ''.join(tokenization.itertext()))
 
 
 if __name__ == '__main__':
