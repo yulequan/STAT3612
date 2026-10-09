@@ -8,10 +8,9 @@ classifier → prediction and errors**. No previous NLP course is assumed.
 The core route covers Text Classification, SMS Data and Train / Validation / Test, Tokenization,
 Bag of Words, TF–IDF, Naive Bayes, Logistic Regression, KNN, then Evaluation: Compare Models and Inspect Errors. Rules appear only as a brief motivating counterexample.
 
-Complete extensions cover regularization, cross-validation, numerical features,
-LDA and a binomial additive spline model (GAM). Instructors can choose which to
-teach. Each extension explains its inputs and uses the common setup; the core
-comparison and final evaluation work without running any extensions.
+The tutorial also covers regularization, cross-validation, numerical features,
+LDA and a binomial additive spline model (GAM). Each chapter explains its inputs
+and uses the common setup. Instructors can choose which topics to teach.
 
 The website and notebook share the explanations, worked tables, explicit NLTK /
 sklearn imports and editable experiments in `curriculum.json`. Each chapter has
@@ -24,8 +23,18 @@ normalization and model comparison. The web tokenization diagram updates from
 the actual tokenizer result, with input controls beside the key code. Data audit counts are resolved from the
 experiment, rather than repeated in a prose table and separate split cards.
 Code literals use monospaced type in prose, tables and diagrams. Count matrices,
-TF–IDF intermediate values and a hand-calculated NB prediction precede the real
-classifiers. Supporting scientific functions are available in collapsed web
+TF–IDF intermediate values and a worked NB prediction precede the real
+classifiers. The NB calculation shows both class scores, their normalization and the final
+prediction. LR walks through labelled training vectors, fitted weights and a new
+message. KNN walks through distances, selecting neighbours and counting votes.
+Contribution waterfalls and word-direction plots are optional details. Change
+word counts, smoothing or `k`, replay the evidence, and select a neighbour to
+read its message. These small illustrations work before Python starts.
+The same figures explain predictions from the fitted SMS pipelines; they
+replace separate score bars and message lists. Partial evidence and votes are
+labelled separately from the full model result. Small-example LR weights are actually fitted to the displayed training messages;
+real text vectors are shown by neighbour distance rather than a 2D projection.
+Supporting scientific functions are available in collapsed web
 panels and a notebook appendix, keeping implementation details out of the main route.
 
 Compare representations with NB fixed; compare NB, LR and KNN with TF–IDF fixed.
@@ -58,7 +67,7 @@ and additive smoothing. Using TF–IDF with NB is an empirical extension: weight
 are nonnegative but are not literal multinomial counts. KNN uses uniform votes
 and cosine distance for text.
 
-Numerical extensions use log(1+x) and training-fitted scaling of characters,
+Numerical models use log(1+x) and training-fitted scaling of characters,
 retained tokens, links, digits and exclamation marks. LDA uses shared covariance
 with shrinkage. The GAM-style implementation uses separate cubic spline bases
 and regularized binomial logistic fitting, without interactions; its L2 penalty
@@ -67,15 +76,16 @@ is not a derivative-based spline roughness penalty.
 ## Student package
 
 Extract the complete zip. Keep the notebook beside `experiment.py`,
-`curriculum.json` and `data/`. Use Python 3.11+ in a virtual environment:
+`curriculum.json`, `model_figures.py`, `model_examples.json` and `data/`.
+The notebook includes editable small examples and plots for already-fitted models.
+Use Python 3.11+ in a virtual environment:
 
 ```sh
 python -m pip install -r requirements.txt
 python -m jupyter lab
 ```
 
-Run setup, then the sections you are studying. In the core route, skip sections
-9–13 and continue at section 14. Each browser snippet is self-contained after
+Run setup, then the sections you are studying. Each browser snippet is self-contained after
 setup and shows its own package imports. Notebook examples run in a shared kernel.
 Predict what an edit will do, run it, then explain the observed output.
 
@@ -99,6 +109,9 @@ Regeneration replaces the course notebook; students edit downloaded copies.
 Maintain teaching content and flow definitions in `curriculum.json`;
 `FlowDiagram.vue` renders them on the web and `diagrams.py` renders standalone
 SVG outputs in the notebook. Keep the complete student package for both.
+`model_examples.json` supplies both the web illustrations and editable notebook
+examples; `model_figures.py` renders their notebook plots. Keep toy assumptions
+distinct from fitted results and preserve every feature contribution when grouping.
 Maintain scientific behavior in
 `experiment.py`. The generator places matching scientific functions in the
 appendix and supplies stable cell IDs for reviewable updates.

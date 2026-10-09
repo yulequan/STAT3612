@@ -33,14 +33,13 @@ def build(execute=False):
     md('# Tutorial05 · ' + CONTENT['title'] + '\n\n' + CONTENT['subtitle'] +
        '\n\n**Tutor:** Yinghao Zhu · yhzhu99@connect.hku.hk\n\n' + CONTENT['task'] + '\n\n' + CONTENT['motivation'])
     md('## Learning route\n\n' + '\n'.join(
-        f'{i + 1}. **{c["title"]}**' + (' (extension)' if c['extension'] else '') + ' — ' + c['question']
+        f'{i + 1}. **{c["title"]}**' + ' — ' + c['question']
         for i, c in enumerate(CONTENT['chapters'])) +
        '\n\nFollow sections 1–8, then go directly to section 14 for the core lesson. '
-       'Sections 9–13 are complete extensions for instructor selection; evaluation does not depend on them. '
-       'Each extension uses the setup below and explains its own inputs.\n\n' +
+       'Each chapter explains its inputs and uses the setup below.\n\n' +
        '## Learning objectives\n\n' + '\n'.join('- ' + s for s in CONTENT['objectives']) +
        '\n\n**Prerequisites:** ' + CONTENT['prerequisites'] + '\n\n**Outcome:** ' + CONTENT['outcome'])
-    md('## Setup\n\nExtract the complete student package and keep the notebook beside `experiment.py` and `data/`. '
+    md('## Setup\n\nExtract the complete student package and keep all supporting files beside the notebook, including `experiment.py`, `model_figures.py`, `model_examples.json` and `data/`. '
        'Install `requirements.txt`. NLTK’s Treebank tokenizer needs no resource downloads.\n\n'
        'Setup supplies training and validation arrays. Test messages remain reserved for the final cell. '
        'Data provenance is in `data/README.md`; the next section shows the data split. '
@@ -49,26 +48,27 @@ def build(execute=False):
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-from experiment import Experiment, tokens, numerical_features, metrics
+from experiment import Experiment, tokens, numerical_features, metrics, explain_model
 from diagrams import draw_flow
+from model_figures import nb_example, lr_example, knn_example, plot_evidence, plot_neighbors, lr_flow_values, knn_flow_values, prediction_flow
 
 lab = Experiment("data/SMSSpamCollection.txt")
 X_train, y_train = lab.X_train.copy(), lab.y_train.copy()
 X_val, y_val = lab.X_val.copy(), lab.y_val.copy()
 initial = lab.initialize()
 curriculum = json.loads(Path("curriculum.json").read_text())
+model_examples = json.loads(Path("model_examples.json").read_text())
 plt.rcParams.update({"figure.figsize": (9, 4), "axes.spines.top": False, "axes.spines.right": False})
 HAM, SPAM = "#45657e", "#aa613d"
 ''')
     for i, section in enumerate(CONTENT['chapters']):
         identity = section['id']
         md(f'## {i + 1}. {section["title"]}\n\n' +
-           ('**Extension — may be studied separately from the core route.**\n\n' if section['extension'] else '') +
            '### ' + section['conceptTitle'] + '\n\n' + section['idea'] + '\n\n' +
            '\n'.join('- ' + point for point in section['points']))
         if identity == 'tokenize':
             focus(section)
-        if section['flow'] and identity != 'tfidf':
+        if section['flow'] and identity not in ('tfidf', 'naive'):
             code(f'draw_flow(curriculum["chapters"][{i}]["flow"], initial)')
         for item in section['worked']:
             text = '### ' + item['title'] + '\n\n' + '\n\n'.join(item['text'])
@@ -76,10 +76,31 @@ HAM, SPAM = "#45657e", "#aa613d"
                 text += '\n\n| ' + ' | '.join(column.replace('|', r'\|') for column in item['columns']) + ' |\n| ' + ' | '.join('---' for _ in item['columns']) + ' |\n'
                 text += '\n'.join('| ' + ' | '.join(str(v).replace('|', r'\|') for v in row) + ' |' for row in item['rows'])
             md(text)
-        if section['flow'] and identity == 'tfidf':
+        if section['flow'] and identity in ('tfidf', 'naive'):
             code(f'draw_flow(curriculum["chapters"][{i}]["flow"], initial)')
         if identity != 'tokenize':
             focus(section)
+        if identity in ('naive', 'logistic', 'neighbors'):
+            kind = {'naive': 'nb', 'logistic': 'logistic', 'neighbors': 'knn'}[identity]
+            examples = json.loads((HERE / 'model_examples.json').read_text())
+            if kind != 'nb':
+                rows = examples[kind]['training' if kind == 'logistic' else 'points']
+                words = [w['name'] for w in examples[kind]['words']] if kind == 'logistic' else examples[kind]['words']
+                md('### Training messages → word-count vectors\n\nColumn order: `' + str(words) + '`\n\n'
+                   '| Label | Message | Vector |\n| --- | --- | --- |\n' + '\n'.join(
+                       f'| {"Spam" if r["label"] else "Ham"} | `{r["text"]}` | `{r["counts"]}` |' for r in rows))
+                md('### ' + examples[kind]['title'] + '\n\n' + examples[kind]['caption'] + '\n\n' + examples[kind]['challenge'])
+                code('draw_flow(model_examples["logistic"]["flow"], lr_flow_values(counts={"free": 1, "prize": 1}, text="Claim your free prize now!"))' if kind == 'logistic' else
+                     'draw_flow(model_examples["knn"]["flow"], knn_flow_values(counts=(1, 0), k=3, text="Claim your prize now!"))')
+            md('### Optional: inspect contribution or distance details\n\n' +
+               (examples[kind]['caption'] + '\n\n' if kind == 'nb' else '') +
+               '\n\n' + examples[kind]['challenge'] + ' Change the values in this cell and rerun to redraw the figure.')
+            if kind == 'nb':
+                code('plot_evidence(nb_example(counts={"claim": 1, "prize": 1}, alpha=1), kind="nb")')
+            elif kind == 'logistic':
+                code('plot_evidence(lr_example(counts={"free": 1, "prize": 1}), kind="logistic")')
+            else:
+                code('plot_neighbors(knn_example(counts=(1, 0), k=3))  # Counts: prize, class')
         if section['equation']:
             md(('### Calculation\n\n' if identity in ('tfidf', 'naive') else '### Formula recap\n\n') +
                '$$' + section['equation'] + '$$\n\n' +
@@ -89,6 +110,15 @@ HAM, SPAM = "#45657e", "#aa613d"
         md('### ' + section['activityTitle'] + '\n\n' + section['experiment'] +
            '\n\n### ' + section['pythonTitle'] + '\n\nRun the example, change one input or choice, then explain the output.')
         code(section['starter'])
+        if identity in ('naive', 'logistic', 'neighbors'):
+            kind = 'nb' if identity == 'naive' else 'logistic' if identity == 'logistic' else 'knn'
+            md('### Inspect the trained model on one message\n\nThe same visual explanation now uses the fitted pipeline above. Change the message and rerun; the model stays fixed.')
+            code('explanation = explain_model(model, "Claim your free prize now!", X_train, y_train)\n' +
+                 f'draw_flow(prediction_flow(explanation, "{kind}"))')
+            md('### Optional: inspect the fitted contributions or distances')
+            code(
+                 ('plot_neighbors(explanation, title="KNN: neighbours for this message")' if kind == 'knn' else
+                  f'plot_evidence(explanation, kind="{kind}", title="{examples[kind]["title"].split(":")[0]}: evidence for this message")'))
         if identity == 'text':
             code('''fig, ax = plt.subplots()
 matrix = X.toarray()
@@ -169,8 +199,8 @@ plt.tight_layout()
 plt.show()''')
     md('### Select a candidate and inspect validation errors\n\n'
        'The lab helper keeps candidates for the error plots and final test cell, using the same pipelines shown above. '
-       'The four core candidates below can be fitted without running any extension. '
-       'You may also select an extension candidate from `lab.runs`. '
+       'The four core candidates below can be fitted independently. '
+       'You may also select another fitted candidate from `lab.runs`. '
        'Choose using validation evidence, then write a reason before testing.')
     code('''# Each pair changes only the classifier or the representation.
 core_candidates = [lab.fit({"kind": kind, "representation": representation})
@@ -209,7 +239,7 @@ else:
     print('Record a rationale above, then run the final test once.')''')
     md('## Your experiment record\n\n'
        'Report one preprocessing choice, the representation comparison, the classifier comparison, '
-       'a false positive, a false negative and your final rationale. Include extension experiments if studied.')
+       'a false positive, a false negative and your final rationale. Include the models you studied.')
     code('''record = {'dataset': 'Original UCI SMS Spam Collection', 'seed': 3612, 'splits': initial['counts'],
           'runs': [{k: v for k, v in item['row'].items() if k != 'thresholds'} for item in lab.runs.values()],
           'final': lab.final}

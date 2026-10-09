@@ -23,6 +23,128 @@ async function chapter(page: Page, id: string) {
 }
 const runPython = (page: Page) => page.getByRole('button', { name: 'Run Python →', exact: true })
 
+async function setSlider(page: Page, name: string, value: string) {
+  await page
+    .getByRole('slider', { name, exact: true })
+    .evaluate((element: HTMLInputElement, value) => {
+      element.value = value
+      element.dispatchEvent(new Event('input', { bubbles: true }))
+    }, value)
+}
+
+test('classifier illustrations explain editable evidence and votes without Python', async ({
+  page,
+}, info) => {
+  // The toy explanations must remain usable even when the Python runtime is unavailable.
+  await page.route('**/python/**', (route) => route.abort())
+  await page.goto('/tutorials/tutorial05/naive')
+  const illustration = page.locator('.classifier-illustration')
+  const nbFlow = page.getByRole('figure', { name: 'From word likelihoods to a class prediction' })
+  await expect(nbFlow).toContainText('1/450')
+  await expect(nbFlow).toContainText('6/450')
+  await expect(nbFlow).toContainText('6/7 ≈ 85.7%')
+  await expect(nbFlow).toContainText('Prediction: Spam')
+  await illustration
+    .getByText('Inspect the log-space calculation (optional)', { exact: true })
+    .click()
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('85.7% spam estimate')
+  await illustration.getByRole('button', { name: 'Show evidence after Class prior' }).click()
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('50.0% spam estimate')
+  await illustration.getByRole('button', { name: 'Next evidence step' }).click()
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('66.7% spam estimate')
+  await expect(illustration.locator('.calculation')).toContainText('Log likelihood ratio')
+  await setSlider(page, 'Toy NB count of meet', '1')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('66.7% spam estimate')
+  await setSlider(page, 'Toy NB smoothing alpha', '5')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('54.5% spam estimate')
+  for (const word of ['claim', 'prize', 'meet', 'class'])
+    await setSlider(page, 'Toy NB count of ' + word, '0')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('50.0% spam estimate')
+  await expect(illustration.getByRole('slider', { name: 'Evidence steps' })).toBeDisabled()
+
+  await chapter(page, 'logistic')
+  await expect(
+    illustration.getByRole('table', { name: 'Small labelled training set' }).locator('tbody tr'),
+  ).toHaveCount(6)
+  const lrFlow = illustration.getByRole('figure', {
+    name: 'How logistic regression learns and predicts',
+  })
+  await expect(lrFlow).toContainText('model.fit(X_toy, y_toy)')
+  await expect(lrFlow).toContainText('Prediction: Spam')
+  await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('1')
+  await expect(lrFlow).toContainText('Prediction: Ham')
+  await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('0')
+  await illustration
+    .getByText('Inspect individual contributions (optional)', { exact: true })
+    .click()
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('72.4% spam estimate')
+  await illustration.getByRole('button', { name: 'Show evidence after Intercept' }).focus()
+  await page.keyboard.press('Enter')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('48.0% spam estimate')
+  await setSlider(page, 'Toy LR count of prize', '0')
+  await setSlider(page, 'Toy LR count of class', '1')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText('37.7% spam estimate')
+  await page.screenshot({ path: info.outputPath('toy-lr.png'), fullPage: true })
+
+  await chapter(page, 'neighbors')
+  const knnFlow = illustration.getByRole('figure', {
+    name: 'How KNN finds neighbours and predicts',
+  })
+  await expect(knnFlow).toContainText('Spam votes / k = 3 / 3')
+  await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('1')
+  await expect(knnFlow).toContainText('Prediction: Ham')
+  await page.getByRole('combobox', { name: 'Walkthrough neighbour count' }).selectOption('5')
+  await expect(knnFlow).toContainText('Spam votes / k = 2 / 5')
+  await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('0')
+  await page.getByRole('combobox', { name: 'Walkthrough neighbour count' }).selectOption('3')
+  await illustration
+    .getByText('Inspect word directions and distances (optional)', { exact: true })
+    .click()
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('100.0%')
+  const second = illustration.getByRole('button', { name: 'Read neighbour 2', exact: true })
+  await second.focus()
+  await page.keyboard.press('Space')
+  await expect(illustration.locator('.neighbor-message')).toContainText('Neighbour #2')
+  await setSlider(page, 'Toy KNN count of prize', '0')
+  await setSlider(page, 'Toy KNN count of class', '5')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('0.0%')
+  await page.getByRole('combobox', { name: 'Toy KNN neighbour count' }).selectOption('5')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('40.0%')
+  await setSlider(page, 'Neighbours included', '3')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('0.0%')
+  await expect(illustration.locator('.vote-result')).toContainText('shown neighbours')
+  await page.screenshot({ path: info.outputPath('toy-knn.png'), fullPage: true })
+  await setSlider(page, 'Toy KNN count of class', '0')
+  await expect(illustration.locator('.empty-vector')).toContainText('Add a known word')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveCount(0)
+})
+
+test('classifier figures remain usable on a narrow screen', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.route('**/python/**', (route) => route.abort())
+  await page.goto('/tutorials/tutorial05/naive')
+  for (const id of ['naive', 'logistic', 'neighbors']) {
+    await chapter(page, id)
+    const illustration = page.locator('.classifier-illustration')
+    await illustration.scrollIntoViewIfNeeded()
+    if (id === 'naive') {
+      await illustration
+        .getByText('Inspect the log-space calculation (optional)', { exact: true })
+        .click()
+      await expect(illustration.getByRole('slider').first()).toBeVisible()
+    } else
+      await expect(
+        illustration.getByRole('combobox', { name: 'Walkthrough message' }),
+      ).toBeVisible()
+    const dimensions = await page.evaluate(() => ({
+      width: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }))
+    expect(dimensions.content).toBeLessThanOrEqual(dimensions.width)
+    await page.screenshot({ path: info.outputPath(id + '-mobile.png') })
+  }
+})
+
 test('overview motivates the complete case study without starting Python', async ({ page }) => {
   await page.goto('/tutorials/tutorial05/overview')
   await expect(
@@ -67,6 +189,10 @@ test('every chapter connects guided explanations, explicit Python and an executa
   for (const section of curriculum.chapters) {
     await chapter(page, section.id)
     await expect(page.locator('.chapter-heading h1')).toHaveText(section.title)
+    await expect(page.locator('.extension-note')).toHaveCount(0)
+    await expect(
+      page.getByText('Complete material for further study', { exact: false }),
+    ).toHaveCount(0)
     await expect(page.locator('#concept h2')).toHaveText(section.conceptTitle)
     await expect(page.locator('#python h2')).toHaveText(section.pythonTitle)
     await expect(page.getByRole('textbox', { name: 'Editable Python experiment' })).toHaveCount(1)
@@ -156,6 +282,11 @@ test('interactive representations, learned models, CV and frozen test decision f
   await page.screenshot({ path: info.outputPath('text-vectors.png'), fullPage: true })
   await chapter(page, 'naive')
   await page.getByRole('button', { name: 'Fit Naive Bayes classifier', exact: true }).click()
+  await expect(
+    page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
+  ).toBeVisible({ timeout: 60_000 })
+  await page.getByText('Inspect log-space contributions (optional)', { exact: true }).click()
+  await page.getByText('Exact word likelihoods and contributions', { exact: true }).click()
   await expect(page.getByRole('table', { name: 'Naive Bayes word evidence' })).toContainText(
     'prize',
     { timeout: 60_000 },
@@ -167,12 +298,37 @@ test('interactive representations, learned models, CV and frozen test decision f
   await chapter(page, 'logistic')
   await page.getByRole('button', { name: 'Fit logistic classifier', exact: true }).click()
   await expect(
-    page.getByRole('heading', { name: 'Message-specific contributions wⱼxⱼ' }),
+    page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
+  ).toBeVisible({ timeout: 60_000 })
+  await page.getByText('Inspect word contributions (optional)', { exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Logistic regression: evidence for this message' }),
   ).toBeVisible({ timeout: 60_000 })
   await page.getByText('Recall the score-to-probability mapping', { exact: true }).click()
   await expect(
     page.getByRole('img', { name: 'Linear score mapped through the sigmoid' }),
   ).toBeVisible()
+  const fittedLR = page.getByRole('figure', {
+    name: 'Logistic regression: evidence for this message',
+    exact: true,
+  })
+  await page
+    .getByLabel('Message to classify')
+    .fill(
+      'Congratulations claim your free prize now you have won a cash reward call to collect with stop text today please meet class after lunch',
+    )
+  await page.getByRole('button', { name: 'Inspect message prediction', exact: true }).click()
+  await expect(fittedLR.locator('.evidence-row code').last()).toHaveText(/Other \d+ features/)
+  await expect(fittedLR.locator('.evidence-row')).toHaveCount(10)
+  const fullProbability = await fittedLR.getByTestId('journey-probability').innerText()
+  await fittedLR.getByRole('button', { name: 'Show evidence after Intercept' }).click()
+  await expect(fittedLR).toContainText('Only the shown evidence is included')
+  await fittedLR.locator('.evidence-row').last().click()
+  await expect(fittedLR.getByTestId('journey-probability')).toHaveText(fullProbability)
+  await page.screenshot({ path: info.outputPath('fitted-lr.png'), fullPage: true })
+  await page.getByLabel('Message to classify').fill('unknown3612')
+  await page.getByRole('button', { name: 'Inspect message prediction', exact: true }).click()
+  await expect(fittedLR).toContainText('No active features: only the starting score remains.')
   await chapter(page, 'regularization')
   await page.getByRole('button', { name: 'Fit regularization path' }).click()
   await page.getByText('Exact results and coefficient norms', { exact: true }).click()
@@ -207,10 +363,30 @@ test('interactive representations, learned models, CV and frozen test decision f
     .getByRole('combobox', { name: 'Model representation', exact: true })
     .selectOption('tfidf')
   await page.getByRole('button', { name: 'Fit KNN classifier' }).click()
-  await expect(page.getByRole('heading', { name: 'The neighbours that voted' })).toBeVisible({
-    timeout: 60_000,
+  await expect(
+    page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
+  ).toBeVisible({ timeout: 60_000 })
+  await page.getByText('Inspect neighbour distances (optional)', { exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'KNN: neighbours for this message' })).toBeVisible(
+    {
+      timeout: 60_000,
+    },
+  )
+  const fittedNeighbors = page.getByRole('figure', {
+    name: 'KNN: neighbours for this message',
+    exact: true,
   })
-  await expect(page.locator('.mail-card')).toHaveCount(5)
+  await fittedNeighbors.getByText('All 5 neighbour messages', { exact: true }).click()
+  await expect(fittedNeighbors.locator('ol li')).toHaveCount(5)
+  await expect(
+    fittedNeighbors.getByRole('img', { name: 'Fitted neighbour distances' }),
+  ).toBeVisible()
+  await page.screenshot({ path: info.outputPath('fitted-knn.png'), fullPage: true })
+  await page.getByLabel('Message to classify').fill('unknown3612')
+  await page.getByRole('button', { name: 'Inspect message prediction', exact: true }).click()
+  await expect(fittedNeighbors.locator('.empty-vector')).toContainText(
+    'These distance ties provide little word evidence.',
+  )
   await chapter(page, 'decision')
   await expect(
     page.getByRole('img', { name: 'Validation score histograms with the threshold' }),

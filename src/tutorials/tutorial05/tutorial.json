@@ -18,6 +18,8 @@
     "tutorial05.ipynb",
     "experiment.py",
     "diagrams.py",
+    "model_figures.py",
+    "model_examples.json",
     "curriculum.json",
     "requirements.txt",
     "README.md",
