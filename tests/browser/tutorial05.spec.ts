@@ -1,7 +1,15 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 const curriculum = JSON.parse(readFileSync('src/tutorials/tutorial05/curriculum.json', 'utf8')) as {
-  chapters: { id: string; title: string; idea: string }[]
+  chapters: {
+    id: string
+    title: string
+    conceptTitle: string
+    activityTitle: string
+    pythonTitle: string
+    points: string[]
+    focus: { title: string } | null
+  }[]
 }
 
 async function chapter(page: Page, id: string) {
@@ -59,12 +67,21 @@ test('every chapter connects guided explanations, explicit Python and an executa
   for (const section of curriculum.chapters) {
     await chapter(page, section.id)
     await expect(page.locator('.chapter-heading h1')).toHaveText(section.title)
-    await expect(page.locator('#concept h2')).toHaveText(section.idea)
+    await expect(page.locator('#concept h2')).toHaveText(section.conceptTitle)
+    await expect(page.locator('#python h2')).toHaveText(section.pythonTitle)
+    await expect(page.getByRole('textbox', { name: 'Editable Python experiment' })).toHaveCount(1)
     if (['tfidf', 'naive'].includes(section.id))
       await expect(page.locator('#concept .katex').first()).toBeVisible()
-    await expect(page.locator('#concept .key-points li').first()).toBeVisible()
+    if (section.points.length)
+      await expect(page.locator('#concept .key-points li').first()).toBeVisible()
     await expect(page.locator('.katex-error')).toHaveCount(0)
-    await expect(page.locator('#python .hljs-keyword').first()).toBeVisible()
+    await expect(page.locator('#python .cm-line').first()).toBeVisible()
+    await expect(page.locator('#python .python-code:visible')).toHaveCount(0)
+    await expect(page.locator('#concept .python-code')).toHaveCount(section.focus ? 1 : 0)
+    if (section.focus) {
+      await expect(page.locator('#concept .code-toolbar')).toContainText(section.focus.title)
+      await expect(page.locator('#concept .hljs-keyword').first()).toBeVisible()
+    }
     await runPython(page).click()
     await expect(page.getByLabel('Python output')).toContainText(outputs[section.id]!, {
       timeout: 90_000,
@@ -84,18 +101,41 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(page.getByRole('table', { name: 'One keyword is not enough' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Apply keyword rule' })).toHaveCount(0)
   await chapter(page, 'data')
-  await expect(page.locator('.audit > span').first()).toContainText('5574')
-  await expect(page.locator('.audit > span').last()).toContainText('5159')
+  const dataFlow = page.getByRole('figure', { name: 'Raw messages → deduplication → data splits' })
+  await expect(dataFlow).toContainText('5,574 SMS messages')
+  await expect(dataFlow).toContainText('5,159 unique messages')
+  await expect(dataFlow).toContainText('415 repeats removed')
+  await expect(dataFlow).toContainText('Train · 3,095')
+  await expect(dataFlow).toContainText('Validation · 1,032')
+  await expect(dataFlow).toContainText('Test · 1,032')
+  await expect(dataFlow).toContainText('Learn vocabulary, IDF and model')
+  await expect(page.locator('.audit, .split-row')).toHaveCount(0)
+  await expect(page.locator('#concept table')).toHaveCount(0)
+  await page.screenshot({ path: info.outputPath('data-flow.png'), fullPage: true })
   await expect(page.getByLabel('First lines of the raw data file')).toContainText('Go until jurong')
   await page.getByLabel('Search messages').fill('prize')
   await page.getByRole('combobox', { name: 'Label', exact: true }).selectOption('1')
   await expect(page.locator('.data-table tbody mark').first()).toHaveText(/prize/i)
   await expect(page.locator('.data-table tbody .tag.ham')).toHaveCount(0)
   await chapter(page, 'tokenize')
+  const tokenFlow = page.getByRole('figure', { name: 'Follow one message through preprocessing' })
+  await expect(tokenFlow.locator('code')).toHaveCount(4)
+  await expect(tokenFlow.locator('code').first()).toHaveText(
+    'Congratulations! Claim your FREE prize now!',
+  )
+  await expect(tokenFlow.locator('code').last()).toHaveText(
+    '["congratulations", "claim", "your", "free", "prize", "now"]',
+  )
+  await expect(page.locator('.key-points code').first()).toHaveText('TreebankWordTokenizer')
   await page.getByLabel('Message to tokenize').fill('FREE prize!!!')
   await page.getByRole('button', { name: 'Tokenize message', exact: true }).click()
-  await expect(page.locator('.token-stages')).toContainText('["free","prize","!","!","!"]')
-  await expect(page.locator('.token-stages dd').last()).toHaveText('["free","prize"]')
+  await expect(tokenFlow.locator('.flow-code').nth(2)).toHaveText(
+    '["free", "prize", "!", "!", "!"]',
+  )
+  await expect(tokenFlow.locator('.flow-code').last()).toHaveText('["free", "prize"]')
+  await expect(page.locator('.teaching-flow')).toHaveCount(1)
+  await expect(tokenFlow.locator('.flow-code').first()).toHaveText('FREE prize!!!')
+  await page.screenshot({ path: info.outputPath('token-flow.png'), fullPage: true })
   await chapter(page, 'features')
   await page.getByLabel('Message to measure').fill('free 123!!!')
   await page.getByRole('button', { name: 'Measure message features' }).click()
@@ -135,6 +175,7 @@ test('interactive representations, learned models, CV and frozen test decision f
   ).toBeVisible()
   await chapter(page, 'regularization')
   await page.getByRole('button', { name: 'Fit regularization path' }).click()
+  await page.getByText('Exact results and coefficient norms', { exact: true }).click()
   await expect(page.getByRole('img', { name: 'Coefficient magnitude along the path' })).toBeVisible(
     { timeout: 90_000 },
   )
@@ -231,6 +272,7 @@ test('mobile layout, edited snippets and cancellation preserve a usable lesson',
   await page.goto('/tutorials/tutorial05/text')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
   for (const id of [
+    'inbox',
     'text',
     'tfidf',
     'tokenize',
@@ -245,6 +287,11 @@ test('mobile layout, edited snippets and cancellation preserve a usable lesson',
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       id,
     ).toBeTruthy()
+    const diagram = page.locator('.teaching-flow')
+    if (await diagram.count()) {
+      expect(await diagram.evaluate((el) => el.scrollWidth <= el.clientWidth), id).toBeTruthy()
+      await page.screenshot({ path: info.outputPath(`${id}-mobile.png`), fullPage: true })
+    }
   }
   const editor = page.getByRole('textbox', { name: 'Editable Python experiment' })
   await editor.fill('print("before error")\nraise ValueError("visible error")')

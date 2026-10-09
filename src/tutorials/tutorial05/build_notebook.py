@@ -24,6 +24,12 @@ def build(execute=False):
     def code(text):
         cells.append(nbformat.v4.new_code_cell(text.strip()))
 
+    def focus(section):
+        if section['focus']:
+            lines = section['starter'].splitlines()
+            excerpt = '\n'.join(line for start, end in section['focus']['ranges'] for line in lines[start:end])
+            md('### ' + section['focus']['title'] + '\n\n```python\n' + excerpt + '\n```')
+
     md('# Tutorial05 · ' + CONTENT['title'] + '\n\n' + CONTENT['subtitle'] +
        '\n\n**Tutor:** Yinghao Zhu · yhzhu99@connect.hku.hk\n\n' + CONTENT['task'] + '\n\n' + CONTENT['motivation'])
     md('## Learning route\n\n' + '\n'.join(
@@ -36,24 +42,21 @@ def build(execute=False):
        '\n\n**Prerequisites:** ' + CONTENT['prerequisites'] + '\n\n**Outcome:** ' + CONTENT['outcome'])
     md('## Setup\n\nExtract the complete student package and keep the notebook beside `experiment.py` and `data/`. '
        'Install `requirements.txt`. NLTK’s Treebank tokenizer needs no resource downloads.\n\n'
-       'The bundled data are the original UCI SMS Spam Collection: '
-       '[source and citation](https://archive.ics.uci.edu/dataset/228/sms+spam+collection). '
-       'These are English SMS messages, not full emails. Source details and limitations are in `data/README.md`.\n\n'
-       'The setup helper loads the original tab-separated file, removes duplicate identities before splitting, '
-       'and supplies training and validation arrays. Test messages remain reserved for the final cell. '
-       'The examples below import NLTK and sklearn tools explicitly.')
+       'Setup supplies training and validation arrays. Test messages remain reserved for the final cell. '
+       'Data provenance is in `data/README.md`; the next section shows the data split. '
+       'The examples import NLTK and sklearn tools explicitly.')
     code('''import json
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from experiment import Experiment, tokens, numerical_features, metrics
+from diagrams import draw_flow
 
 lab = Experiment("data/SMSSpamCollection.txt")
 X_train, y_train = lab.X_train.copy(), lab.y_train.copy()
 X_val, y_val = lab.X_val.copy(), lab.y_val.copy()
 initial = lab.initialize()
-print("Original / duplicate / retained:", initial["raw"], initial["duplicates"], initial["unique"])
-print("Train / validation / test counts:", initial["counts"])
+curriculum = json.loads(Path("curriculum.json").read_text())
 plt.rcParams.update({"figure.figsize": (9, 4), "axes.spines.top": False, "axes.spines.right": False})
 HAM, SPAM = "#45657e", "#aa613d"
 ''')
@@ -61,22 +64,31 @@ HAM, SPAM = "#45657e", "#aa613d"
         identity = section['id']
         md(f'## {i + 1}. {section["title"]}\n\n' +
            ('**Extension — may be studied separately from the core route.**\n\n' if section['extension'] else '') +
-           section['question'] + '\n\n' + section['idea'] + '\n\n' +
+           '### ' + section['conceptTitle'] + '\n\n' + section['idea'] + '\n\n' +
            '\n'.join('- ' + point for point in section['points']))
+        if identity == 'tokenize':
+            focus(section)
+        if section['flow'] and identity != 'tfidf':
+            code(f'draw_flow(curriculum["chapters"][{i}]["flow"], initial)')
         for item in section['worked']:
             text = '### ' + item['title'] + '\n\n' + '\n\n'.join(item['text'])
             if item['columns']:
-                text += '\n\n| ' + ' | '.join(item['columns']) + ' |\n| ' + ' | '.join('---' for _ in item['columns']) + ' |\n'
-                text += '\n'.join('| ' + ' | '.join(str(v) for v in row) + ' |' for row in item['rows'])
+                text += '\n\n| ' + ' | '.join(column.replace('|', r'\|') for column in item['columns']) + ' |\n| ' + ' | '.join('---' for _ in item['columns']) + ' |\n'
+                text += '\n'.join('| ' + ' | '.join(str(v).replace('|', r'\|') for v in row) + ' |' for row in item['rows'])
             md(text)
+        if section['flow'] and identity == 'tfidf':
+            code(f'draw_flow(curriculum["chapters"][{i}]["flow"], initial)')
+        if identity != 'tokenize':
+            focus(section)
         if section['equation']:
             md(('### Calculation\n\n' if identity in ('tfidf', 'naive') else '### Formula recap\n\n') +
                '$$' + section['equation'] + '$$\n\n' +
                '\n'.join(f'- ${symbol}$: {meaning}' for symbol, meaning in section['notation']))
         if section['links']:
             md(' · '.join(f'[{title}]({url})' for title, url in section['links']))
-        md('### Worked Python example\n\nRead the imports, inputs and intermediate output before modifying the code.')
-        code(section['example'])
+        md('### ' + section['activityTitle'] + '\n\n' + section['experiment'] +
+           '\n\n### ' + section['pythonTitle'] + '\n\nRun the example, change one input or choice, then explain the output.')
+        code(section['starter'])
         if identity == 'text':
             code('''fig, ax = plt.subplots()
 matrix = X.toarray()
@@ -155,10 +167,7 @@ axes.flat[-1].axis("off")
 fig.suptitle("Additive effects; other features at training medians")
 plt.tight_layout()
 plt.show()''')
-        md('### Try, predict, explain\n\n' + section['experiment'])
-        code(section['starter'])
-        md('**Takeaway:** ' + section['takeaway'] + ('\n\n' + section['transition'] if section['transition'] else ''))
-    md('## Select a candidate and inspect validation errors\n\n'
+    md('### Select a candidate and inspect validation errors\n\n'
        'The lab helper keeps candidates for the error plots and final test cell, using the same pipelines shown above. '
        'The four core candidates below can be fitted without running any extension. '
        'You may also select an extension candidate from `lab.runs`. '
@@ -188,7 +197,7 @@ axes[1].scatter(validation_result["metrics"]["recall"], validation_result["metri
 axes[1].set(xlabel="Recall", ylabel="Precision", xlim=(0, 1), ylim=(0, 1), title="Validation precision–recall curve")
 plt.tight_layout()
 plt.show()''')
-    md('## Freeze the decision and evaluate the test set\n\n'
+    md('### Freeze the decision and evaluate the test set\n\n'
        'Explain your representation, classifier and threshold using validation evidence. Include the error tradeoff '
        'and a data limitation. This cell runs only when the rationale is nonempty. '
        'After testing, the lab freezes the decision. Restarting Python does not make an inspected test set unseen again.')

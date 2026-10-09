@@ -5,9 +5,8 @@ classifier → prediction and errors**. No previous NLP course is assumed.
 
 ## Choose your learning route
 
-The core route covers Text Classification, Our Messages and Labels, Tokenization,
-Bag of Words, TF–IDF, Naive Bayes, Logistic Regression, KNN, then Evaluation and
-Error Analysis. Rules appear only as a brief motivating counterexample.
+The core route covers Text Classification, SMS Data and Train / Validation / Test, Tokenization,
+Bag of Words, TF–IDF, Naive Bayes, Logistic Regression, KNN, then Evaluation: Compare Models and Inspect Errors. Rules appear only as a brief motivating counterexample.
 
 Complete extensions cover regularization, cross-validation, numerical features,
 LDA and a binomial additive spline model (GAM). Instructors can choose which to
@@ -15,7 +14,16 @@ teach. Each extension explains its inputs and uses the common setup; the core
 comparison and final evaluation work without running any extensions.
 
 The website and notebook share the explanations, worked tables, explicit NLTK /
-sklearn imports and editable experiments in `curriculum.json`. Count matrices,
+sklearn imports and editable experiments in `curriculum.json`. Each chapter has
+one editable Python example, with a direct concept heading and a specific activity.
+Short code excerpts beside tokenization, BoW, TF–IDF and NB examples link the
+explanation to the API calls. Excerpts select lines from the runnable example
+and use a fenced code block in the notebook, avoiding a second execution.
+Shared flow diagrams explain the text pipeline, data split, tokenization, TF–IDF
+normalization and model comparison. The web tokenization diagram updates from
+the actual tokenizer result, with input controls beside the key code. Data audit counts are resolved from the
+experiment, rather than repeated in a prose table and separate split cards.
+Code literals use monospaced type in prose, tables and diagrams. Count matrices,
 TF–IDF intermediate values and a hand-calculated NB prediction precede the real
 classifiers. Supporting scientific functions are available in collapsed web
 panels and a notebook appendix, keeping implementation details out of the main route.
@@ -88,6 +96,9 @@ uv run python scripts/verify.py tutorial05
 ```
 
 Regeneration replaces the course notebook; students edit downloaded copies.
-Maintain teaching content in `curriculum.json` and scientific behavior in
+Maintain teaching content and flow definitions in `curriculum.json`;
+`FlowDiagram.vue` renders them on the web and `diagrams.py` renders standalone
+SVG outputs in the notebook. Keep the complete student package for both.
+Maintain scientific behavior in
 `experiment.py`. The generator places matching scientific functions in the
 appendix and supplies stable cell IDs for reviewable updates.

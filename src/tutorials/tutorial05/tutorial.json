@@ -17,6 +17,7 @@
   "student_files": [
     "tutorial05.ipynb",
     "experiment.py",
+    "diagrams.py",
     "curriculum.json",
     "requirements.txt",
     "README.md",
