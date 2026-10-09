@@ -32,89 +32,96 @@ async function setSlider(page: Page, name: string, value: string) {
     }, value)
 }
 
-test('classifier illustrations explain editable evidence and votes without Python', async ({
+const examples = JSON.parse(readFileSync('src/tutorials/tutorial05/model_examples.json', 'utf8'))
+const sigmoid = (z: number) => 1 / (1 + Math.exp(-z))
+function nbProbability(alpha = 1, changes: Record<string, number> = {}) {
+  const source = examples.nb
+  const z =
+    Math.log(source.priors[1] / source.priors[0]) +
+    source.words.reduce((sum: number, w: { name: string; initial: number; counts: number[] }) => {
+      const count = changes[w.name] ?? w.initial
+      const likelihood = w.counts.map(
+        (n, c) => (n + alpha) / (source.totals[c] + alpha * source.vocabulary),
+      )
+      return sum + count * Math.log(likelihood[1] / likelihood[0])
+    }, 0)
+  return (100 * sigmoid(z)).toFixed(1) + '% spam estimate'
+}
+
+test('real SMS classifier walkthroughs expose arithmetic and selected neighbours without Python', async ({
   page,
 }, info) => {
-  // The toy explanations must remain usable even when the Python runtime is unavailable.
   await page.route('**/python/**', (route) => route.abort())
   await page.goto('/tutorials/tutorial05/naive')
   const illustration = page.locator('.classifier-illustration')
   const nbFlow = page.getByRole('figure', { name: 'From word likelihoods to a class prediction' })
-  await expect(nbFlow).toContainText('1/450')
-  await expect(nbFlow).toContainText('6/450')
-  await expect(nbFlow).toContainText('6/7 ≈ 85.7%')
-  await expect(nbFlow).toContainText('Prediction: Spam')
-  await illustration
-    .getByText('Inspect the log-space calculation (optional)', { exact: true })
-    .click()
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('85.7% spam estimate')
+  await expect(nbFlow).toContainText('Prediction: Ham')
+  await expect(illustration).toContainText(examples.nb.text)
+  await expect(illustration.getByTestId('journey-probability')).toHaveText(nbProbability())
   await illustration.getByRole('button', { name: 'Show evidence after Class prior' }).click()
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('50.0% spam estimate')
-  await illustration.getByRole('button', { name: 'Next evidence step' }).click()
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('66.7% spam estimate')
-  await expect(illustration.locator('.calculation')).toContainText('Log likelihood ratio')
-  await setSlider(page, 'Toy NB count of meet', '1')
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('66.7% spam estimate')
-  await setSlider(page, 'Toy NB smoothing alpha', '5')
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('54.5% spam estimate')
-  for (const word of ['claim', 'prize', 'meet', 'class'])
-    await setSlider(page, 'Toy NB count of ' + word, '0')
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('50.0% spam estimate')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText(
+    (100 * examples.nb.priors[1]).toFixed(1) + '% spam estimate',
+  )
+  await setSlider(page, 'NB count of claim', '1')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText(
+    nbProbability(1, { claim: 1 }),
+  )
+  await setSlider(page, 'NB smoothing alpha', '5')
+  await expect(illustration.getByTestId('journey-probability')).toHaveText(
+    nbProbability(5, { claim: 1 }),
+  )
+  for (const word of examples.nb.words) await setSlider(page, 'NB count of ' + word.name, '0')
   await expect(illustration.getByRole('slider', { name: 'Evidence steps' })).toBeDisabled()
 
   await chapter(page, 'logistic')
   await expect(
-    illustration.getByRole('table', { name: 'Small labelled training set' }).locator('tbody tr'),
+    illustration.getByRole('table', { name: 'Real SMS training excerpts' }).locator('tbody tr'),
   ).toHaveCount(6)
   const lrFlow = illustration.getByRole('figure', {
     name: 'How logistic regression learns and predicts',
   })
-  await expect(lrFlow).toContainText('model.fit(X_toy, y_toy)')
+  await expect(lrFlow).toContainText('model.fit(X_excerpt, y_excerpt)')
   await expect(lrFlow).toContainText('Prediction: Spam')
   await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('1')
   await expect(lrFlow).toContainText('Prediction: Ham')
   await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('0')
-  await illustration
-    .getByText('Inspect individual contributions (optional)', { exact: true })
-    .click()
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('72.4% spam estimate')
-  await illustration.getByRole('button', { name: 'Show evidence after Intercept' }).focus()
-  await page.keyboard.press('Enter')
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('48.0% spam estimate')
-  await setSlider(page, 'Toy LR count of prize', '0')
-  await setSlider(page, 'Toy LR count of class', '1')
-  await expect(illustration.getByTestId('journey-probability')).toHaveText('37.7% spam estimate')
-  await page.screenshot({ path: info.outputPath('toy-lr.png'), fullPage: true })
+  const lrProbability =
+    examples.logistic.bias +
+    examples.logistic.words.reduce(
+      (sum: number, w: { name: string; weight: number }) =>
+        sum + (examples.logistic.queries[0].counts[w.name] ?? 0) * w.weight,
+      0,
+    )
+  await expect(illustration.getByTestId('journey-probability')).toHaveText(
+    (100 * sigmoid(lrProbability)).toFixed(1) + '% spam estimate',
+  )
+  await page.screenshot({ path: info.outputPath('real-sms-lr.png'), fullPage: true })
 
   await chapter(page, 'neighbors')
   const knnFlow = illustration.getByRole('figure', {
     name: 'How KNN finds neighbours and predicts',
   })
   await expect(knnFlow).toContainText('Spam votes / k = 3 / 3')
+  await expect(
+    illustration.getByRole('img', { name: 'Real SMS word directions and selected neighbours' }),
+  ).toBeVisible()
+  await expect(
+    illustration.getByRole('img', { name: 'Real SMS word directions and selected neighbours' }),
+  ).toContainText('Rows 1, 2')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('100.0%')
   await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('1')
   await expect(knnFlow).toContainText('Prediction: Ham')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('0.0%')
   await page.getByRole('combobox', { name: 'Walkthrough neighbour count' }).selectOption('5')
   await expect(knnFlow).toContainText('Spam votes / k = 2 / 5')
-  await page.getByRole('combobox', { name: 'Walkthrough message' }).selectOption('0')
-  await page.getByRole('combobox', { name: 'Walkthrough neighbour count' }).selectOption('3')
-  await illustration
-    .getByText('Inspect word directions and distances (optional)', { exact: true })
-    .click()
-  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('100.0%')
+  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('40.0%')
   const second = illustration.getByRole('button', { name: 'Read neighbour 2', exact: true })
   await second.focus()
   await page.keyboard.press('Space')
   await expect(illustration.locator('.neighbor-message')).toContainText('Neighbour #2')
-  await setSlider(page, 'Toy KNN count of prize', '0')
-  await setSlider(page, 'Toy KNN count of class', '5')
-  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('0.0%')
-  await page.getByRole('combobox', { name: 'Toy KNN neighbour count' }).selectOption('5')
-  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('40.0%')
   await setSlider(page, 'Neighbours included', '3')
-  await expect(illustration.getByTestId('neighbor-probability')).toHaveText('0.0%')
   await expect(illustration.locator('.vote-result')).toContainText('shown neighbours')
-  await page.screenshot({ path: info.outputPath('toy-knn.png'), fullPage: true })
-  await setSlider(page, 'Toy KNN count of class', '0')
+  await setSlider(page, 'KNN count of call', '0')
   await expect(illustration.locator('.empty-vector')).toContainText('Add a known word')
   await expect(illustration.getByTestId('neighbor-probability')).toHaveCount(0)
 })
@@ -128,9 +135,6 @@ test('classifier figures remain usable on a narrow screen', async ({ page }, inf
     const illustration = page.locator('.classifier-illustration')
     await illustration.scrollIntoViewIfNeeded()
     if (id === 'naive') {
-      await illustration
-        .getByText('Inspect the log-space calculation (optional)', { exact: true })
-        .click()
       await expect(illustration.getByRole('slider').first()).toBeVisible()
     } else
       await expect(
@@ -153,8 +157,67 @@ test('overview motivates the complete case study without starting Python', async
   await expect(page.locator('.tutorial-overview')).toContainText('SMS Spam Collection')
   await expect(page.locator('.tutorial-overview')).toContainText('LDA')
   await expect(page.locator('.tutorial-overview')).toContainText('additive spline')
+  await expect(page.getByLabel('Original SMS records')).toContainText('Go until jurong')
+  await expect(page.getByRole('link', { name: 'Download original UCI ZIP ↓' })).toHaveAttribute(
+    'href',
+    'https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip',
+  )
+  const dataLink = page.getByRole('link', { name: 'Download SMS text file ↓' })
+  const response = await page.request.get((await dataLink.getAttribute('href'))!)
+  expect(response.ok()).toBeTruthy()
+  expect((await response.text()).split('\n')[0]).toContain('ham\tGo until jurong')
+  await expect(page.getByRole('link', { name: /^Begin:/ })).toContainText('SMS Data')
   expect(page.workers()).toHaveLength(0)
   await expect(page.getByRole('link', { name: '↓ Notebook + data', exact: true })).toBeVisible()
+})
+
+test('model chapters put formulas before real arithmetic and select settings on validation', async ({
+  page,
+}) => {
+  test.setTimeout(240_000)
+  await page.goto('/tutorials/tutorial05/naive')
+  await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
+  for (const [id, count] of [
+    ['naive', 6],
+    ['logistic', 4],
+    ['neighbors', 3],
+    ['features', 3],
+    ['lda', 3],
+    ['gam', 3],
+  ] as const) {
+    await chapter(page, id)
+    await expect(page.locator('.spam-lesson')).not.toContainText(/optional/i)
+    const concept = page.locator('#concept')
+    await expect(concept.getByRole('heading', { name: 'Formula and notation' })).toBeVisible()
+    expect(
+      await concept.evaluate((element) => {
+        const formula = element.querySelector('.equation-card')!
+        const arithmetic = element.querySelector('.worked-example, .classifier-illustration')
+        return (
+          !arithmetic ||
+          Boolean(formula.compareDocumentPosition(arithmetic) & Node.DOCUMENT_POSITION_FOLLOWING)
+        )
+      }),
+    ).toBeTruthy()
+    await expect(concept).toContainText('Test the frozen final choice')
+    await page.getByRole('button', { name: 'Compare validation settings', exact: true }).click()
+    const table = page.getByRole('table', { name: 'Training and validation candidate results' })
+    await expect(table.locator('tbody tr')).toHaveCount(count, { timeout: 90_000 })
+    await expect(
+      page.getByRole('button', { name: 'Compare validation settings', exact: true }),
+    ).toBeEnabled()
+    await expect(table).toContainText('selected')
+    await expect(table).toContainText('Training AP')
+    await expect(table).toContainText('Validation AP')
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  }
+  await chapter(page, 'decision')
+  await expect(
+    page.getByRole('combobox', { name: 'Selected candidate', exact: true }).locator('option'),
+  ).toHaveCount(22)
+  await expect(
+    page.getByRole('button', { name: 'Freeze decision and evaluate test set' }),
+  ).toBeDisabled()
 })
 
 test('every chapter connects guided explanations, explicit Python and an executable experiment', async ({
@@ -193,7 +256,7 @@ test('every chapter connects guided explanations, explicit Python and an executa
     await expect(
       page.getByText('Complete material for further study', { exact: false }),
     ).toHaveCount(0)
-    await expect(page.locator('#concept h2')).toHaveText(section.conceptTitle)
+    await expect(page.locator('#concept > h2')).toHaveText(section.conceptTitle)
     await expect(page.locator('#python h2')).toHaveText(section.pythonTitle)
     await expect(page.getByRole('textbox', { name: 'Editable Python experiment' })).toHaveCount(1)
     if (['tfidf', 'naive'].includes(section.id))
@@ -236,7 +299,7 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(dataFlow).toContainText('Test · 1,032')
   await expect(dataFlow).toContainText('Learn vocabulary, IDF and model')
   await expect(page.locator('.audit, .split-row')).toHaveCount(0)
-  await expect(page.locator('#concept table')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Download original UCI ZIP ↓' })).toBeVisible()
   await page.screenshot({ path: info.outputPath('data-flow.png'), fullPage: true })
   await expect(page.getByLabel('First lines of the raw data file')).toContainText('Go until jurong')
   await page.getByLabel('Search messages').fill('prize')
@@ -247,10 +310,10 @@ test('interactive representations, learned models, CV and frozen test decision f
   const tokenFlow = page.getByRole('figure', { name: 'Follow one message through preprocessing' })
   await expect(tokenFlow.locator('code')).toHaveCount(4)
   await expect(tokenFlow.locator('code').first()).toHaveText(
-    'Congratulations! Claim your FREE prize now!',
+    'Win a £1000 cash prize or a prize worth £5000',
   )
   await expect(tokenFlow.locator('code').last()).toHaveText(
-    '["congratulations", "claim", "your", "free", "prize", "now"]',
+    '["win", "a", "cash", "prize", "or", "a", "prize", "worth"]',
   )
   await expect(page.locator('.key-points code').first()).toHaveText('TreebankWordTokenizer')
   await page.getByLabel('Message to tokenize').fill('FREE prize!!!')
@@ -268,16 +331,16 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(page.locator('.spam-metrics')).toContainText('11')
   await chapter(page, 'text')
   await page.getByLabel('New message to transform').fill('free newword3612')
-  await page.getByRole('button', { name: 'Build and transform toy vectors' }).click()
+  await page.getByRole('button', { name: 'Build and transform SMS vectors' }).click()
   await expect(page.getByText('Ignored unknown words:')).toContainText('newword3612')
-  await page.getByRole('button', { name: 'prize', exact: true }).click()
-  await expect(page.locator('.spam-table th.highlight').first()).toHaveText('prize')
+  await page.getByRole('button', { name: 'call', exact: true }).click()
+  await expect(page.locator('.spam-table th.highlight').first()).toHaveText('call')
   await chapter(page, 'tfidf')
-  await page.getByRole('button', { name: 'your', exact: true }).click()
-  await expect(page.getByRole('table', { name: 'TF–IDF calculation' })).toContainText('0.385')
-  await page.getByRole('button', { name: 'prize', exact: true }).click()
+  await page.getByRole('button', { name: 'free', exact: true }).click()
+  await expect(page.getByRole('table', { name: 'TF–IDF calculation' })).toContainText('1.000')
+  await page.getByRole('button', { name: 'account', exact: true }).click()
   await expect(page.getByRole('table', { name: 'TF–IDF calculation' })).toContainText('1.693')
-  await page.getByRole('button', { name: 'Build and transform toy vectors' }).click()
+  await page.getByRole('button', { name: 'Build and transform SMS vectors' }).click()
   await expect(page.getByRole('rowheader', { name: 'Training IDF', exact: true })).toBeVisible()
   await page.screenshot({ path: info.outputPath('text-vectors.png'), fullPage: true })
   await chapter(page, 'naive')
@@ -285,8 +348,6 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(
     page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
   ).toBeVisible({ timeout: 60_000 })
-  await page.getByText('Inspect log-space contributions (optional)', { exact: true }).click()
-  await page.getByText('Exact word likelihoods and contributions', { exact: true }).click()
   await expect(page.getByRole('table', { name: 'Naive Bayes word evidence' })).toContainText(
     'prize',
     { timeout: 60_000 },
@@ -300,7 +361,6 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(
     page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
   ).toBeVisible({ timeout: 60_000 })
-  await page.getByText('Inspect word contributions (optional)', { exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Logistic regression: evidence for this message' }),
   ).toBeVisible({ timeout: 60_000 })
@@ -366,7 +426,6 @@ test('interactive representations, learned models, CV and frozen test decision f
   await expect(
     page.getByRole('figure', { name: 'Predict a new message with the trained model' }),
   ).toBeVisible({ timeout: 60_000 })
-  await page.getByText('Inspect neighbour distances (optional)', { exact: true }).click()
   await expect(page.getByRole('heading', { name: 'KNN: neighbours for this message' })).toBeVisible(
     {
       timeout: 60_000,
@@ -465,7 +524,12 @@ test('mobile layout, edited snippets and cancellation preserve a usable lesson',
     ).toBeTruthy()
     const diagram = page.locator('.teaching-flow')
     if (await diagram.count()) {
-      expect(await diagram.evaluate((el) => el.scrollWidth <= el.clientWidth), id).toBeTruthy()
+      expect(
+        await diagram.evaluateAll((elements) =>
+          elements.every((el) => el.scrollWidth <= el.clientWidth),
+        ),
+        id,
+      ).toBeTruthy()
       await page.screenshot({ path: info.outputPath(`${id}-mobile.png`), fullPage: true })
     }
   }

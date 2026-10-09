@@ -15,6 +15,8 @@ import DataTable from './DataTable.vue'
 import Confusion from './Confusion.vue'
 import { courseHref } from '../../navigation'
 import curriculum from './curriculum.json'
+import DatasetIntroduction from '../../components/DatasetIntroduction.vue'
+import examples from './model_examples.json'
 import source from './experiment.py?raw'
 
 const props = defineProps<{ chapter: string }>()
@@ -45,6 +47,7 @@ type Run = {
   C: number
   alpha: number
   k: number
+  shrinkage: string | number
   parameters: number
   train: Metrics
   validation: Metrics
@@ -136,8 +139,10 @@ const error = ref('')
 const busy = ref(false)
 const running = ref(false)
 const operation = ref('')
-const message = ref('Congratulations! Claim your free prize now!')
-const tokenText = ref('Congratulations! Claim your FREE prize now!')
+const message = ref(examples.logistic.queries[0]!.text)
+const tokenText = ref(
+  curriculum.chapters.find((c) => c.id === 'tokenize')!.flow!.stages[0]!.nodes[0]!.code,
+)
 const tokenResult = ref<{
   text: string
   lowercase: string
@@ -163,7 +168,7 @@ const tokenFlow = computed(() => {
   }
 })
 const toyDocuments = ref('Free prize now\nAre you free after class\nWin a prize prize')
-const toyText = ref('free meeting tomorrow')
+const toyText = ref(examples.logistic.training[0]!.text)
 const toyRepresentation = ref('count')
 const vector = ref<Vector>()
 const word = ref('free')
@@ -172,6 +177,7 @@ const representation = ref('count')
 const C = ref(1)
 const alpha = ref(1)
 const k = ref(5)
+const tuningRuns = ref<Run[]>([])
 const runs = ref<Run[]>([])
 const selected = ref('')
 const explanation = ref<Explanation>()
@@ -218,7 +224,7 @@ const PALETTE = [
   '#65717c',
 ]
 const runName = (r: Run) =>
-  `${r.id} · ${r.kind === 'gam' ? 'additive spline' : r.kind.toUpperCase()} · ${r.representation}${r.kind === 'knn' ? ` · k=${r.k}` : r.kind === 'nb' ? ` · α=${r.alpha}` : r.kind === 'lda' ? '' : ` · C=${r.C}`}`
+  `${r.id} · ${r.kind === 'gam' ? 'additive spline' : r.kind.toUpperCase()} · ${r.representation}${r.kind === 'knn' ? ` · k=${r.k}` : r.kind === 'nb' ? ` · α=${r.alpha}` : r.kind === 'lda' ? ` · shrinkage=${r.shrinkage}` : ` · C=${r.C}`}`
 const chapterModel = computed(
   () =>
     ({ naive: 'nb', logistic: 'logistic', neighbors: 'knn' })[
@@ -475,6 +481,36 @@ async function compareCore(mode: 'representation' | 'classifier') {
     addRun(row)
   }
 }
+async function tuneChapter() {
+  const configs: Record<string, unknown>[] =
+    props.chapter === 'naive'
+      ? ['count', 'tfidf'].flatMap((representation) =>
+          [0.1, 1, 5].map((alpha) => ({ kind: 'nb', representation, alpha })),
+        )
+      : props.chapter === 'neighbors'
+        ? [3, 5, 15].map((k) => ({ kind: 'knn', representation: 'tfidf', k }))
+        : props.chapter === 'lda'
+          ? ['auto', 0.1, 0.5].map((shrinkage) => ({
+              kind: 'lda',
+              representation: 'numeric',
+              shrinkage,
+            }))
+          : (props.chapter === 'logistic' ? [0.01, 0.1, 1, 10] : [0.1, 1, 10]).map((C) => ({
+              kind: props.chapter === 'gam' ? 'gam' : 'logistic',
+              representation: props.chapter === 'logistic' ? 'tfidf' : 'numeric',
+              C,
+            }))
+  tuningRuns.value = []
+  for (const config of configs) {
+    const row = await act<Run>('Training and validating candidate settings', 'fit', config)
+    if (!row) return
+    addRun(row)
+    tuningRuns.value.push(row)
+  }
+  selected.value = [...tuningRuns.value].sort(
+    (a, b) => b.validation.average_precision - a.validation.average_precision,
+  )[0]!.id
+}
 async function explain() {
   const id = selected.value
   const result = await act<Explanation>('Computing this message’s prediction', 'explain', {
@@ -588,6 +624,7 @@ async function start() {
   running.value = false
   error.value = ''
   runs.value = []
+  tuningRuns.value = []
   selected.value = ''
   final.value = undefined
   explanation.value = undefined
@@ -609,7 +646,9 @@ watch(
   () => props.chapter,
   () => {
     error.value = ''
-    if (['logistic', 'neighbors'].includes(props.chapter)) representation.value = 'tfidf'
+    tuningRuns.value = []
+    if (['logistic', 'neighbors', 'regularization', 'validation'].includes(props.chapter))
+      representation.value = 'tfidf'
     if (props.chapter === 'naive' && representation.value === 'numeric')
       representation.value = 'count'
     if (['text', 'tfidf'].includes(props.chapter)) {
@@ -617,10 +656,13 @@ watch(
       toyRepresentation.value = props.chapter === 'tfidf' ? 'tfidf' : 'count'
       toyDocuments.value =
         props.chapter === 'tfidf'
-          ? 'claim your prize\ncheck your timetable\nsend your notes'
-          : 'free prize now\nare you free after class\nwin a prize prize'
-      toyText.value =
-        props.chapter === 'tfidf' ? 'claim your prize tomorrow' : 'free meeting tomorrow'
+          ? [
+              examples.logistic.training[0]!.text,
+              'Now am free call me pa.',
+              examples.logistic.training[4]!.text,
+            ].join('\n')
+          : [examples.logistic.training[0]!.text, 'Now am free call me pa.'].join('\n')
+      toyText.value = props.chapter === 'tfidf' ? examples.nb.text : 'Once free call me sir.'
       if (ready.value && !busy.value) void vectorize()
     }
   },
@@ -636,11 +678,22 @@ onUnmounted(() => {
 <template>
   <div class="spam-lesson">
     <section id="concept" class="chapter-theory">
+      <DatasetIntroduction v-if="chapter === 'data'" :dataset="curriculum.dataset" />
       <h2>{{ section.conceptTitle }}</h2>
       <p class="concept-intro"><InlineText :text="section.idea" /></p>
       <ul v-if="section.points.length" class="key-points">
         <li v-for="point in section.points" :key="point"><InlineText :text="point" /></li>
       </ul>
+      <div v-if="section.equation" class="equation-card">
+        <h3>Formula and notation</h3>
+        <MathText :tex="section.equation" />
+        <dl class="notation-list">
+          <div v-for="[symbol, meaning] in section.notation" :key="symbol">
+            <dt><MathText :tex="symbol!" inline /></dt>
+            <dd>{{ meaning }}</dd>
+          </div>
+        </dl>
+      </div>
       <PythonCode
         v-if="section.focus && chapter === 'tokenize'"
         :code="focusCode"
@@ -695,46 +748,28 @@ onUnmounted(() => {
         :code="focusCode"
         :title="section.focus.title"
       />
+      <FlowDiagram v-if="'workflow' in section" :flow="section.workflow!" />
+      <p v-if="'workflow' in section">
+        <a :href="courseHref('tutorials/tutorial05/decision')"
+          >Continue to validation comparison and the final test →</a
+        >
+      </p>
       <ClassifierIllustration
         v-if="['naive', 'logistic', 'neighbors'].includes(chapter)"
         :key="chapter"
         :chapter="chapter"
       />
-      <details
-        v-if="chapter === 'regularization' || chapter === 'validation'"
-        class="implementation-details"
-      >
-        <summary>
+      <section v-if="chapter === 'regularization' || chapter === 'validation'">
+        <h3>
           {{
             chapter === 'regularization'
               ? 'Illustration: underfitting, overfitting and weight shrinkage'
               : 'Illustration: five rounds of cross-validation'
           }}
-        </summary>
+        </h3>
         <ConceptFigure :chapter="chapter" />
-      </details>
+      </section>
       <ConceptFigure v-else-if="section.extension" :chapter="chapter" />
-      <div v-if="section.equation && ['tfidf', 'naive'].includes(chapter)" class="equation-card">
-        <MathText :tex="section.equation" />
-        <dl class="notation-list">
-          <div v-for="[symbol, meaning] in section.notation" :key="symbol">
-            <dt><MathText :tex="symbol!" inline /></dt>
-            <dd>{{ meaning }}</dd>
-          </div>
-        </dl>
-      </div>
-      <details v-else-if="section.equation" class="formula-recap">
-        <summary>Formula recap</summary>
-        <div class="equation-card">
-          <MathText :tex="section.equation" />
-          <dl class="notation-list">
-            <div v-for="[symbol, meaning] in section.notation" :key="symbol">
-              <dt><MathText :tex="symbol!" inline /></dt>
-              <dd>{{ meaning }}</dd>
-            </div>
-          </dl>
-        </div>
-      </details>
       <p v-for="[title, url] in section.links" :key="url" class="documentation-link">
         <a :href="url" target="_blank" rel="noreferrer">{{ title }} ↗</a>
       </p>
@@ -751,6 +786,50 @@ onUnmounted(() => {
         {{ error }} <button @click="start">Restart Python</button>
       </div>
       <p v-if="busy" role="status">{{ operation }}…</p>
+
+      <section
+        v-if="['naive', 'logistic', 'neighbors', 'features', 'lda', 'gam'].includes(chapter)"
+        class="panel"
+        aria-label="Training and validation selection"
+      >
+        <h3>Train candidates, then select with validation</h3>
+        <p>
+          Run the setting grid shown in this chapter. Every pipeline fits on the same training SMS.
+          The highest validation AP selects a candidate; inspect its errors in Evaluation before
+          choosing the final model and threshold.
+        </p>
+        <button class="primary" :disabled="!ready || busy || !!final" @click="tuneChapter">
+          Compare validation settings
+        </button>
+        <div v-if="tuningRuns.length" class="table-scroll">
+          <table class="spam-table" aria-label="Training and validation candidate results">
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Training AP</th>
+                <th>Validation AP</th>
+                <th>Validation precision</th>
+                <th>Validation recall</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in tuningRuns" :key="row.id">
+                <th>{{ runName(row) }}{{ selected === row.id ? ' · selected' : '' }}</th>
+                <td>{{ fmt(row.train.average_precision) }}</td>
+                <td>{{ fmt(row.validation.average_precision) }}</td>
+                <td>{{ fmt(row.validation.precision) }}</td>
+                <td>{{ fmt(row.validation.recall) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Test stage:
+          <a :href="courseHref('tutorials/tutorial05/decision')"
+            >compare the selected candidates and run the frozen final test →</a
+          >
+        </p>
+      </section>
 
       <template v-if="chapter === 'data' && initial">
         <div class="panel">
@@ -892,10 +971,7 @@ onUnmounted(() => {
         <div class="panel">
           <h3>Build a vocabulary from these training documents</h3>
           <label
-            >Toy training documents · one per line<textarea
-              v-model="toyDocuments"
-              rows="4"
-            /></label
+            >Training SMS excerpts · one per line<textarea v-model="toyDocuments" rows="4" /></label
           ><label
             >Representation<select v-model="toyRepresentation">
               <option value="count">Word counts</option>
@@ -903,7 +979,7 @@ onUnmounted(() => {
             </select></label
           ><label>New message to transform<textarea v-model="toyText" rows="2" /></label
           ><button class="primary" :disabled="!ready || busy" @click="vectorize">
-            Build and transform toy vectors
+            Build and transform SMS vectors
           </button>
           <template v-if="vector"
             ><div class="word-list">
@@ -1064,16 +1140,16 @@ onUnmounted(() => {
         </div>
         <div v-if="activeRun?.kind === 'nb' && currentExplanation?.evidence" class="panel">
           <FlowDiagram v-if="predictionFlow" :flow="predictionFlow" />
-          <details>
-            <summary>Inspect log-space contributions (optional)</summary>
+          <section>
+            <h3>Inspect log-space contributions</h3>
             <ScoreJourney
               v-if="scoreEvidence"
               :evidence="scoreEvidence"
               kind="nb"
               title="Naive Bayes: evidence for this message"
             />
-          </details>
-          <details class="implementation-details">
+          </section>
+          <details open class="implementation-details">
             <summary>Exact word likelihoods and contributions</summary>
             <div class="table-scroll">
               <table class="spam-table" aria-label="Naive Bayes word evidence">
@@ -1132,8 +1208,8 @@ onUnmounted(() => {
               </select></label
             >
           </div>
-          <details v-if="chapter === 'logistic'" class="formula-recap">
-            <summary>Optional: LR regularization setting</summary>
+          <details open v-if="chapter === 'logistic'" class="formula-recap">
+            <summary>LR regularization setting</summary>
             <label
               >Inverse regularization C<input
                 v-model.number="C"
@@ -1165,12 +1241,12 @@ onUnmounted(() => {
         <template v-if="activeRun?.kind === chapterModel && currentExplanation"
           ><div class="panel">
             <FlowDiagram v-if="predictionFlow" :flow="predictionFlow" />
-            <details>
+            <details open>
               <summary>
                 {{
                   chapter === 'neighbors'
-                    ? 'Inspect neighbour distances (optional)'
-                    : 'Inspect word contributions (optional)'
+                    ? 'Inspect neighbour distances'
+                    : 'Inspect word contributions'
                 }}
               </summary>
               <ScoreJourney
@@ -1608,7 +1684,7 @@ onUnmounted(() => {
               :bounds="[0, 1, 0, 1]"
             />
             <details class="implementation-details">
-              <summary>Optional: ROC curve and false-positive rate</summary>
+              <summary>ROC curve and false-positive rate</summary>
               <Plot
                 title="Validation ROC curve"
                 x-label="False positive rate"

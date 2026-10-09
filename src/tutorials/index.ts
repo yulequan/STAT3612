@@ -12,6 +12,16 @@ export type Lesson = {
     objectives: string[]
     prerequisites: string
     outcome: string
+    dataset?: {
+      title: string
+      source: string
+      archive: string
+      file: string
+      description: string
+      counts: { total: number; ham: number; spam: number }
+      preview: { label: string; text: string }[]
+      limitations: string
+    }
   }
   component: Component
   chapters: { id: string; title: string; question: string; heading?: string }[]

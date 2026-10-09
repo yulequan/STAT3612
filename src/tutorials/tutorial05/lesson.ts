@@ -14,6 +14,7 @@ export default {
     objectives: curriculum.objectives,
     prerequisites: curriculum.prerequisites,
     outcome: curriculum.outcome,
+    dataset: curriculum.dataset,
   },
   component: defineAsyncComponent(() => import('./Tutorial05.vue')),
   chapters: curriculum.chapters.map(({ id, title, question }) => ({

@@ -161,20 +161,24 @@ const flowValues = computed(() => {
 <template>
   <section class="classifier-illustration" :aria-label="example.title">
     <div class="example-header">
-      <span>{{ kind === 'nb' ? 'Optional: arithmetic details' : 'Algorithm walkthrough' }}</span>
+      <span>{{ 'Algorithm walkthrough with real SMS' }}</span>
       <p><InlineText :text="example.caption" /></p>
     </div>
     <p><InlineText :text="example.challenge" /></p>
+    <p v-if="kind === 'nb'">
+      Real validation SMS: <code>{{ examples.nb.text }}</code>
+    </p>
     <template v-if="kind !== 'nb'">
       <h3>Training messages → word-count vectors</h3>
       <p>
         Column order:
-        <code>{{ kind === 'logistic' ? '[free, prize, class, meet]' : '[prize, class]' }}</code>
+        <code>{{ kind === 'logistic' ? '[free, prize, class, meet]' : '[prize, call]' }}</code>
       </p>
       <div class="training-table">
-        <table aria-label="Small labelled training set">
+        <table aria-label="Real SMS training excerpts">
           <thead>
             <tr>
+              <th>Row</th>
               <th>Label</th>
               <th>Training message</th>
               <th>Vector</th>
@@ -187,6 +191,7 @@ const flowValues = computed(() => {
                 : examples.knn.points"
               :key="i"
             >
+              <th>{{ i + 1 }}</th>
               <th>{{ row.label ? 'Spam' : 'Ham' }}</th>
               <td>
                 <code>{{ row.text }}</code>
@@ -212,25 +217,35 @@ const flowValues = computed(() => {
           <option v-for="n in [1, 3, 5]" :key="n" :value="n">{{ n }}</option>
         </select></label
       >
+      <NeighborExplorer
+        v-if="kind === 'knn'"
+        :title="example.title"
+        :points="points"
+        :axis-labels="examples.knn.words"
+        :query="query"
+        :neighbors="neighbors"
+        :zero-vector="zeroVector"
+        metric="Cosine"
+      />
       <FlowDiagram :flow="algorithm" :values="flowValues" />
     </template>
-    <details class="arithmetic-details">
-      <summary>
+    <section class="arithmetic-details">
+      <h3>
         {{
           kind === 'nb'
-            ? 'Inspect the log-space calculation (optional)'
+            ? 'Inspect the log-space calculation'
             : kind === 'logistic'
-              ? 'Inspect individual contributions (optional)'
-              : 'Inspect word directions and distances (optional)'
+              ? 'Inspect individual contributions'
+              : 'Inspect word directions and distances'
         }}
-      </summary>
+      </h3>
       <div v-if="kind === 'nb'" class="toy-controls">
         <label v-for="w in examples.nb.words" :key="w.name"
           >Count of <code>{{ w.name }}</code
           >: {{ nbCounts[w.name] }}
           <input
             v-model.number="nbCounts[w.name]"
-            :aria-label="'Toy NB count of ' + w.name"
+            :aria-label="'NB count of ' + w.name"
             type="range"
             min="0"
             max="3"
@@ -241,7 +256,7 @@ const flowValues = computed(() => {
           >Smoothing alpha: {{ alpha.toFixed(1) }}
           <input
             v-model.number="alpha"
-            aria-label="Toy NB smoothing alpha"
+            aria-label="NB smoothing alpha"
             type="range"
             min=".1"
             max="5"
@@ -255,7 +270,7 @@ const flowValues = computed(() => {
           >: {{ lrCounts[w.name] }}
           <input
             v-model.number="lrCounts[w.name]"
-            :aria-label="'Toy LR count of ' + w.name"
+            :aria-label="'LR count of ' + w.name"
             type="range"
             min="0"
             max="3"
@@ -269,7 +284,7 @@ const flowValues = computed(() => {
           >: {{ queryCounts[i] }}
           <input
             v-model.number="queryCounts[i]"
-            :aria-label="'Toy KNN count of ' + word"
+            :aria-label="'KNN count of ' + word"
             type="range"
             min="0"
             max="5"
@@ -278,7 +293,7 @@ const flowValues = computed(() => {
         </label>
         <label
           >Number of neighbours k
-          <select v-model.number="k" aria-label="Toy KNN neighbour count">
+          <select v-model.number="k" aria-label="KNN neighbour count">
             <option v-for="n in [1, 3, 5]" :key="n" :value="n">{{ n }}</option>
           </select>
         </label>
@@ -289,16 +304,7 @@ const flowValues = computed(() => {
         :kind="kind"
         :title="example.title"
       />
-      <NeighborExplorer
-        v-else
-        :title="example.title"
-        :points="points"
-        :query="query"
-        :neighbors="neighbors"
-        :zero-vector="zeroVector"
-        metric="Cosine"
-      />
-    </details>
+    </section>
   </section>
 </template>
 

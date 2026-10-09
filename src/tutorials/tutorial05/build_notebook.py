@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the guided lesson and complete extensions from the shared web curriculum."""
+"""Build the complete dataset-first lesson from the shared web curriculum."""
 import argparse
 import ast
 import json
@@ -32,10 +32,12 @@ def build(execute=False):
 
     md('# Tutorial05 · ' + CONTENT['title'] + '\n\n' + CONTENT['subtitle'] +
        '\n\n**Tutor:** Yinghao Zhu · yhzhu99@connect.hku.hk\n\n' + CONTENT['task'] + '\n\n' + CONTENT['motivation'])
+    dataset = CONTENT['dataset']
+    md('## ' + dataset['title'] + '\n\nSource: [UCI SMS Spam Collection](' + dataset['source'] + ') · [Download original ZIP](' + dataset['archive'] + ') · Local file: `data/SMSSpamCollection.txt`\n\n' + dataset['description'] + '\n\nRaw data: 5,574 SMS; 4,827 ham and 747 spam. No header.\n\n```text\n' + '\n'.join(row['label'] + '\t' + row['text'] for row in dataset['preview']) + '\n```\n\n' + dataset['limitations'])
     md('## Learning route\n\n' + '\n'.join(
         f'{i + 1}. **{c["title"]}**' + ' — ' + c['question']
         for i, c in enumerate(CONTENT['chapters'])) +
-       '\n\nFollow sections 1–8, then go directly to section 14 for the core lesson. '
+       '\n\nFollow every chapter in order. Each model has training, validation selection and a shared final test stage. '
        'Each chapter explains its inputs and uses the setup below.\n\n' +
        '## Learning objectives\n\n' + '\n'.join('- ' + s for s in CONTENT['objectives']) +
        '\n\n**Prerequisites:** ' + CONTENT['prerequisites'] + '\n\n**Outcome:** ' + CONTENT['outcome'])
@@ -52,7 +54,8 @@ from experiment import Experiment, tokens, numerical_features, metrics, explain_
 from diagrams import draw_flow
 from model_figures import nb_example, lr_example, knn_example, plot_evidence, plot_neighbors, lr_flow_values, knn_flow_values, prediction_flow
 
-lab = Experiment("data/SMSSpamCollection.txt")
+dataset_path = "data/SMSSpamCollection.txt"
+lab = Experiment(dataset_path)
 X_train, y_train = lab.X_train.copy(), lab.y_train.copy()
 X_val, y_val = lab.X_val.copy(), lab.y_val.copy()
 initial = lab.initialize()
@@ -66,6 +69,10 @@ HAM, SPAM = "#45657e", "#aa613d"
         md(f'## {i + 1}. {section["title"]}\n\n' +
            '### ' + section['conceptTitle'] + '\n\n' + section['idea'] + '\n\n' +
            '\n'.join('- ' + point for point in section['points']))
+        if section['equation']:
+            md('### Formula and notation\n\n$$' + section['equation'] + '$$\n\n' + '\n'.join(f'- ${symbol}$: {meaning}' for symbol, meaning in section['notation']))
+        if 'workflow' in section:
+            code(f'draw_flow(curriculum["chapters"][{i}]["workflow"], initial)')
         if identity == 'tokenize':
             focus(section)
         if section['flow'] and identity not in ('tfidf', 'naive'):
@@ -87,24 +94,20 @@ HAM, SPAM = "#45657e", "#aa613d"
                 rows = examples[kind]['training' if kind == 'logistic' else 'points']
                 words = [w['name'] for w in examples[kind]['words']] if kind == 'logistic' else examples[kind]['words']
                 md('### Training messages → word-count vectors\n\nColumn order: `' + str(words) + '`\n\n'
-                   '| Label | Message | Vector |\n| --- | --- | --- |\n' + '\n'.join(
-                       f'| {"Spam" if r["label"] else "Ham"} | `{r["text"]}` | `{r["counts"]}` |' for r in rows))
+                   '| Row | Label | Message | Vector |\n| --- | --- | --- | --- |\n' + '\n'.join(
+                       f'| {index + 1} | {"Spam" if r["label"] else "Ham"} | `{r["text"]}` | `{r["counts"]}` |' for index, r in enumerate(rows)))
                 md('### ' + examples[kind]['title'] + '\n\n' + examples[kind]['caption'] + '\n\n' + examples[kind]['challenge'])
-                code('draw_flow(model_examples["logistic"]["flow"], lr_flow_values(counts={"free": 1, "prize": 1}, text="Claim your free prize now!"))' if kind == 'logistic' else
-                     'draw_flow(model_examples["knn"]["flow"], knn_flow_values(counts=(1, 0), k=3, text="Claim your prize now!"))')
-            md('### Optional: inspect contribution or distance details\n\n' +
+                code('draw_flow(model_examples["logistic"]["flow"], lr_flow_values(**model_examples["logistic"]["queries"][0]))' if kind == 'logistic' else
+                     'draw_flow(model_examples["knn"]["flow"], knn_flow_values(k=3, **model_examples["knn"]["queries"][0]))')
+            md('### Inspect contribution or distance details\n\n' +
                (examples[kind]['caption'] + '\n\n' if kind == 'nb' else '') +
                '\n\n' + examples[kind]['challenge'] + ' Change the values in this cell and rerun to redraw the figure.')
             if kind == 'nb':
-                code('plot_evidence(nb_example(counts={"claim": 1, "prize": 1}, alpha=1), kind="nb")')
+                code('plot_evidence(nb_example(alpha=1), kind="nb")')
             elif kind == 'logistic':
-                code('plot_evidence(lr_example(counts={"free": 1, "prize": 1}), kind="logistic")')
+                code('plot_evidence(lr_example(model_examples["logistic"]["queries"][0]["counts"]), kind="logistic")')
             else:
-                code('plot_neighbors(knn_example(counts=(1, 0), k=3))  # Counts: prize, class')
-        if section['equation']:
-            md(('### Calculation\n\n' if identity in ('tfidf', 'naive') else '### Formula recap\n\n') +
-               '$$' + section['equation'] + '$$\n\n' +
-               '\n'.join(f'- ${symbol}$: {meaning}' for symbol, meaning in section['notation']))
+                code('plot_neighbors(knn_example(counts=(1, 0), k=3))  # Counts: prize, call')
         if section['links']:
             md(' · '.join(f'[{title}]({url})' for title, url in section['links']))
         md('### ' + section['activityTitle'] + '\n\n' + section['experiment'] +
@@ -113,9 +116,9 @@ HAM, SPAM = "#45657e", "#aa613d"
         if identity in ('naive', 'logistic', 'neighbors'):
             kind = 'nb' if identity == 'naive' else 'logistic' if identity == 'logistic' else 'knn'
             md('### Inspect the trained model on one message\n\nThe same visual explanation now uses the fitted pipeline above. Change the message and rerun; the model stays fixed.')
-            code('explanation = explain_model(model, "Claim your free prize now!", X_train, y_train)\n' +
+            code('explanation = explain_model(model, X_val[482], X_train, y_train)\n' +
                  f'draw_flow(prediction_flow(explanation, "{kind}"))')
-            md('### Optional: inspect the fitted contributions or distances')
+            md('### Inspect the fitted contributions or distances')
             code(
                  ('plot_neighbors(explanation, title="KNN: neighbours for this message")' if kind == 'knn' else
                   f'plot_evidence(explanation, kind="{kind}", title="{examples[kind]["title"].split(":")[0]}: evidence for this message")'))
@@ -124,7 +127,7 @@ HAM, SPAM = "#45657e", "#aa613d"
 matrix = X.toarray()
 ax.imshow(matrix, cmap="Blues", aspect="auto")
 ax.set_xticks(range(matrix.shape[1]), vectorizer.get_feature_names_out())
-ax.set_yticks([0, 1], ["Sentence 1", "Sentence 2"])
+ax.set_yticks([0, 1], ["Real SMS A", "Real SMS B"])
 for (row, col), value in np.ndenumerate(matrix):
     ax.text(col, row, str(value), ha="center", va="center", color="white" if value == 2 else "black")
 ax.set_title("Bag of Words: one row per message, one column per word")
@@ -142,7 +145,7 @@ for ax in axes:
 plt.tight_layout()
 plt.show()''')
         elif identity == 'regularization':
-            code('''path_result = lab.regularization({"representation": "count"})
+            code('''path_result = lab.regularization({"representation": "tfidf"})
 Cs = [row["C"] for row in path_result["rows"]]
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 for split, color in [("train", HAM), ("validation", SPAM)]:
@@ -199,13 +202,18 @@ plt.tight_layout()
 plt.show()''')
     md('### Select a candidate and inspect validation errors\n\n'
        'The lab helper keeps candidates for the error plots and final test cell, using the same pipelines shown above. '
-       'The four core candidates below can be fitted independently. '
-       'You may also select another fitted candidate from `lab.runs`. '
+       'The same setting grids from the model chapters are registered below, including numerical models and CV-selected LR. '
+       'Use one shared validation comparison and do not evaluate every candidate on test. '
        'Choose using validation evidence, then write a reason before testing.')
-    code('''# Each pair changes only the classifier or the representation.
-core_candidates = [lab.fit({"kind": kind, "representation": representation})
-                   for kind, representation in [("nb", "count"), ("nb", "tfidf"),
-                                                 ("logistic", "tfidf"), ("knn", "tfidf")]]
+    code('''# These finite setting grids match the complete training/validation experiments.
+configs = ([{"kind": "nb", "representation": r, "alpha": a} for r in ["count", "tfidf"] for a in [.1, 1, 5]]
+           + [{"kind": "logistic", "representation": "tfidf", "C": C} for C in [.001, .01, .1, 1, 10]]
+           + [{"kind": "knn", "representation": "tfidf", "k": k} for k in [3, 5, 15]]
+           + [{"kind": "logistic", "representation": "numeric", "C": C} for C in [.1, 1, 10]]
+           + [{"kind": "lda", "representation": "numeric", "shrinkage": a} for a in ["auto", .1, .5]]
+           + [{"kind": "gam", "representation": "numeric", "C": C} for C in [.1, 1, 10]]
+           + [{"kind": "logistic", "representation": "tfidf", "C": search.best_params_["classifier__C"]}])
+core_candidates = [lab.fit(config) for config in configs]
 for row in core_candidates:
     print(row["id"], row["kind"], row["representation"], "validation AP:", round(row["validation"]["average_precision"], 3))
 selected_id = max(core_candidates, key=lambda row: row["validation"]["average_precision"])["id"]
@@ -238,13 +246,13 @@ if reason.strip():
 else:
     print('Record a rationale above, then run the final test once.')''')
     md('## Your experiment record\n\n'
-       'Report one preprocessing choice, the representation comparison, the classifier comparison, '
-       'a false positive, a false negative and your final rationale. Include the models you studied.')
+       'Report the raw-file audit, one preprocessing choice, the representation comparison, the classifier comparison, '
+       'training/validation selection for every model, a false positive, a false negative and your final rationale/test result.')
     code('''record = {'dataset': 'Original UCI SMS Spam Collection', 'seed': 3612, 'splits': initial['counts'],
           'runs': [{k: v for k, v in item['row'].items() if k != 'thresholds'} for item in lab.runs.values()],
           'final': lab.final}
 print('Recorded candidates:', len(record['runs']))
-# Optional: Path('tutorial05-results.json').write_text(json.dumps(record, indent=2))''')
+Path('tutorial05-results.json').write_text(json.dumps(record, indent=2))''')
     md('## Appendix: supporting scientific functions\n\n'
        'The lesson examples above show the NLTK and sklearn calls directly. '
        'These functions are copied from `experiment.py` for readers who want to inspect or modify '

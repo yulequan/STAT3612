@@ -1,15 +1,21 @@
 {
   "title": "Spam Message Classification",
-  "subtitle": "From text to features to predictions",
-  "task": "Turn labelled messages into a text classifier, explain how its inputs are built, and inspect its mistakes.",
-  "motivation": "No NLP background is assumed. Start with the original UCI SMS Spam Collection, see how NLTK splits text into tokens, build word-count and TF–IDF vectors, then use Naive Bayes, logistic regression and KNN. The tutorial also covers regularization, cross-validation, numerical features, LDA and an additive spline model (GAM); they can be studied separately.",
+  "subtitle": "Understand real SMS data, train and validate models, then test the final choice",
+  "task": "Given the text of an English SMS, predict ham (a normal message, label 0) or spam (an unsolicited promotional message, label 1). We learn from the original UCI SMS Spam Collection: 5,574 labelled messages, one label and one message per row.",
+  "motivation": "Start by downloading and opening the dataset. Inspect real messages, repeated records and class imbalance before deciding how to represent text. Follow every chapter in order: reserve train, validation and test sets, fit each model on training data, select its settings on validation data, compare errors and evaluate the frozen final choice once. The numerical chapters cover LDA and a binomial additive spline model (GAM).",
   "stages": [
     {
-      "title": "Understand and represent text",
-      "description": "inspect labels, tokenize a message, build a vocabulary and understand TF–IDF weights.",
+      "title": "Open the data and define the task",
+      "description": "Download the original file, read real SMS records, audit duplicates and imbalance, then reserve train / validation / test sets.",
       "chapters": [
-        "inbox",
         "data",
+        "inbox"
+      ]
+    },
+    {
+      "title": "Build inputs from training messages",
+      "description": "Inspect real SMS tokenization, count matrices and TF–IDF. Transform validation messages using the training vocabulary and IDF.",
+      "chapters": [
         "tokenize",
         "text",
         "tfidf"
@@ -17,7 +23,7 @@
     },
     {
       "title": "Learn from labelled messages",
-      "description": "connect word vectors to Naive Bayes, logistic regression and KNN.",
+      "description": "For NB, LR and KNN: learn on train, compare settings on validation and carry candidates to the shared final test.",
       "chapters": [
         "naive",
         "logistic",
@@ -25,8 +31,8 @@
       ]
     },
     {
-      "title": "Explore model selection and other features",
-      "description": "Regularization and training-only CV; numerical features with LDA and a binomial additive spline model (GAM). Compare the models in the Evaluation chapter.",
+      "title": "Complete model selection and numerical models",
+      "description": "Study regularization, training-only CV and five numerical features. Fit and validate numerical LR, LDA and GAM on the same splits.",
       "chapters": [
         "regularization",
         "validation",
@@ -44,123 +50,29 @@
     }
   ],
   "objectives": [
-    "Trace a message through NLTK tokenization, a vocabulary and a word-count matrix.",
-    "Explain TF, document frequency, smoothed IDF and normalization using a small example.",
-    "Train Naive Bayes, logistic regression and KNN with explicit sklearn tools.",
-    "Compare representations and classifiers fairly, then explain false alarms and missed spam.",
-    "Explore regularization, leakage-free CV, LDA and GAM on suitable features."
+    "Download and read the original SMS file, explain its labels, imbalance and limitations.",
+    "Remove duplicates before a stratified train / validation / test split and explain the purpose of each set.",
+    "Trace real SMS messages through NLTK tokens, word counts and training-fitted TF–IDF.",
+    "Use formulas, fitted parameters and worked calculations to explain NB, LR and KNN predictions.",
+    "Choose distance metrics and hyperparameters using validation evidence, with every fitted step inside a pipeline.",
+    "Compare all studied models, inspect errors, freeze a model and threshold, and report one final test."
   ],
   "prerequisites": "Basic Python and familiarity with classification from lectures. No previous NLP course is needed. The later chapters reconnect to regularization, cross-validation, LDA and GAM.",
-  "outcome": "An executed notebook with inspectable text features, model comparisons, representative errors and a justified final decision.",
+  "outcome": "An executed notebook covering every chapter: a dataset audit, real-message feature calculations, training and validation comparisons for all models, error analysis and a justified final test result.",
   "chapters": [
-    {
-      "id": "inbox",
-      "title": "Text Classification: Spam or Ham",
-      "question": "Turn a new message into a spam / ham prediction.",
-      "idea": "Text classification assigns a category to a piece of text.",
-      "points": [
-        "Our input is a message; its label is ham (normal, 0) or spam (1). Training examples contain both text and a known label.",
-        "Natural language processing (NLP) includes tasks that work with human language. Spam filtering and sentiment classification are two examples."
-      ],
-      "worked": [
-        {
-          "title": "One keyword is not enough",
-          "text": [
-            "Both messages contain `free`, but they need different labels. We want to learn from many words together."
-          ],
-          "columns": [
-            "Message",
-            "Label"
-          ],
-          "rows": [
-            [
-              "`Claim your free prize!`",
-              "Spam"
-            ],
-            [
-              "`Are you free after class?`",
-              "Ham"
-            ]
-          ]
-        }
-      ],
-      "starter": "messages = [\"Claim your free prize!\", \"Are you free after class?\"]\nfor message in messages:\n    print(\"Keyword prediction:\", \"spam\" if \"free\" in message.lower() else \"ham\", \"|\", message)",
-      "experiment": "Add one normal message that contains `free`. Explain why this rule cannot distinguish the messages.",
-      "equation": "",
-      "notation": [],
-      "functions": [],
-      "extension": false,
-      "links": [],
-      "conceptTitle": "Messages, labels and predictions",
-      "activityTitle": "Test a keyword rule",
-      "pythonTitle": "Python: a keyword rule and its mistakes",
-      "flow": {
-        "title": "From a message to a predicted label",
-        "layout": "horizontal",
-        "stages": [
-          {
-            "title": "1 · Text",
-            "nodes": [
-              {
-                "label": "Message",
-                "text": "",
-                "code": "Claim your free prize!"
-              }
-            ]
-          },
-          {
-            "title": "2 · Tokenize",
-            "nodes": [
-              {
-                "label": "Words",
-                "text": "",
-                "code": "[\"claim\", \"your\", \"free\", \"prize\"]"
-              }
-            ]
-          },
-          {
-            "title": "3 · Vectorize",
-            "nodes": [
-              {
-                "label": "Numbers",
-                "text": "BoW counts or TF–IDF weights",
-                "code": ""
-              }
-            ]
-          },
-          {
-            "title": "4 · Classify",
-            "nodes": [
-              {
-                "label": "Trained model",
-                "text": "NB / LR / KNN",
-                "code": ""
-              }
-            ]
-          },
-          {
-            "title": "5 · Predict",
-            "nodes": [
-              {
-                "label": "Label",
-                "text": "Spam or ham",
-                "code": ""
-              }
-            ]
-          }
-        ],
-        "caption": "Training uses messages with known labels. Prediction applies the fitted vectorizer and classifier to a new message."
-      },
-      "focus": null
-    },
     {
       "id": "data",
       "title": "SMS Data and Train / Validation / Test",
       "question": "Inspect the data and reserve messages for fair evaluation.",
-      "idea": "The UCI SMS Spam Collection contains English text messages labelled ham (normal) or spam.",
-      "points": [],
+      "idea": "First open the dataset: each row is one real SMS and its known ham/spam label. Our task is to learn from labelled training messages and predict labels for unseen messages.",
+      "points": [
+        "The raw file has 5,574 rows: 4,827 ham (86.6%) and 747 spam (13.4%). These are class counts before deduplication.",
+        "Matching text after lowercasing and collapsing whitespace removes 415 repeats, leaving 5,159 distinct messages: 4,517 ham and 642 spam. The retained message text is unchanged.",
+        "Deduplicate before splitting, so repeated messages cannot appear in both training and evaluation. Use a stratified 60% / 20% / 20% split with seed 3612.",
+        "Train: 3,095 messages (2,710 ham, 385 spam). Validation: 1,032 (903 ham, 129 spam). Test: 1,032 (904 ham, 128 spam). Fit all learned transformations on training data only."
+      ],
       "worked": [],
-      "starter": "for text, label in zip(X_train[:5], y_train[:5]):\n    print(\"spam\" if label else \"ham\", \"|\", text)\nbaseline = metrics(y_val, np.zeros(len(y_val)))\nprint(\"Always-ham accuracy:\", round(baseline[\"accuracy\"], 3))\nprint(\"Always-ham recall:\", baseline[\"recall\"])",
+      "starter": "import csv\nfrom pathlib import Path\nfrom sklearn.model_selection import train_test_split\n\n# 1. Open the downloaded file before processing anything.\npath = Path(dataset_path)\nwith path.open(encoding=\"utf-8-sig\", newline=\"\") as handle:\n    rows = list(csv.reader(handle, delimiter=\"\\t\", quoting=csv.QUOTE_NONE))\nprint(\"Raw rows:\", len(rows))\nfor label, message in rows[:5]:\n    print(label, \"|\", message)\nprint(\"Raw ham / spam:\", sum(r[0] == \"ham\" for r in rows), sum(r[0] == \"spam\" for r in rows))\n\n# 2. Deduplicate identities while preserving the original text.\nunique = {}\nfor label, message in rows:\n    identity = \" \".join(message.lower().split())\n    unique.setdefault(identity, (message, int(label == \"spam\")))\ntexts = np.array([r[0] for r in unique.values()])\nlabels = np.array([r[1] for r in unique.values()])\nprint(\"Distinct messages:\", len(texts), \"Repeats removed:\", len(rows) - len(texts))\n\n# 3. Reserve 20% test; 25% of the remaining 80% gives 20% validation.\ntrain_val, test_ids = train_test_split(np.arange(len(labels)), test_size=.2, stratify=labels, random_state=3612)\ntrain_ids, val_ids = train_test_split(train_val, test_size=.25, stratify=labels[train_val], random_state=3612)\nfor name, ids in [(\"train\", train_ids), (\"validation\", val_ids), (\"test\", test_ids)]:\n    print(name, len(ids), \"ham:\", sum(labels[ids] == 0), \"spam:\", sum(labels[ids] == 1))\n# Inspect train/validation only; reserve test text and labels for the final evaluation.\nbaseline = metrics(y_val, np.zeros(len(y_val)))\nprint(\"Always-ham accuracy:\", round(baseline[\"accuracy\"], 3))\nprint(\"Always-ham recall:\", baseline[\"recall\"])",
       "experiment": "Find one ham and one spam message in the table. Identify useful words and explain why accuracy alone may mislead.",
       "equation": "",
       "notation": [],
@@ -178,12 +90,12 @@
         "layout": "vertical",
         "stages": [
           {
-            "title": "Read the original UCI file",
+            "title": "After opening the dataset: audit the raw rows",
             "nodes": [
               {
                 "label": "{raw} SMS messages",
                 "text": "Each line: known label + message text",
-                "code": "ham<TAB>Are you free after class?"
+                "code": "ham\tGo until jurong point, crazy.. Available only in bugis n great world la e buffet... Cine there got amore wat..."
               }
             ]
           },
@@ -223,6 +135,106 @@
       "focus": null
     },
     {
+      "id": "inbox",
+      "title": "Text Classification: Spam or Ham",
+      "question": "Turn a new message into a spam / ham prediction.",
+      "idea": "Text classification assigns a category to a piece of text.",
+      "points": [
+        "Our input is a message; its label is ham (normal, 0) or spam (1). Training examples contain both text and a known label.",
+        "Natural language processing (NLP) includes tasks that work with human language. Spam filtering and sentiment classification are two examples."
+      ],
+      "worked": [
+        {
+          "title": "One keyword is not enough",
+          "text": [
+            "Both messages contain `free`, but they need different labels. We want to learn from many words together."
+          ],
+          "columns": [
+            "Message",
+            "Label"
+          ],
+          "rows": [
+            [
+              "`500 free text msgs. Just text ok to 80488 and we'll credit your account`",
+              "Spam (actual training SMS)"
+            ],
+            [
+              "`Yup i'm free...`",
+              "Ham (actual training SMS)"
+            ]
+          ]
+        }
+      ],
+      "starter": "messages = [\"500 free text msgs. Just text ok to 80488 and we'll credit your account\", \"Yup i'm free...\"]\nfor message in messages:\n    print(\"Keyword prediction:\", \"spam\" if \"free\" in message.lower() else \"ham\", \"|\", message)",
+      "experiment": "Add one normal message that contains `free`. Explain why this rule cannot distinguish the messages.",
+      "equation": "",
+      "notation": [],
+      "functions": [],
+      "extension": false,
+      "links": [],
+      "conceptTitle": "Messages, labels and predictions",
+      "activityTitle": "Test a keyword rule",
+      "pythonTitle": "Python: a keyword rule and its mistakes",
+      "flow": {
+        "title": "From a message to a predicted label",
+        "layout": "horizontal",
+        "stages": [
+          {
+            "title": "1 · Text",
+            "nodes": [
+              {
+                "label": "Message",
+                "text": "",
+                "code": "Yup i'm free..."
+              }
+            ]
+          },
+          {
+            "title": "2 · Tokenize",
+            "nodes": [
+              {
+                "label": "Words",
+                "text": "",
+                "code": "[\"yup\", \"i\", \"free\"]"
+              }
+            ]
+          },
+          {
+            "title": "3 · Vectorize",
+            "nodes": [
+              {
+                "label": "Numbers",
+                "text": "BoW counts or TF–IDF weights",
+                "code": ""
+              }
+            ]
+          },
+          {
+            "title": "4 · Classify",
+            "nodes": [
+              {
+                "label": "Trained model",
+                "text": "NB / LR / KNN",
+                "code": ""
+              }
+            ]
+          },
+          {
+            "title": "5 · Predict",
+            "nodes": [
+              {
+                "label": "Label",
+                "text": "Spam or ham",
+                "code": ""
+              }
+            ]
+          }
+        ],
+        "caption": "Now that we know the data and task, this is the processing route. Fit transformations and classifiers on train; select settings on validation; report the frozen choice on test."
+      },
+      "focus": null
+    },
+    {
       "id": "tokenize",
       "title": "Tokenization: From Text to Tokens",
       "question": "See how a string becomes a sequence of tokens.",
@@ -236,13 +248,13 @@
           "title": "What preprocessing keeps and loses",
           "text": [
             "Lowercasing merges `FREE` and `free`. Keeping only `.isalnum()` tokens discards punctuation such as `!!!`; currency, URLs and contractions can also lose useful evidence.",
-            "Stopword removal and stemming are optional. Removing `not` can change sentiment; run the optional stemmer below to see which words it changes."
+            "Compare stemming with unchanged tokens below. This baseline keeps the unchanged tokens; changing preprocessing requires a new validation comparison. Removing `not` can change meaning."
           ],
           "columns": [],
           "rows": []
         }
       ],
-      "starter": "from nltk.tokenize import TreebankWordTokenizer\nfrom nltk.stem import PorterStemmer\n\ntext = \"Congratulations! Claim your FREE prize now!\"\nraw = TreebankWordTokenizer().tokenize(text.lower())\nkept = [word for word in raw if word.isalnum()]\nprint(\"NLTK tokens:\", raw)\nprint(\"Retained tokens:\", kept)\nstemmer = PorterStemmer()\nprint(\"Optional stemming:\", [(word, stemmer.stem(word)) for word in kept])",
+      "starter": "from nltk.tokenize import TreebankWordTokenizer\nfrom nltk.stem import PorterStemmer\n\ntext = \"Win a £1000 cash prize or a prize worth £5000\"\nraw = TreebankWordTokenizer().tokenize(text.lower())\nkept = [word for word in raw if word.isalnum()]\nprint(\"NLTK tokens:\", raw)\nprint(\"Retained tokens:\", kept)\nstemmer = PorterStemmer()\nprint(\"Stemming comparison:\", [(word, stemmer.stem(word)) for word in kept])",
       "experiment": "Try “I am not winning £1000!!!”. Inspect what is retained, discarded and stemmed. Which changes might remove useful evidence?",
       "equation": "",
       "notation": [],
@@ -258,7 +270,7 @@
       ],
       "conceptTitle": "Lowercase, tokenize, filter",
       "activityTitle": "Trace your own message",
-      "pythonTitle": "Python: NLTK tokenization and optional stemming",
+      "pythonTitle": "Python: NLTK tokenization and stemming",
       "flow": {
         "title": "Follow one message through preprocessing",
         "layout": "vertical",
@@ -269,7 +281,7 @@
               {
                 "label": "Input",
                 "text": "",
-                "code": "Congratulations! Claim your FREE prize now!"
+                "code": "Win a £1000 cash prize or a prize worth £5000"
               }
             ]
           },
@@ -279,7 +291,7 @@
               {
                 "label": "Merge upper- and lowercase forms",
                 "text": "",
-                "code": "congratulations! claim your free prize now!"
+                "code": "win a £1000 cash prize or a prize worth £5000"
               }
             ]
           },
@@ -289,7 +301,7 @@
               {
                 "label": "TreebankWordTokenizer",
                 "text": "",
-                "code": "[\"congratulations\", \"!\", \"claim\", \"your\", \"free\", \"prize\", \"now\", \"!\"]"
+                "code": "[\"win\", \"a\", \"\\u00a31000\", \"cash\", \"prize\", \"or\", \"a\", \"prize\", \"worth\", \"\\u00a35000\"]"
               }
             ]
           },
@@ -299,7 +311,7 @@
               {
                 "label": "word.isalnum()",
                 "text": "",
-                "code": "[\"congratulations\", \"claim\", \"your\", \"free\", \"prize\", \"now\"]"
+                "code": "[\"win\", \"a\", \"cash\", \"prize\", \"or\", \"a\", \"prize\", \"worth\"]"
               }
             ]
           }
@@ -332,48 +344,51 @@
       ],
       "worked": [
         {
-          "title": "Two sentences, one shared vocabulary",
+          "title": "Two real SMS messages, one shared vocabulary",
           "text": [
-            "Sentence 1: `The cat sat on the mat.` Sentence 2: `The dog ate the cat.`",
-            "sklearn orders the vocabulary alphabetically: `[\"ate\", \"cat\", \"dog\", \"mat\", \"on\", \"sat\", \"the\"]`."
+            "Training SMS A: `Yup i'm free...` Training SMS B: `Now am free call me pa.`",
+            "The columns below are learned from these two training rows. The full model later learns from all 3,095 training messages."
           ],
           "columns": [
             "Message",
-            "`ate`",
-            "`cat`",
-            "`dog`",
-            "`mat`",
-            "`on`",
-            "`sat`",
-            "`the`"
+            "`am`",
+            "`call`",
+            "`free`",
+            "`i`",
+            "`me`",
+            "`now`",
+            "`pa`",
+            "`yup`"
           ],
           "rows": [
             [
-              "Sentence 1",
+              "SMS A",
+              0,
               0,
               1,
+              1,
               0,
-              1,
-              1,
-              1,
-              2
+              0,
+              0,
+              1
             ],
             [
-              "Sentence 2",
+              "SMS B",
               1,
               1,
               1,
               0,
-              0,
-              0,
-              2
+              1,
+              1,
+              1,
+              0
             ]
           ]
         },
         {
           "title": "Read the matrix",
           "text": [
-            "The `the` column is 2 in both rows: the word occurs twice. Every row uses the same seven columns, regardless of which words appear.",
+            "`free` appears once in each row. Every row uses the same columns, even when its word count is zero.",
             "`fit_transform()` learns the training vocabulary and counts words. `transform()` reuses those columns for new messages; unknown words are ignored.",
             "Read `get_feature_names_out()` alongside the matrix. Real matrices stay sparse because most entries are zero."
           ],
@@ -381,7 +396,7 @@
           "rows": []
         }
       ],
-      "starter": "from sklearn.feature_extraction.text import CountVectorizer\nfrom experiment import tokens\n\nmessages = [\"The cat sat on the mat.\", \"The dog ate the cat.\"]\nvectorizer = CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nX = vectorizer.fit_transform(messages)\nprint(\"Vocabulary:\", vectorizer.get_feature_names_out())\nprint(\"Count matrix:\\n\", X.toarray())\nprint(\"New message:\", vectorizer.transform([\"The cat ate lunch.\"]).toarray())\n\n# Does word order change a bag-of-words vector?\nfor message in [\"cat ate\", \"ate cat\", \"cat unknownword\"]:\n    print(message, \"→\", vectorizer.transform([message]).toarray())",
+      "starter": "from sklearn.feature_extraction.text import CountVectorizer\nfrom experiment import tokens\n\nmessages = [\"Yup i'm free...\", 'Now am free call me pa.']\nvectorizer = CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nX = vectorizer.fit_transform(messages)\nprint(\"Vocabulary:\", vectorizer.get_feature_names_out())\nprint(\"Count matrix:\\n\", X.toarray())\nprint(\"New message:\", vectorizer.transform([\"Once free call me sir.\"]).toarray())\n\n# Does word order change a bag-of-words vector?\nfor message in [\"free call\", \"call free\", \"free unknownword\"]:\n    print(message, \"→\", vectorizer.transform([message]).toarray())\n\n# Apply the same procedure to the full dataset, with no validation fitting.\nfull_vectorizer = CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)\ntrain_matrix = full_vectorizer.fit_transform(X_train)\nval_matrix = full_vectorizer.transform(X_val)\nprint(\"Full training / validation shapes:\", train_matrix.shape, val_matrix.shape)\nprint(\"Real validation SMS:\", X_val[273])\nprint(\"Known words:\", [(full_vectorizer.get_feature_names_out()[j], round(value, 3)) for j, value in zip(val_matrix[273].indices, val_matrix[273].data)])",
       "experiment": "Repeat a word, reorder a sentence, then add an unseen word. Predict which columns change before running the code.",
       "equation": "",
       "notation": [],
@@ -400,15 +415,7 @@
       "activityTitle": "Build and inspect a count matrix",
       "pythonTitle": "Python: CountVectorizer and unseen words",
       "flow": null,
-      "focus": {
-        "title": "CountVectorizer: learn columns and count words",
-        "ranges": [
-          [
-            0,
-            10
-          ]
-        ]
-      }
+      "focus": null
     },
     {
       "id": "tfidf",
@@ -422,31 +429,33 @@
       ],
       "worked": [
         {
-          "title": "Count how many documents contain each word",
+          "title": "Document frequency in three real training SMS",
           "text": [
-            "Training documents: `claim your prize`, `check your timetable`, `send your notes`.",
-            "`your` appears in all three documents; `prize` appears in one. In document 1, both have TF = 1."
+            "SMS 1: `Yup i'm free...`",
+            "SMS 2: `Now am free call me pa.`",
+            "SMS 3: `500 free text msgs. Just text ok to 80488 and we'll credit your account`",
+            "Read the column for `free`: it occurs in all three SMS. `account` occurs only in SMS 3. TF is a token count within one message; DF is a count of training messages."
           ],
           "columns": [
             "Word",
-            "TF in document 1",
+            "TF in SMS 3",
             "DF",
             "Smoothed IDF",
-            "TF × IDF"
+            "TF × IDF in SMS 3"
           ],
           "rows": [
             [
-              "`your`",
+              "`free`",
               1,
               3,
-              "log(4 / 4) + 1 = 1.000",
+              "1.000",
               "1.000"
             ],
             [
-              "`prize`",
+              "`account`",
               1,
               1,
-              "log(4 / 2) + 1 = 1.693",
+              "1.693",
               "1.693"
             ]
           ]
@@ -455,15 +464,15 @@
           "title": "Smoothed IDF and row normalization",
           "text": [
             "sklearn uses natural log: IDF = log((1 + n) / (1 + DF)) + 1. Smoothing avoids a zero denominator; the final +1 gives words present in every document IDF = 1.",
-            "The flow below follows document 1. The default `norm=\"l2\"` divides its weights by the row length. Use `norm=None` to inspect the weights before this step.",
+            "The flow follows SMS 1. The default norm=\"l2\" divides its weights by the row length. Use norm=None to inspect weights before normalization.",
             "Repeating a whole message changes the counts but leaves its normalized vector unchanged. An all-unknown message remains a zero vector."
           ],
           "columns": [],
           "rows": []
         }
       ],
-      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom experiment import tokens\n\ntoy = [\"claim your prize\", \"check your timetable\", \"send your notes\"]\nraw = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, norm=None)\nweighted = raw.fit_transform(toy).toarray()\nprint(\"Vocabulary:\", raw.get_feature_names_out())\nprint(\"IDF:\", np.round(raw.idf_, 3))\nprint(\"TF × IDF:\\n\", np.round(weighted, 3))\nnorms = np.linalg.norm(weighted, axis=1, keepdims=True)\nnormalized = np.divide(weighted, norms, out=np.zeros_like(weighted), where=norms != 0)\ndefault = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nprint(\"Normalized TF–IDF:\\n\", np.round(default.fit_transform(toy).toarray(), 3))\nprint(\"Manual normalization matches sklearn:\", np.allclose(normalized, default.transform(toy).toarray()))\n\n# Make prize less rare: predict the IDF change before running.\nfor documents in [toy, toy + [\"your prize\"]]:\n    vectorizer = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\n    vectorizer.fit(documents)\n    print(\"Changed IDF:\", dict(zip(vectorizer.get_feature_names_out(), np.round(vectorizer.idf_, 3))))\nprint(\"Repeated document:\")\nprint(np.round(vectorizer.transform([\"claim your prize\", \"claim your prize claim your prize\"]).toarray(), 3))",
-      "experiment": "Add `prize` to more training documents. Predict how its IDF changes. Then repeat an entire message and compare its normalized vectors.",
+      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom experiment import tokens\n\ndocuments = [\"Yup i'm free...\", 'Now am free call me pa.', \"500 free text msgs. Just text ok to 80488 and we'll credit your account\"]\nraw = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, norm=None)\nweighted = raw.fit_transform(documents).toarray()\nprint(\"Vocabulary:\", raw.get_feature_names_out())\nprint(\"IDF:\", np.round(raw.idf_, 3))\nprint(\"TF × IDF:\\n\", np.round(weighted, 3))\nnorms = np.linalg.norm(weighted, axis=1, keepdims=True)\nnormalized = np.divide(weighted, norms, out=np.zeros_like(weighted), where=norms != 0)\ndefault = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nprint(\"Normalized TF–IDF:\\n\", np.round(default.fit_transform(documents).toarray(), 3))\nprint(\"Manual normalization matches sklearn:\", np.allclose(normalized, default.transform(documents).toarray()))\n\n# Make account less rare: predict the IDF change before running.\nfor documents in [documents, documents + [\"free text account\"]]:\n    vectorizer = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\n    vectorizer.fit(documents)\n    print(\"Changed IDF:\", dict(zip(vectorizer.get_feature_names_out(), np.round(vectorizer.idf_, 3))))\nprint(\"Repeated document:\")\nprint(np.round(vectorizer.transform([\"claim your prize\", \"claim your prize claim your prize\"]).toarray(), 3))\n\n# Apply the same procedure to the full dataset, with no validation fitting.\nfull_vectorizer = TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)\ntrain_matrix = full_vectorizer.fit_transform(X_train)\nval_matrix = full_vectorizer.transform(X_val)\nprint(\"Full training / validation shapes:\", train_matrix.shape, val_matrix.shape)\nprint(\"Real validation SMS:\", X_val[273])\nprint(\"Known words:\", [(full_vectorizer.get_feature_names_out()[j], round(value, 3)) for j, value in zip(val_matrix[273].indices, val_matrix[273].data)])",
+      "experiment": "Add `account` to another training SMS. Predict its IDF change, check the weights and normalization, then reuse the full training-fitted vocabulary on validation.",
       "equation": "\\mathrm{idf}_j=\\log\\frac{1+n}{1+\\mathrm{df}_j}+1,\\quad v_j=\\mathrm{TF}_j\\,\\mathrm{idf}_j,\\quad x_j=\\frac{v_j}{\\sqrt{\\sum_k v_k^2}}",
       "notation": [
         [
@@ -498,51 +507,43 @@
       "activityTitle": "Change document frequency and inspect the weights",
       "pythonTitle": "Python: IDF, weights and normalization",
       "flow": {
-        "title": "Document 1: from word counts to normalized weights",
-        "layout": "horizontal",
+        "title": "Counts → TF–IDF weights → normalized row",
+        "layout": "vertical",
         "stages": [
           {
-            "title": "1 · TF × IDF",
+            "title": "1 · Count tokens in real SMS 1",
             "nodes": [
               {
-                "label": "Weighted features",
-                "text": "",
-                "code": "claim: 1.693\nprize: 1.693\nyour: 1.000"
+                "label": "Original message and nonzero columns",
+                "code": "Yup i'm free...\n{'free': 1, 'i': 1, 'yup': 1}",
+                "text": "Zero-valued columns are omitted from this display, but stay in the matrix."
               }
             ]
           },
           {
-            "title": "2 · Row length",
+            "title": "2 · Multiply each count by its training IDF",
             "nodes": [
               {
-                "label": "L2 norm ≈ 2.594",
-                "text": "√(1.693² + 1.693² + 1²)",
-                "code": ""
+                "label": "Unnormalized weights",
+                "code": "{'free': np.float64(1.0), 'i': np.float64(1.693), 'yup': np.float64(1.693)}",
+                "text": "Use IDF learned from the same three training SMS."
               }
             ]
           },
           {
-            "title": "3 · Divide by norm",
+            "title": "3 · Divide by the L2 row norm",
             "nodes": [
               {
-                "label": "Final features",
-                "text": "",
-                "code": "claim: 0.652\nprize: 0.652\nyour: 0.385"
+                "label": "Norm = sqrt(sum(weight²)) = 2.595",
+                "code": "{'free': np.float64(0.385), 'i': np.float64(0.652), 'yup': np.float64(0.652)}",
+                "text": "The squared normalized entries sum to 1. No validation data are fitted."
               }
             ]
           }
         ],
-        "caption": ""
+        "caption": "This inspectable three-row example uses real training messages. The full classifier fits vocabulary and IDF on all training SMS."
       },
-      "focus": {
-        "title": "TfidfVectorizer: inspect IDF and unnormalized weights",
-        "ranges": [
-          [
-            0,
-            10
-          ]
-        ]
-      }
+      "focus": null
     },
     {
       "id": "naive",
@@ -556,81 +557,107 @@
       ],
       "worked": [
         {
-          "title": "Count a tiny labelled training set",
-          "text": [],
-          "columns": [
-            "Label",
-            "Message"
+          "title": "Identify the training quantities and the new message",
+          "text": [
+            "We fit on 3,095 real training messages: n_ham=2,710 and n_spam=385. Therefore π_ham=2710/3095=0.875606; π_spam=385/3095=0.124394. Unlike a balanced teaching corpus, these priors reflect the actual SMS imbalance.",
+            "The learned vocabulary has V=2,459 columns. Total retained token counts are T_ham=33,660, T_spam=7,499. Smoothing adds one to each word count and V to each class total.",
+            "New message (validation, true label ham): `Finished class where are you.`. Its retained tokens are `['finished', 'class', 'where', 'are', 'you']`. Each appears once, so each listed x_j=1; all other vocabulary columns have x_j=0. The true label is used to check the prediction, never to compute it."
           ],
-          "rows": [
-            [
-              "Ham",
-              "`meet after class`"
-            ],
-            [
-              "Ham",
-              "`meet for lunch`"
-            ],
-            [
-              "Spam",
-              "`claim your prize`"
-            ],
-            [
-              "Spam",
-              "`win your prize`"
-            ]
-          ]
+          "columns": [],
+          "rows": []
         },
         {
-          "title": "Word likelihoods for `claim prize`",
+          "title": "Substitute training counts into the word-likelihood formula",
           "text": [
-            "Vocabulary size = 9; each class has 6 observed tokens. With `alpha=1`, each denominator is 6 + 9 = 15. Each class has 2 of the 4 training messages, so each prior is 2/4 = 1/2.",
-            "These are word likelihoods, not the probability that the message is spam. Combine them with each class prior, then normalize the two scores."
+            "Every numerator below is N_cj + 1. Each denominator is T_c + V. Counts come only from training SMS; x_j comes only from the message we want to predict."
           ],
           "columns": [
             "Word",
-            "Ham count",
-            "Spam count",
-            "P(word | ham)",
-            "P(word | spam)"
+            "x_j",
+            "N_ham,j",
+            "N_spam,j",
+            "θ_ham,j",
+            "θ_spam,j"
           ],
           "rows": [
             [
-              "`claim`",
-              0,
+              "`finished`",
               1,
-              "1/15",
-              "2/15"
+              10,
+              0,
+              "(10+1)/(33660+2459) = 0.000305",
+              "(0+1)/(7499+2459) = 0.000100"
             ],
             [
-              "`prize`",
-              0,
+              "`class`",
+              1,
+              22,
               2,
-              "1/15",
-              "3/15"
+              "(22+1)/(33660+2459) = 0.000637",
+              "(2+1)/(7499+2459) = 0.000301"
+            ],
+            [
+              "`where`",
+              1,
+              65,
+              2,
+              "(65+1)/(33660+2459) = 0.001827",
+              "(2+1)/(7499+2459) = 0.000301"
+            ],
+            [
+              "`are`",
+              1,
+              218,
+              33,
+              "(218+1)/(33660+2459) = 0.006063",
+              "(33+1)/(7499+2459) = 0.003414"
+            ],
+            [
+              "`you`",
+              1,
+              1070,
+              152,
+              "(1070+1)/(33660+2459) = 0.029652",
+              "(152+1)/(7499+2459) = 0.015365"
             ]
           ]
         }
       ],
-      "starter": "from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\ntoy = [\"meet after class\", \"meet for lunch\", \"claim your prize\", \"win your prize\"]\nvectorizer = CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nX_toy = vectorizer.fit_transform(toy)\nclassifier = MultinomialNB(alpha=1)\nclassifier.fit(X_toy, [0, 0, 1, 1])\nprint(\"Vocabulary:\", vectorizer.get_feature_names_out())\nprint(\"Tokens per class:\", classifier.feature_count_.sum(axis=1))\nprint(\"P(spam | claim prize):\", classifier.predict_proba(vectorizer.transform([\"claim prize\"]))[0, 1])\n\nfor Vectorizer in [CountVectorizer, TfidfVectorizer]:\n    model = Pipeline([\n        (\"vectorizer\", Vectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", MultinomialNB(alpha=1))\n    ])\n    model.fit(X_train, y_train)\n    result = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    print(\"NB representation comparison:\", Vectorizer.__name__, \"AP:\", round(result[\"average_precision\"], 3), \"recall:\", round(result[\"recall\"], 3))",
+      "starter": "from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\nfrom sklearn.naive_bayes import MultinomialNB\n\ncandidates = []\n# 1. TRAIN and VALIDATE: each setting is fitted on training SMS only.\nfor representation, Vectorizer in [(\"count\", CountVectorizer), (\"tfidf\", TfidfVectorizer)]:\n    for alpha in [.1, 1, 5]:\n        model = Pipeline([\n            (\"vectorizer\", Vectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n            (\"classifier\", MultinomialNB(alpha=alpha))\n        ])\n        model.fit(X_train, y_train)\n        train = metrics(y_train, model.predict_proba(X_train)[:, 1])\n        val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n        setting = {\"representation\": representation, \"alpha\": alpha}\n        candidates.append({\"model\": model, \"setting\": setting, \"validation\": val})\n        print(\"NB representation comparison:\", setting, \"train AP:\", round(train[\"average_precision\"], 3), \"validation AP:\", round(val[\"average_precision\"], 3))\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.\n\n# Explain one unchanged validation SMS using the selected pipeline.\ntext = X_val[273]\nprint(\"Real validation SMS:\", text)\nprint(\"P(spam | SMS):\", model.predict_proba([text])[0, 1])",
       "experiment": "Keep NB fixed and compare counts with TF–IDF. TF–IDF weights are not literal counts, so compare empirically using validation average precision (AP): a precision–recall ranking summary where higher is better. Inspect a normal message containing `free`: which other words and prior evidence affect its prediction?",
-      "equation": "P(w_j\\mid c)=\\frac{N_{cj}+\\alpha}{\\sum_k N_{ck}+\\alpha V},\\qquad P(c\\mid\\mathbf x)\\propto P(c)\\prod_j P(w_j\\mid c)^{x_j}",
+      "equation": "\\begin{aligned}\\pi_c&=\\frac{n_c}{n},\\quad \\theta_{cj}=\\frac{N_{cj}+\\alpha}{T_c+\\alpha V}\\\\S_c(\\mathbf x)&=\\pi_c\\prod_{j=1}^{V}\\theta_{cj}^{x_j}\\\\P(c\\mid\\mathbf x)&=\\frac{S_c(\\mathbf x)}{S_0(\\mathbf x)+S_1(\\mathbf x)}\\end{aligned}",
       "notation": [
         [
-          "N_{cj}",
-          "count of word j among training tokens in class c"
+          "c,\\ n_c,\\ n",
+          "class (0=ham, 1=spam), training messages in that class, total training messages"
+        ],
+        [
+          "\\pi_c",
+          "prior: class proportion among training messages, not tokens"
+        ],
+        [
+          "N_{cj},\\ T_c",
+          "training count of word j in class c; total retained vocabulary-token count in class c"
         ],
         [
           "V",
-          "training vocabulary size"
+          "number of vocabulary columns learned on training data"
         ],
         [
           "\\alpha",
-          "additive smoothing strength; 1 in the worked example"
+          "smoothing strength; 1 in this worked calculation"
         ],
         [
-          "x_j",
-          "word count in the new message"
+          "\\theta_{cj}",
+          "likelihood P(word j | class c): token frequency within a class, not P(class | word)"
+        ],
+        [
+          "\\mathbf x,\\ x_j",
+          "new message count vector; x_j is the number of occurrences of word j"
+        ],
+        [
+          "S_c",
+          "unnormalized class score; divide by the sum of both scores for a posterior"
         ]
       ],
       "functions": [
@@ -652,60 +679,85 @@
         "layout": "vertical",
         "stages": [
           {
-            "title": "1 · Multiply prior × word likelihoods for each class",
+            "title": "1 · Substitute prior and all present-word likelihoods into S_c",
             "nodes": [
               {
-                "label": "Ham score",
-                "code": "1/2 × 1/15 × 1/15 = 1/450",
-                "text": "P(ham) × P(claim | ham) × P(prize | ham)"
+                "label": "Ham score S_0",
+                "code": "0.875606 × 0.000305 × 0.000637 × 0.001827 × 0.006063 × 0.029652\n≈ 5.578637e-14",
+                "text": "Use full-precision likelihoods when computing; the displayed decimals are rounded."
               },
               {
-                "label": "Spam score",
-                "code": "1/2 × 2/15 × 3/15 = 6/450",
-                "text": "P(spam) × P(claim | spam) × P(prize | spam)"
+                "label": "Spam score S_1",
+                "code": "0.124394 × 0.000100 × 0.000301 × 0.000301 × 0.003414 × 0.015365\n≈ 5.947745e-17",
+                "text": "Use full-precision likelihoods when computing; the displayed decimals are rounded."
               }
             ]
           },
           {
-            "title": "2 · Divide each score by their sum: 1/450 + 6/450 = 7/450",
+            "title": "2 · Normalize: P(c | message) = S_c / (S_ham + S_spam)",
             "nodes": [
               {
-                "label": "P(ham | claim prize)",
-                "code": "(1/450) / (7/450)\n= 1/7 ≈ 14.3%",
-                "text": ""
+                "label": "P(ham | Finished class where are you.)",
+                "code": "5.578637e-14 / (5.578637e-14 + 5.947745e-17)\n≈ 99.89%",
+                "text": "The two probabilities sum to 100%."
               },
               {
-                "label": "P(spam | claim prize)",
-                "code": "(6/450) / (7/450)\n= 6/7 ≈ 85.7%",
-                "text": ""
+                "label": "P(spam | Finished class where are you.)",
+                "code": "5.947745e-17 / (5.578637e-14 + 5.947745e-17)\n≈ 0.11%",
+                "text": "The two probabilities sum to 100%."
               }
             ]
           },
           {
-            "title": "3 · Choose the class with the larger probability",
+            "title": "3 · Apply the decision threshold",
             "nodes": [
               {
-                "label": "Prediction: Spam",
-                "code": "85.7% > 14.3%",
-                "text": "Both class probabilities sum to 100%."
+                "label": "Prediction: Ham",
+                "code": "P(spam | message) = 0.11% < 50%",
+                "text": "This agrees with the known validation label. One correct example is not a validation performance estimate."
               }
             ]
           }
         ],
-        "caption": "Dividing by the sum turns the two class scores into probabilities. Use the larger probability for the default prediction."
+        "caption": "Training estimates π and θ. Prediction supplies x. Normalization converts scores into model probabilities; the log-space calculation below gives the same result without multiplying tiny numbers."
       },
-      "focus": {
-        "title": "MultinomialNB: learn class counts and predict",
-        "ranges": [
-          [
-            0,
-            2
-          ],
-          [
-            3,
-            14
-          ]
-        ]
+      "focus": null,
+      "workflow": {
+        "title": "NB: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Learn class priors and smoothed word likelihoods. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "counts / TF–IDF and α ∈ {0.1, 1, 5}. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
       }
     },
     {
@@ -719,7 +771,7 @@
         "Hold the representation fixed when comparing LR with NB. A larger word weight alone does not guarantee a larger contribution, especially with TF–IDF."
       ],
       "worked": [],
-      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\nmodel = Pipeline([\n    (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n    (\"classifier\", LogisticRegression(C=1, solver=\"liblinear\", max_iter=1000, random_state=3612))\n])\nmodel.fit(X_train, y_train)\nprint(\"LR validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])\nnames = model.named_steps[\"vectorizer\"].get_feature_names_out()\nweights = model.named_steps[\"classifier\"].coef_[0]\nmessage = \"Congratulations! Claim your free prize now!\"\nvalues = model.named_steps[\"vectorizer\"].transform([message]).toarray()[0]\nfor j in np.flatnonzero(values):\n    print(names[j], \"feature:\", values[j], \"weight:\", round(weights[j], 3), \"contribution:\", round(values[j] * weights[j], 3))\n\nfor text in [\"Claim your free prize now\", \"Are you free after class\"]:\n    print(\"LR prediction:\", text, \"→\", round(model.predict_proba([text])[0, 1], 3))",
+      "starter": "from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\nfrom sklearn.linear_model import LogisticRegression\n\ncandidates = []\n# 1. TRAIN and VALIDATE: fixed TF–IDF; compare C on validation.\nfor C in [.01, .1, 1, 10]:\n    model = Pipeline([\n        (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", LogisticRegression(C=C, solver=\"liblinear\", max_iter=1000, random_state=3612))\n    ])\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict_proba(X_train)[:, 1])\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    candidates.append({\"model\": model, \"setting\": {\"C\": C}, \"validation\": val})\n    print(\"C:\", C, \"train AP:\", round(train[\"average_precision\"], 3), \"validation AP:\", round(val[\"average_precision\"], 3))\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.\n\nmessage = X_val[482]\nnames = model.named_steps[\"vectorizer\"].get_feature_names_out()\nweights = model.named_steps[\"classifier\"].coef_[0]\nvalues = model.named_steps[\"vectorizer\"].transform([message]).toarray()[0]\nprint(\"LR prediction:\", message, \"→\", model.predict_proba([message])[0, 1])\nfor j in np.flatnonzero(values):\n    print(names[j], \"value:\", round(values[j], 3), \"weight:\", round(weights[j], 3), \"contribution:\", round(values[j] * weights[j], 3))",
       "experiment": "Replace one word in a message and inspect the change in its contribution and prediction. Keep the representation fixed when comparing with NB.",
       "equation": "z=b+\\sum_j w_jx_j,\\qquad p=\\frac{1}{1+e^{-z}}",
       "notation": [
@@ -746,7 +798,44 @@
       "activityTitle": "Change a word and inspect its contribution",
       "pythonTitle": "Python: word values, weights and contributions",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "text LR: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Learn a weight per vocabulary column and an intercept. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "C ∈ {0.01, 0.1, 1, 10}, TF–IDF fixed. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "neighbors",
@@ -760,29 +849,104 @@
       ],
       "worked": [
         {
-          "title": "Choosing the number of neighbours",
+          "title": "Which distance should we use?",
           "text": [
-            "Small `k` is sensitive to individual examples; larger `k` includes less relevant messages and may favour the majority class. Keep TF–IDF fixed when changing `k`."
+            "Choose a metric that matches the representation, then compare plausible choices on validation. Scaling and TF–IDF fitting still belong inside the training pipeline."
+          ],
+          "columns": [
+            "Distance",
+            "Use when",
+            "Care needed"
+          ],
+          "rows": [
+            [
+              "Cosine",
+              "Sparse word counts / TF–IDF: relative word patterns matter more than SMS length. This is our text KNN metric.",
+              "Undefined direction for zero vectors; ignores total magnitude; word similarity is not semantic similarity."
+            ],
+            [
+              "Euclidean (L2)",
+              "Continuous numerical features where a straight-line difference has meaning; standardize our five log-count features first.",
+              "Large-scale columns dominate without training-fitted scaling. For unit-L2 text vectors, d₂² = 2 d_cos, so rankings agree."
+            ],
+            [
+              "Manhattan (L1)",
+              "Numerical features when absolute per-coordinate differences should add; less amplification of one large coordinate gap than L2.",
+              "Scale columns on train; suitability and k still require validation."
+            ]
+          ]
+        },
+        {
+          "title": "Calculate three distances for the same vectors",
+          "text": [
+            "Use the two columns `[prize, call]`. A real training spam SMS has `[2,0]`: `Win a £1000 cash prize or a prize worth £5000`. A real validation spam SMS has `[1,0]` in these columns. We use raw counts for L1/L2 and the cosine formula for directions.",
+            "For a second direction `[0,1]` (a real ham SMS asking for a call), calculate again. The same two columns must be used for every message.",
+            "The vector `[1,1]` also occurs in a real training SMS: `URGENT! Your Mobile number has been awarded with a £2000 prize GUARANTEED. Call 09058094455 from land line. Claim 3030. Valid 12hrs only`. Its two selected word counts are one prize and one call."
+          ],
+          "columns": [
+            "Query x",
+            "Training z",
+            "Euclidean",
+            "Manhattan",
+            "Cosine"
+          ],
+          "rows": [
+            [
+              "[1,0]",
+              "[2,0]",
+              "sqrt((1−2)² + (0−0)²) = 1",
+              "|1−2| + |0−0| = 1",
+              "1 − 2/(1 × 2) = 0"
+            ],
+            [
+              "[1,0]",
+              "[0,1]",
+              "sqrt(1² + (−1)²) = √2 ≈ 1.414",
+              "|1| + |−1| = 2",
+              "1 − 0/(1 × 1) = 1"
+            ],
+            [
+              "[1,1]",
+              "[2,0]",
+              "√2 ≈ 1.414",
+              "2",
+              "1 − 2/(√2 × 2) ≈ 0.293"
+            ]
+          ]
+        },
+        {
+          "title": "From distances to the selected neighbours",
+          "text": [
+            "Compute distances to every training vector, sort ascending, select exactly the first k, then count only their training labels. The diagram below circles the selected points and draws connections to the query. Overlapping directions can contain several messages; the ranking lists them separately.",
+            "Small k is sensitive to individual examples. Large k includes less relevant messages and can favor ham. Select k using validation AP and errors. The vote fraction is a local label proportion, not a calibrated certainty."
           ],
           "columns": [],
           "rows": []
         }
       ],
-      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\nmodel = Pipeline([\n    (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n    (\"classifier\", KNeighborsClassifier(n_neighbors=5, metric=\"cosine\", algorithm=\"brute\"))\n])\nmodel.fit(X_train, y_train)\ntext = \"claim your free prize now\"\nvector = model.named_steps[\"vectorizer\"].transform([text])\ndistances, indices = model.named_steps[\"classifier\"].kneighbors(vector)\nfor distance, index in zip(distances[0], indices[0]):\n    print(round(distance, 3), \"spam\" if y_train[index] else \"ham\", \"|\", X_train[index])\nprint(\"Spam vote:\", model.predict_proba([text])[0, 1])",
+      "starter": "from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\nfrom sklearn.neighbors import KNeighborsClassifier\n\ncandidates = []\n# 1. TRAIN and VALIDATE: compare k, holding TF–IDF and cosine distance fixed.\nfor k in [3, 5, 15]:\n    model = Pipeline([\n        (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", KNeighborsClassifier(n_neighbors=k, metric=\"cosine\", algorithm=\"brute\"))\n    ])\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict_proba(X_train)[:, 1])\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    candidates.append({\"model\": model, \"setting\": {\"k\": k}, \"validation\": val})\n    print(\"k:\", k, \"train AP:\", round(train[\"average_precision\"], 3), \"validation AP:\", round(val[\"average_precision\"], 3))\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.\n\ntext = X_val[482]\nvector = model.named_steps[\"vectorizer\"].transform([text])\ndistances, indices = model.named_steps[\"classifier\"].kneighbors(vector)\nprint(\"Real validation SMS:\", text)\nfor distance, index in zip(distances[0], indices[0]):\n    print(round(distance, 3), \"spam\" if y_train[index] else \"ham\", \"|\", X_train[index])\nprint(\"Spam vote:\", model.predict_proba([text])[0, 1])",
       "experiment": "Compare k = 3 with k = 15. Read the additional neighbours and explain the change in the vote.",
-      "equation": "\\hat p(\\mathbf x)=\\frac{1}{k}\\sum_{i\\in N_k(\\mathbf x)}y_i",
+      "equation": "\\begin{aligned}d_2(\\mathbf x,\\mathbf z)&=\\sqrt{\\sum_j(x_j-z_j)^2}\\\\d_1(\\mathbf x,\\mathbf z)&=\\sum_j|x_j-z_j|\\\\d_{\\cos}(\\mathbf x,\\mathbf z)&=1-\\frac{\\mathbf x^\\top\\mathbf z}{\\|\\mathbf x\\|_2\\|\\mathbf z\\|_2}\\\\\\hat p(\\mathbf x)&=\\frac{1}{k}\\sum_{i\\in N_k(\\mathbf x)}y_i\\end{aligned}",
       "notation": [
         [
+          "\\mathbf x,\\mathbf z",
+          "query and training vectors in the same feature columns"
+        ],
+        [
+          "d_2,\\ d_1,\\ d_{\\cos}",
+          "Euclidean, Manhattan and cosine distances; smaller is nearer"
+        ],
+        [
           "k",
-          "number of neighbours"
+          "number of nearest training messages; selected on validation"
         ],
         [
           "N_k(\\mathbf x)",
-          "nearest training messages"
+          "indices of the k smallest training distances"
         ],
         [
           "y_i",
-          "1 for spam, 0 for ham"
+          "known training label (1=spam, 0=ham); not the query label"
         ]
       ],
       "functions": [
@@ -795,7 +959,44 @@
       "activityTitle": "Read the messages that voted",
       "pythonTitle": "Python: cosine neighbours and the spam vote",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "text KNN: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Fit vocabulary/idf and store labelled training vectors. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "k ∈ {3, 5, 15}, cosine TF–IDF fixed. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "regularization",
@@ -803,7 +1004,7 @@
       "question": "Should one rare word receive a huge weight?",
       "idea": "With thousands of word features, rare training coincidences can receive large weights. Return to the LR model and changes only its penalty strength.",
       "points": [
-        "Thousands of word columns can capture accidental associations. Compare training and validation performance while keeping the representation fixed.",
+        "Keep the same TF–IDF representation as the text LR chapter. Compare training and validation performance across C on the same SMS splits.",
         "The L2 penalty shrinks weights towards 0. In sklearn, smaller `C` means a stronger penalty.",
         "Too strong: the model underfits. Too weak: it memorizes training noise. Watch the gap between training and validation."
       ],
@@ -818,7 +1019,7 @@
       "functions": [
         "build_model"
       ],
-      "starter": "from sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\nfor C in [.001, .01, .1, 1, 10]:\n    model = Pipeline([\n        (\"vectorizer\", CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", LogisticRegression(C=C, solver=\"liblinear\", max_iter=1000, random_state=3612))\n    ])\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict_proba(X_train)[:, 1])[\"average_precision\"]\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"]\n    norm = np.linalg.norm(model.named_steps[\"classifier\"].coef_)\n    print(f\"C={C:g}, weight norm={norm:.3f}, train AP={train:.3f}, validation AP={val:.3f}\")",
+      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\nfor C in [.001, .01, .1, 1, 10]:\n    model = Pipeline([\n        (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", LogisticRegression(C=C, solver=\"liblinear\", max_iter=1000, random_state=3612))\n    ])\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict_proba(X_train)[:, 1])[\"average_precision\"]\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"]\n    norm = np.linalg.norm(model.named_steps[\"classifier\"].coef_)\n    print(f\"C={C:g}, weight norm={norm:.3f}, train AP={train:.3f}, validation AP={val:.3f}\")",
       "extension": true,
       "links": [],
       "worked": [
@@ -835,7 +1036,44 @@
       "activityTitle": "Compare weights and performance across C",
       "pythonTitle": "Python: a regularization sweep",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "regularized LR: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Fit each pipeline and inspect its train/validation gap. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "C ∈ {0.001, 0.01, 0.1, 1, 10}. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "validation",
@@ -867,7 +1105,7 @@
         "cross_validate",
         "build_model"
       ],
-      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import GridSearchCV, StratifiedKFold\nfrom experiment import tokens\n\nmodel = Pipeline([\n    (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n    (\"classifier\", LogisticRegression(solver=\"liblinear\", max_iter=1000, random_state=3612))\n])\nfolds = StratifiedKFold(n_splits=5, shuffle=True, random_state=3612)\nsearch = GridSearchCV(model, {\"classifier__C\": [.01, .1, 1, 10]}, cv=folds, scoring=\"average_precision\")\nsearch.fit(X_train, y_train)\nprint(\"Selected C:\", search.best_params_[\"classifier__C\"])\nfor params, mean, std in zip(search.cv_results_[\"params\"], search.cv_results_[\"mean_test_score\"], search.cv_results_[\"std_test_score\"]):\n    print(params, \"mean AP:\", round(mean, 3), \"SD:\", round(std, 3))",
+      "starter": "from sklearn.feature_extraction.text import TfidfVectorizer\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import GridSearchCV, StratifiedKFold\nfrom experiment import tokens\n\nmodel = Pipeline([\n    (\"vectorizer\", TfidfVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n    (\"classifier\", LogisticRegression(solver=\"liblinear\", max_iter=1000, random_state=3612))\n])\nfolds = StratifiedKFold(n_splits=5, shuffle=True, random_state=3612)\nsearch = GridSearchCV(model, {\"classifier__C\": [.01, .1, 1, 10]}, cv=folds, scoring=\"average_precision\")\nsearch.fit(X_train, y_train)\nprint(\"Selected C:\", search.best_params_[\"classifier__C\"])\nfor params, mean, std in zip(search.cv_results_[\"params\"], search.cv_results_[\"mean_test_score\"], search.cv_results_[\"std_test_score\"]):\n    print(params, \"mean AP:\", round(mean, 3), \"SD:\", round(std, 3))\nmodel = search.best_estimator_\nprint(\"Full training AP:\", metrics(y_train, model.predict_proba(X_train)[:, 1])[\"average_precision\"])\nprint(\"Independent validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])\n# Carry this CV-selected candidate to the shared final test after validation comparison.",
       "extension": true,
       "links": [],
       "worked": [],
@@ -875,7 +1113,44 @@
       "activityTitle": "Inspect training folds and compare C",
       "pythonTitle": "Python: Pipeline and GridSearchCV",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "CV-selected LR: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Refit vocabulary, idf and coefficients inside each fold. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "five training folds × four C values. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "features",
@@ -908,15 +1183,110 @@
         "numerical_features",
         "build_model"
       ],
-      "starter": "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom experiment import numerical_features\n\ntexts = [\"Are you free at 8?\", \"WIN £1000! Visit https://example.org now!!!\"]\nprint(\"Characters, words, links, digits, exclamations:\")\nprint(numerical_features(texts))\nmodel = Pipeline([\n    (\"features\", FunctionTransformer(numerical_features)),\n    (\"log\", FunctionTransformer(np.log1p)),\n    (\"scale\", StandardScaler()),\n    (\"classifier\", LogisticRegression(solver=\"liblinear\", max_iter=1000, random_state=3612))\n])\nmodel.fit(X_train, y_train)\nprint(\"Numerical baseline AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "starter": "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom experiment import numerical_features\n\ntexts = [X_train[47], X_train[1544]]\nprint(\"Characters, words, links, digits, exclamations:\")\nprint(numerical_features(texts))\ncandidates = []\nfor C in [.1, 1, 10]:\n    model = Pipeline([\n        (\"features\", FunctionTransformer(numerical_features)),\n        (\"log\", FunctionTransformer(np.log1p)),\n        (\"scale\", StandardScaler()),\n        (\"classifier\", LogisticRegression(C=C, solver=\"liblinear\", max_iter=1000, random_state=3612))\n    ])\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict_proba(X_train)[:, 1])\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    candidates.append({\"model\": model, \"setting\": {\"C\": C}, \"validation\": val})\n    print(\"Numerical baseline AP:\", C, \"train:\", round(train[\"average_precision\"], 3), \"validation:\", round(val[\"average_precision\"], 3))\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.",
       "extension": true,
       "links": [],
-      "worked": [],
+      "worked": [
+        {
+          "title": "Scale one real validation SMS using training statistics",
+          "text": [
+            "Validation SMS (true label spam): `You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm`. Measure the five raw counts first. The true label does not enter this transformation.",
+            "Take log(1+count), then subtract each training mean and divide by its training standard deviation. The mean and SD below are learned from all 3,095 training messages, not from this validation row."
+          ],
+          "columns": [
+            "Feature",
+            "Raw count",
+            "log(1+x)",
+            "Training mean μ",
+            "Training SD s",
+            "Standardized z"
+          ],
+          "rows": [
+            [
+              "Characters",
+              97,
+              "4.585",
+              "4.149",
+              "0.701",
+              "0.622"
+            ],
+            [
+              "Tokens",
+              14,
+              "2.708",
+              "2.540",
+              "0.630",
+              "0.268"
+            ],
+            [
+              "Links",
+              0,
+              "0.000",
+              "0.013",
+              "0.100",
+              "-0.132"
+            ],
+            [
+              "Digits",
+              24,
+              "3.219",
+              "0.452",
+              "0.927",
+              "2.984"
+            ],
+            [
+              "Exclamation marks",
+              1,
+              "0.693",
+              "0.132",
+              "0.330",
+              "1.699"
+            ]
+          ]
+        }
+      ],
       "conceptTitle": "Five measurements instead of word identity",
       "activityTitle": "Measure messages and compare their distributions",
       "pythonTitle": "Python: measurements, scaling and numerical LR",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "numerical LR: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Extract five counts, fit log-count scaling and lr weights. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "C ∈ {0.1, 1, 10}. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "lda",
@@ -947,10 +1317,68 @@
       "functions": [
         "build_model"
       ],
-      "starter": "from sklearn.discriminant_analysis import LinearDiscriminantAnalysis\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, StandardScaler\nfrom experiment import numerical_features\n\nfor classifier in [LogisticRegression(solver=\"liblinear\", max_iter=1000, random_state=3612), LinearDiscriminantAnalysis(solver=\"lsqr\", shrinkage=\"auto\")]:\n    model = Pipeline([\n        (\"features\", FunctionTransformer(numerical_features)),\n        (\"log\", FunctionTransformer(np.log1p)),\n        (\"scale\", StandardScaler()),\n        (\"classifier\", classifier)\n    ])\n    model.fit(X_train, y_train)\n    name = \"lda\" if isinstance(classifier, LinearDiscriminantAnalysis) else \"logistic\"\n    print(name, \"validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "starter": "from sklearn.discriminant_analysis import LinearDiscriminantAnalysis\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, StandardScaler\nfrom experiment import numerical_features\n\ncandidates = []\nfor classifier in [LogisticRegression(solver=\"liblinear\", max_iter=1000, random_state=3612)] + [LinearDiscriminantAnalysis(solver=\"lsqr\", shrinkage=a) for a in [\"auto\", .1, .5]]:\n    model = Pipeline([\n        (\"features\", FunctionTransformer(numerical_features)),\n        (\"log\", FunctionTransformer(np.log1p)),\n        (\"scale\", StandardScaler()),\n        (\"classifier\", classifier)\n    ])\n    model.fit(X_train, y_train)\n    name = \"lda\" if isinstance(classifier, LinearDiscriminantAnalysis) else \"logistic\"\n    print(name, \"validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    setting = {\"kind\": name, \"shrinkage\": getattr(classifier, \"shrinkage\", None)}\n    candidates.append({\"model\": model, \"setting\": setting, \"validation\": val})\n    print(\"Training AP:\", metrics(y_train, model.predict_proba(X_train)[:, 1])[\"average_precision\"])\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.",
       "extension": true,
       "links": [],
       "worked": [
+        {
+          "title": "From real class means to the LDA score",
+          "text": [
+            "This worked pipeline uses shrinkage=\"auto\" and all training SMS. Priors are ham=0.8756, spam=0.1244. The means below describe the five standardized log-count features within each training class.",
+            "Apply it to the same validation SMS: `You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm`. The shared covariance transforms the difference in class means into linear weights: w = Σ⁻¹(μ_spam − μ_ham). The fitted intercept is b=-12.4077; it contains the class-mean and prior terms.",
+            "Add b and all five w_j z_j contributions: score=17.8038. The sigmoid gives P(spam | SMS)=100.00%. This is one prediction; compare shrinkage settings on the whole validation set below."
+          ],
+          "columns": [
+            "Feature",
+            "Training μ_ham",
+            "Training μ_spam",
+            "Fitted weight w",
+            "New value z",
+            "w × z"
+          ],
+          "rows": [
+            [
+              "Characters",
+              "-0.154",
+              "1.084",
+              "3.137",
+              "0.622",
+              "1.952"
+            ],
+            [
+              "Tokens",
+              "-0.120",
+              "0.842",
+              "-2.869",
+              "0.268",
+              "-0.768"
+            ],
+            [
+              "Links",
+              "-0.132",
+              "0.931",
+              "1.583",
+              "-0.132",
+              "-0.209"
+            ],
+            [
+              "Digits",
+              "-0.321",
+              "2.261",
+              "9.514",
+              "2.984",
+              "28.385"
+            ],
+            [
+              "Exclamation marks",
+              "-0.115",
+              "0.806",
+              "0.501",
+              "1.699",
+              "0.852"
+            ]
+          ]
+        },
         {
           "title": "Reading the LDA plot",
           "text": [
@@ -964,7 +1392,44 @@
       "activityTitle": "Compare LDA with numerical LR",
       "pythonTitle": "Python: LDA and LR on the same features",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "LDA and numerical LR: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Fit numerical scaling, class means and shared covariance. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "LDA shrinkage ∈ {auto, 0.1, 0.5}; compare numerical LR. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "gam",
@@ -995,10 +1460,56 @@
         "build_model",
         "numerical_features"
       ],
-      "starter": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, SplineTransformer, StandardScaler\nfrom experiment import numerical_features\n\nfor kind in [\"logistic\", \"gam\"]:\n    steps = [(\"features\", FunctionTransformer(numerical_features)), (\"log\", FunctionTransformer(np.log1p))]\n    if kind == \"gam\":\n        steps.append((\"splines\", SplineTransformer(n_knots=4, degree=3, include_bias=False)))\n    steps += [(\"scale\", StandardScaler()), (\"classifier\", LogisticRegression(C=1, solver=\"liblinear\", max_iter=1000, random_state=3612))]\n    model = Pipeline(steps)\n    model.fit(X_train, y_train)\n    print(kind, \"validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])",
+      "starter": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import FunctionTransformer, SplineTransformer, StandardScaler\nfrom experiment import numerical_features\n\ncandidates = []\nfor kind, C in [(kind, C) for kind in [\"logistic\", \"gam\"] for C in [.1, 1, 10]]:\n    steps = [(\"features\", FunctionTransformer(numerical_features)), (\"log\", FunctionTransformer(np.log1p))]\n    if kind == \"gam\":\n        steps.append((\"splines\", SplineTransformer(n_knots=4, degree=3, include_bias=False)))\n    steps += [(\"scale\", StandardScaler()), (\"classifier\", LogisticRegression(C=C, solver=\"liblinear\", max_iter=1000, random_state=3612))]\n    model = Pipeline(steps)\n    model.fit(X_train, y_train)\n    print(kind, \"validation AP:\", metrics(y_val, model.predict_proba(X_val)[:, 1])[\"average_precision\"])\n    val = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    candidates.append({\"model\": model, \"setting\": {\"kind\": kind, \"C\": C}, \"validation\": val})\n    print(\"Training AP:\", metrics(y_train, model.predict_proba(X_train)[:, 1])[\"average_precision\"])\n\n# 2. Select using validation AP; the fitted pipeline stays unchanged.\nbest = max(candidates, key=lambda row: row[\"validation\"][\"average_precision\"])\nmodel = best[\"model\"]\nprint(\"Selected setting:\", best[\"setting\"])\nprint(\"Selected validation metrics:\", best[\"validation\"])\n# 3. TEST STAGE: carry this candidate to Evaluation; choose a threshold on validation.\n# Freeze one overall model and threshold there, then evaluate test exactly once.\n# Do not evaluate each hyperparameter on test or retune after seeing its result.",
       "extension": true,
       "links": [],
       "worked": [
+        {
+          "title": "Add five fitted curve effects for a real SMS",
+          "text": [
+            "This worked GAM uses C=1 fitted on all training SMS. Start at the training-median counts: `[61, 11, 0, 0, 0]`. Its model score is -5.1175.",
+            "Now predict the same validation SMS: `You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm`. Move one feature from its training median to this SMS count while holding the other four fixed. Read the score change from that fitted curve; sum all five changes.",
+            "Reference score + feature changes = -5.1175 + (1.6762 + -0.3672 + 0.0000 + 8.6523 + 1.2206) = 6.0644. Sigmoid(score) gives 99.77% spam. The sum reconstructs the full model because there are no interactions. Compare C on validation before using a GAM candidate in the final test."
+          ],
+          "columns": [
+            "Feature",
+            "Training median count",
+            "SMS count",
+            "Fitted curve effect relative to median"
+          ],
+          "rows": [
+            [
+              "Characters",
+              61,
+              97,
+              "+1.6762"
+            ],
+            [
+              "Tokens",
+              11,
+              14,
+              "-0.3672"
+            ],
+            [
+              "Links",
+              0,
+              0,
+              "+0.0000"
+            ],
+            [
+              "Digits",
+              0,
+              24,
+              "+8.6523"
+            ],
+            [
+              "Exclamation marks",
+              0,
+              1,
+              "+1.2206"
+            ]
+          ]
+        },
         {
           "title": "What the spline implementation assumes",
           "text": [
@@ -1012,7 +1523,44 @@
       "activityTitle": "Inspect the fitted feature curves",
       "pythonTitle": "Python: spline features and an additive classifier",
       "flow": null,
-      "focus": null
+      "focus": null,
+      "workflow": {
+        "title": "additive spline GAM: train → validate → test",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Train on 3,095 SMS",
+            "nodes": [
+              {
+                "label": "Learn from training text and labels only",
+                "text": "Fit training spline knots, scaling and coefficients. Do not fit on validation or test.",
+                "code": "model.fit(X_train, y_train)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Validate on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Select settings and inspect errors",
+                "text": "C ∈ {0.1, 1, 10}; compare numerical LR. Compare validation AP, precision, recall and false alarms. Reuse the same split for every candidate.",
+                "code": "metrics(y_val, model.predict_proba(X_val)[:, 1])"
+              }
+            ]
+          },
+          {
+            "title": "3 · Test the frozen final choice on 1,032 SMS",
+            "nodes": [
+              {
+                "label": "Carry this candidate to Evaluation",
+                "text": "Compare candidates across chapters. Choose the model and threshold using validation only, record a reason, then run one shared final test. Keep this train-fitted pipeline fixed; do not refit on validation or test.",
+                "code": "lab.final_test({\"id\": selected_id, \"threshold\": threshold, \"reason\": reason})"
+              }
+            ]
+          }
+        ],
+        "caption": "All models follow these three stages. Reserve the final test until every selection decision is finished; running test for every candidate would turn it into another validation set."
+      }
     },
     {
       "id": "decision",
@@ -1100,5 +1648,40 @@
       },
       "focus": null
     }
-  ]
+  ],
+  "dataset": {
+    "title": "Open the SMS Spam Collection",
+    "source": "https://archive.ics.uci.edu/dataset/228/sms+spam+collection",
+    "archive": "https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip",
+    "file": "tutorials/tutorial05/data/SMSSpamCollection.txt",
+    "description": "Download the original UCI ZIP and extract SMSSpamCollection, or download the identical bundled text file below. Open it in a text editor: there is no header, each line is label<TAB>message, and the first tab separates the two fields. Preserve the original spelling, punctuation and spacing.",
+    "counts": {
+      "total": 5574,
+      "ham": 4827,
+      "spam": 747
+    },
+    "preview": [
+      {
+        "label": "ham",
+        "text": "Go until jurong point, crazy.. Available only in bugis n great world la e buffet... Cine there got amore wat..."
+      },
+      {
+        "label": "ham",
+        "text": "Ok lar... Joking wif u oni..."
+      },
+      {
+        "label": "spam",
+        "text": "Free entry in 2 a wkly comp to win FA Cup final tkts 21st May 2005. Text FA to 87121 to receive entry question(std txt rate)T&C's apply 08452810075over18's"
+      },
+      {
+        "label": "ham",
+        "text": "U dun say so early hor... U c already then say..."
+      },
+      {
+        "label": "ham",
+        "text": "Nah I don't think he goes to usf, he lives around here though"
+      }
+    ],
+    "limitations": "This is a historical English SMS research corpus compiled from several sources, including Singaporean student messages and UK spam complaints. It contains abbreviations, phone numbers, links, currency and repeats. It has no email subject, sender metadata or attachments. Its results do not establish performance on modern email, Chinese text or another population."
+  }
 }

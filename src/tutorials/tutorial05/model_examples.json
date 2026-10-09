@@ -1,136 +1,169 @@
 {
   "nb": {
-    "title": "Naive Bayes: inspect the arithmetic in log space",
-    "caption": "The class-score calculation above gives the prediction. This optional view shows how sklearn uses logs to replace multiplication with addition.",
-    "challenge": "Add `meet` to `claim prize`. Predict which class its evidence will support.",
+    "title": "Naive Bayes: a real validation SMS, word by word",
+    "caption": "These priors and token counts come from a count-based NB pipeline fitted on all 3,095 training SMS, with min_df=2 and at most 2,500 words. The query is an unchanged validation SMS. Edit its counts to follow the arithmetic; validation selection and final testing are explained below.",
+    "challenge": "Start with the real ham SMS below. Add claim or prize and explain how word evidence competes with the larger ham prior.",
     "priors": [
-      0.5,
-      0.5
+      0.8756058158319872,
+      0.12439418416801294
     ],
     "totals": [
-      6,
-      6
+      33660,
+      7499
     ],
-    "vocabulary": 9,
+    "vocabulary": 2459,
     "words": [
       {
-        "name": "claim",
+        "name": "finished",
         "counts": [
-          0,
-          1
+          10,
+          0
         ],
         "initial": 1
       },
       {
-        "name": "prize",
+        "name": "class",
         "counts": [
-          0,
+          22,
           2
         ],
         "initial": 1
       },
       {
-        "name": "meet",
+        "name": "where",
         "counts": [
-          2,
-          0
+          65,
+          2
         ],
-        "initial": 0
+        "initial": 1
       },
       {
-        "name": "class",
+        "name": "are",
         "counts": [
-          1,
-          0
+          218,
+          33
+        ],
+        "initial": 1
+      },
+      {
+        "name": "you",
+        "counts": [
+          1070,
+          152
+        ],
+        "initial": 1
+      },
+      {
+        "name": "claim",
+        "counts": [
+          0,
+          60
         ],
         "initial": 0
-      }
-    ]
-  },
-  "logistic": {
-    "title": "Logistic regression: train, then predict",
-    "caption": "Start with labelled messages, turn them into word-count vectors, and let LogisticRegression.fit learn the weights. The small training set below makes every input visible.",
-    "challenge": "Choose a new message. Follow its vector through the learned weights to the predicted class.",
-    "bias": -0.078597427730741,
-    "words": [
-      {
-        "name": "free",
-        "weight": 0.17581195892566825,
-        "initial": 1
       },
       {
         "name": "prize",
-        "weight": 0.8655002921285709,
-        "initial": 1
-      },
-      {
-        "name": "class",
-        "weight": -0.6002059771607013,
+        "counts": [
+          0,
+          32
+        ],
         "initial": 0
       },
       {
         "name": "meet",
-        "weight": -0.5673113001053123,
+        "counts": [
+          45,
+          4
+        ],
+        "initial": 0
+      }
+    ],
+    "text": "Finished class where are you."
+  },
+  "logistic": {
+    "title": "Logistic regression: train, then predict",
+    "caption": "These six unchanged messages are real training SMS. To expose every multiplication, this arithmetic view keeps four word columns and fits LR to these six rows. It is not the full fitted classifier or a performance estimate. The complete experiment below fits all training SMS, selects C on validation and reserves test.",
+    "challenge": "Choose a new message. Follow its vector through the learned weights to the predicted class.",
+    "bias": -0.019946681782574194,
+    "words": [
+      {
+        "name": "free",
+        "weight": 0.006657370373467776,
+        "initial": 0
+      },
+      {
+        "name": "prize",
+        "weight": 0.5256404884344645,
+        "initial": 1
+      },
+      {
+        "name": "class",
+        "weight": -0.39719857374628054,
+        "initial": 0
+      },
+      {
+        "name": "meet",
+        "weight": -0.39719857374628054,
         "initial": 0
       }
     ],
     "training": [
       {
-        "text": "free after class",
+        "text": "Yup i'm free...",
         "label": 0,
         "counts": [
           1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "text": "Ugh just got outta class",
+        "label": 0,
+        "counts": [
+          0,
           0,
           1,
           0
         ]
       },
       {
-        "text": "meet after class",
+        "text": "Thank You meet you monday",
         "label": 0,
         "counts": [
           0,
           0,
-          1,
+          0,
           1
         ]
       },
       {
-        "text": "meet for lunch",
-        "label": 0,
-        "counts": [
-          0,
-          0,
-          0,
-          1
-        ]
-      },
-      {
-        "text": "claim a free prize",
+        "text": "Win a £1000 cash prize or a prize worth £5000",
         "label": 1,
         "counts": [
-          1,
-          1,
+          0,
+          2,
           0,
           0
         ]
       },
       {
-        "text": "win a prize",
+        "text": "500 free text msgs. Just text ok to 80488 and we'll credit your account",
         "label": 1,
         "counts": [
-          0,
           1,
+          0,
           0,
           0
         ]
       },
       {
-        "text": "free prize now",
+        "text": "449050000301 You have won a £2,000 price! To claim, call 09050000301.",
         "label": 1,
         "counts": [
-          1,
-          1,
+          0,
+          0,
           0,
           0
         ]
@@ -138,24 +171,30 @@
     ],
     "queries": [
       {
-        "text": "Claim your free prize now!",
+        "text": "You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm",
         "counts": {
-          "free": 1,
-          "prize": 1
+          "free": 0,
+          "prize": 1,
+          "class": 0,
+          "meet": 0
         }
       },
       {
-        "text": "Are you free after class?",
+        "text": "Once free call me sir. I am waiting for you.",
         "counts": {
           "free": 1,
-          "class": 1
+          "prize": 0,
+          "class": 0,
+          "meet": 0
         }
       },
       {
-        "text": "Meet after class.",
+        "text": "Finished class where are you.",
         "counts": {
-          "meet": 1,
-          "class": 1
+          "free": 0,
+          "prize": 0,
+          "class": 1,
+          "meet": 0
         }
       }
     ],
@@ -168,7 +207,7 @@
           "nodes": [
             {
               "label": "Fit once on the six training messages",
-              "code": "from sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression(C=1, solver=\"liblinear\")\nmodel.fit(X_toy, y_toy)\n\nLearned weights: {weights}\nIntercept: {bias}",
+              "code": "from sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression(C=1, solver=\"liblinear\")\nX_excerpt = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, 2, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]]\ny_excerpt = [0, 0, 0, 1, 1, 1]\nmodel.fit(X_excerpt, y_excerpt)\n\nLearned weights: {weights}\nIntercept: {bias}",
               "text": "A weight is learned for each column. Positive weights support spam; negative weights support ham. These numbers come from fitting the training data above."
             }
           ]
@@ -204,11 +243,11 @@
   },
   "knn": {
     "title": "KNN: find neighbours, then vote",
-    "caption": "KNN keeps the labelled training vectors. For a new message, calculate distances, take the closest k, then count their labels. We keep only prize and class to make these vectors easy to inspect.",
-    "challenge": "Choose a message and follow the distance ranking. Changing k changes which training messages vote.",
+    "caption": "These are six unchanged training SMS. We keep prize and call only to draw exact two-dimensional directions. Different SMS can collapse to the same point, even with different labels: a useful warning about information lost by the representation. The full experiment uses all training messages and all learned TF–IDF columns, with k chosen on validation.",
+    "challenge": "Choose a real validation SMS and follow its distance ranking. Changing k changes which training messages vote. Words outside the two displayed columns are ignored in this calculation.",
     "words": [
       "prize",
-      "class"
+      "call"
     ],
     "query": [
       1,
@@ -217,7 +256,7 @@
     "k": 3,
     "points": [
       {
-        "text": "Claim your prize. Win another prize!",
+        "text": "Win a £1000 cash prize or a prize worth £5000",
         "label": 1,
         "counts": [
           2,
@@ -225,7 +264,7 @@
         ]
       },
       {
-        "text": "Free prize now!",
+        "text": "You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327",
         "label": 1,
         "counts": [
           1,
@@ -233,55 +272,55 @@
         ]
       },
       {
-        "text": "Win a prize! Another prize for your class.",
+        "text": "URGENT! Your Mobile number has been awarded with a £2000 prize GUARANTEED. Call 09058094455 from land line. Claim 3030. Valid 12hrs only",
         "label": 1,
         "counts": [
-          2,
-          1
-        ]
-      },
-      {
-        "text": "Meet after class.",
-        "label": 0,
-        "counts": [
-          0,
-          1
-        ]
-      },
-      {
-        "text": "Class starts soon. See you after class.",
-        "label": 0,
-        "counts": [
-          0,
-          2
-        ]
-      },
-      {
-        "text": "Discuss the prize in class, after class.",
-        "label": 0,
-        "counts": [
           1,
-          2
+          1
+        ]
+      },
+      {
+        "text": "Once free call me sir.",
+        "label": 0,
+        "counts": [
+          0,
+          1
+        ]
+      },
+      {
+        "text": "Now am free call me pa.",
+        "label": 0,
+        "counts": [
+          0,
+          1
+        ]
+      },
+      {
+        "text": "I am waiting machan. Call me once you free.",
+        "label": 0,
+        "counts": [
+          0,
+          1
         ]
       }
     ],
     "queries": [
       {
-        "text": "Claim your prize now!",
+        "text": "You have won ?1,000 cash or a ?2,000 prize! To claim, call09050000327. T&C: RSTM, SW7 3SS. 150ppm",
         "counts": [
           1,
           0
         ]
       },
       {
-        "text": "Meet after class.",
+        "text": "Once free call me sir. I am waiting for you.",
         "counts": [
           0,
           1
         ]
       },
       {
-        "text": "Win a prize for your class.",
+        "text": "You have WON a guaranteed £1000 cash or a £2000 prize.To claim yr prize call our customer service representative on",
         "counts": [
           1,
           1
@@ -297,7 +336,7 @@
           "nodes": [
             {
               "label": "Training uses no word coefficients",
-              "code": "from sklearn.neighbors import KNeighborsClassifier\nmodel = KNeighborsClassifier(n_neighbors=k, metric=\"cosine\")\nmodel.fit(X_toy, y_toy)",
+              "code": "from sklearn.neighbors import KNeighborsClassifier\nmodel = KNeighborsClassifier(n_neighbors=k, metric=\"cosine\")\nX_excerpt = [[2, 0], [1, 0], [1, 1], [0, 1], [0, 1], [0, 1]]\ny_excerpt = [1, 1, 1, 0, 0, 0]\nmodel.fit(X_excerpt, y_excerpt)",
               "text": "KNN keeps the vectors and labels shown above; prediction looks up nearby examples."
             }
           ]
@@ -307,7 +346,7 @@
           "nodes": [
             {
               "label": "Use the same two word columns",
-              "code": "{text}\n\nColumn order: [prize, class]\nCount vector: {vector}\nNormalized direction: {direction}",
+              "code": "{text}\n\nColumn order: [prize, call]\nCount vector: {vector}\nNormalized direction: {direction}",
               "text": "Cosine distance compares directions: 0 means the same direction, and smaller means closer."
             },
             {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { courseHref } from '../navigation'
 import type { Lesson } from '../tutorials'
+import DatasetIntroduction from './DatasetIntroduction.vue'
 defineProps<{ lesson: Lesson }>()
 </script>
 <template>
@@ -17,6 +18,7 @@ defineProps<{ lesson: Lesson }>()
       <p class="lede">{{ lesson.overview.task }}</p>
       <p>{{ lesson.overview.motivation }}</p>
     </section>
+    <DatasetIntroduction v-if="lesson.overview.dataset" :dataset="lesson.overview.dataset" />
     <section>
       <h2>How the pieces fit together</h2>
       <ol class="overview-route">

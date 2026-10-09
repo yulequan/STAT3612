@@ -11,6 +11,7 @@ const props = defineProps<{
   zeroVector?: boolean
   points?: ToyPoint[]
   query?: { x: number; y: number }
+  axisLabels?: string[]
 }>()
 const selected = ref(0)
 const shown = ref(props.neighbors.length)
@@ -33,6 +34,16 @@ const selectedNeighbor = computed(() => props.neighbors[selected.value])
 const selectedIndex = computed(() => selectedNeighbor.value?.index)
 const distanceMax = computed(() => Math.max(0.1, ...props.neighbors.map((n) => n.distance)) * 1.1)
 const color = (label: number) => (label ? '#aa613d' : '#45657e')
+const locations = computed(() => {
+  const groups = new Map<string, { x: number; y: number; rows: number[] }>()
+  props.points?.forEach((point, i) => {
+    const key = `${point.x.toFixed(6)},${point.y.toFixed(6)}`
+    const location = groups.get(key) ?? { x: point.x, y: point.y, rows: [] }
+    location.rows.push(i + 1)
+    groups.set(key, location)
+  })
+  return [...groups.values()]
+})
 function selectPoint(index: number) {
   const rank = props.neighbors.findIndex((n) => n.index === index)
   if (rank >= 0) selected.value = rank
@@ -47,7 +58,7 @@ function selectPoint(index: number) {
         v-if="points && query"
         viewBox="0 0 400 360"
         role="img"
-        aria-label="Toy word vectors and nearest neighbours"
+        aria-label="Real SMS word directions and selected neighbours"
       >
         <path d="M60 35V300H350" fill="none" stroke="#9dabb5" />
         <path
@@ -56,8 +67,10 @@ function selectPoint(index: number) {
           stroke="#d9e2e9"
           stroke-dasharray="4 4"
         />
-        <text x="65" y="20">class weight ↑</text>
-        <text x="220" y="345" text-anchor="middle" class="word-axis">prize weight →</text>
+        <text x="65" y="20">{{ axisLabels?.[1] ?? 'call' }} weight ↑</text>
+        <text x="220" y="345" text-anchor="middle" class="word-axis">
+          {{ axisLabels?.[0] ?? 'prize' }} weight →
+        </text>
         <text x="60" y="322">0</text>
         <text x="310" y="322">1</text>
         <text x="40" y="300">0</text>
@@ -91,12 +104,21 @@ function selectPoint(index: number) {
             stroke="#667e8d"
             tabindex="0"
             role="button"
-            :aria-label="'Inspect toy neighbour ' + (i + 1)"
+            :aria-label="'Inspect training neighbour ' + (i + 1)"
             @click="selectPoint(i)"
             @keydown.enter="selectPoint(i)"
             @keydown.space.prevent="selectPoint(i)"
           />
         </g>
+        <text
+          v-for="location in locations"
+          :key="location.rows.join(',')"
+          :x="Math.min(255, 80 + location.x * 255)"
+          :y="location.y > 0.9 ? 65 : 265 - location.y * 255"
+          font-size="12"
+        >
+          Rows {{ location.rows.join(', ') }}
+        </text>
         <path
           :d="'M' + (60 + query.x * 255) + ',' + (288 - query.y * 255) + 'l11 19h-22z'"
           fill="#202e3a"
@@ -163,6 +185,11 @@ function selectPoint(index: number) {
       <span class="ham-key">● Ham</span><span class="spam-key">● Spam</span>
       <span v-if="points">▲ New message · circled points vote</span
       ><span v-else>Click a point to read its message</span>
+    </p>
+    <p v-if="points" class="legend">
+      Row numbers refer to the training table. Several SMS can share one direction and overlap on
+      the plot; each selected SMS still gets its own numbered vote below. Neighbour numbers indicate
+      distance rank, not table row.
     </p>
     <p v-if="zeroVector" class="empty-vector">
       No known word features.

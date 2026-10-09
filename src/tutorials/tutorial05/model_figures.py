@@ -13,7 +13,7 @@ def sigmoid(score):
 
 
 def nb_example(counts=None, alpha=1):
-    """Use counts from the lesson's four labelled messages and nine-word vocabulary."""
+    """Use parameters fitted to the complete real SMS training split."""
     if alpha <= 0:
         raise ValueError('Smoothing alpha must be positive.')
     source = EXAMPLES['nb']
@@ -52,10 +52,10 @@ def knn_example(counts=(1, 0), k=3):
     values /= np.linalg.norm(values, axis=1, keepdims=True)
     query = np.asarray(counts, dtype=float)
     if query.shape != (2,) or np.any(query < 0):
-        raise ValueError('Supply two nonnegative counts: prize and class.')
+        raise ValueError('Supply two nonnegative counts: prize and call.')
     norm = np.linalg.norm(query)
     query = query / norm if norm else query
-    # A zero direction supplies no meaningful comparison in the toy illustration.
+    # A zero direction supplies no meaningful comparison in the two-column illustration.
     distances = 1 - values @ query
     order = sorted(range(len(values)), key=lambda i: (float(distances[i]), i))[:k] if norm else []
     neighbors = [dict(index=i, text=source['points'][i]['text'], label=source['points'][i]['label'],
@@ -170,9 +170,20 @@ def plot_neighbors(explanation, title=None):
                        label=('Spam' if p['label'] else 'Ham') if p['label'] not in labelled else None)
             labelled.add(p['label'])
         query = explanation['query']
+        locations = {}
+        for i, point in enumerate(explanation['points']):
+            key = (round(point['x'], 6), round(point['y'], 6))
+            locations.setdefault(key, []).append(i + 1)
+        for (x, y), rows in locations.items():
+            ax.annotate('Rows ' + ', '.join(map(str, rows)), (x, y),
+                        xytext=(-12 if x > .85 else 12, 12), textcoords='offset points',
+                        ha='right' if x > .85 else 'left', fontsize=8)
+        for n in neighbors:
+            point = explanation['points'][n['index']]
+            ax.plot([query['x'], point['x']], [query['y'], point['y']], '--', color='#aebfc9', linewidth=1, zorder=0)
         ax.scatter(query['x'], query['y'], marker='^', c='#202e3a', s=120, label='New message')
-        ax.set(xlabel='prize weight', ylabel='class weight', xlim=(-.05, 1.05), ylim=(-.05, 1.05),
-               title='Toy directions: circled points vote')
+        ax.set(xlabel='prize weight', ylabel='call weight', xlim=(-.05, 1.05), ylim=(-.05, 1.05),
+               title='Real SMS directions: circled points vote')
         ax.set_aspect('equal', adjustable='box')
         ax.legend(loc='upper right', fontsize=8)
     else:

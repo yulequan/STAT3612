@@ -1,102 +1,90 @@
 # Tutorial05 · Spam Message Classification
 
-Learn one continuous workflow: **message → NLTK tokens → word counts / TF–IDF →
-classifier → prediction and errors**. No previous NLP course is assumed.
+Start with the **original UCI SMS Spam Collection**, then complete every chapter:
+open the data → define the task → split train / validation / test → tokenize →
+word counts → TF–IDF → NB / LR / KNN → regularization and CV → numerical LR /
+LDA / GAM → validation comparison and error analysis → one final test.
 
-## Choose your learning route
+## Download and open the data
 
-The core route covers Text Classification, SMS Data and Train / Validation / Test, Tokenization,
-Bag of Words, TF–IDF, Naive Bayes, Logistic Regression, KNN, then Evaluation: Compare Models and Inspect Errors. Rules appear only as a brief motivating counterexample.
+- [UCI dataset page](https://archive.ics.uci.edu/dataset/228/sms+spam+collection)
+- [Original ZIP download](https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip)
+- The identical original bytes are bundled as `data/SMSSpamCollection.txt`.
 
-The tutorial also covers regularization, cross-validation, numerical features,
-LDA and a binomial additive spline model (GAM). Each chapter explains its inputs
-and uses the common setup. Instructors can choose which topics to teach.
+Extract the UCI ZIP and open `SMSSpamCollection` in a text editor. There is no
+header. Each line is `ham<TAB>message` or `spam<TAB>message`. These are English SMS,
+not email. The 5,574 raw messages contain 4,827 ham and 747 spam. Read actual
+messages before discussing their features. Provenance, citation, license, checksum
+and dataset limitations are in [data/README.md](data/README.md).
 
-The website and notebook share the explanations, worked tables, explicit NLTK /
-sklearn imports and editable experiments in `curriculum.json`. Each chapter has
-one editable Python example, with a direct concept heading and a specific activity.
-Short code excerpts beside tokenization, BoW, TF–IDF and NB examples link the
-explanation to the API calls. Excerpts select lines from the runnable example
-and use a fenced code block in the notebook, avoiding a second execution.
-Shared flow diagrams explain the text pipeline, data split, tokenization, TF–IDF
-normalization and model comparison. The web tokenization diagram updates from
-the actual tokenizer result, with input controls beside the key code. Data audit counts are resolved from the
-experiment, rather than repeated in a prose table and separate split cards.
-Code literals use monospaced type in prose, tables and diagrams. Count matrices,
-TF–IDF intermediate values and a worked NB prediction precede the real
-classifiers. The NB calculation shows both class scores, their normalization and the final
-prediction. LR walks through labelled training vectors, fitted weights and a new
-message. KNN walks through distances, selecting neighbours and counting votes.
-Contribution waterfalls and word-direction plots are optional details. Change
-word counts, smoothing or `k`, replay the evidence, and select a neighbour to
-read its message. These small illustrations work before Python starts.
-The same figures explain predictions from the fitted SMS pipelines; they
-replace separate score bars and message lists. Partial evidence and votes are
-labelled separately from the full model result. Small-example LR weights are actually fitted to the displayed training messages;
-real text vectors are shown by neighbour distance rather than a 2D projection.
-Supporting scientific functions are available in collapsed web
-panels and a notebook appendix, keeping implementation details out of the main route.
+The first chapter explicitly opens the file, audits repeated identities and
+shows both steps of the stratified split. Ignoring case and excess whitespace
+for identity removes 415 repeats; retained text stays unchanged. Seed 3612 gives
+3,095 train / 1,032 validation / 1,032 test. The lesson distinguishes raw and
+post-deduplication class proportions, with an always-ham validation baseline.
 
-Compare representations with NB fixed; compare NB, LR and KNN with TF–IDF fixed.
-LDA and GAM use five numerical measurements and should be compared with numerical
-LR on the same inputs. SVM, decision trees and random forests are outside this lesson.
+## Complete learning workflow
 
-## Original data and preprocessing
+There is one required route. Each modeling chapter spells out training,
+validation selection and the shared test stage. NB compares representation and
+smoothing; LR compares C; KNN compares k; numerical LR and GAM compare C; LDA
+compares covariance shrinkage. The browser's **Compare validation settings**
+button fits the grid and displays training/validation metrics. Candidates stay
+available in Evaluation. CV refits the full pipeline inside each training fold,
+then evaluates the selected pipeline on the separate validation split.
 
-Use the **original UCI SMS Spam Collection**, compiled by Almeida and Gómez Hidalgo
-and described by Almeida, Gómez Hidalgo and Yamakami (2011). The unchanged local
-file contains 5,574 English SMS messages, not full emails. See
-[data/README.md](data/README.md) for provenance, citation, license, checksum and limitations.
+Choose all model settings and the decision threshold using validation evidence.
+Carry candidates to the shared comparison, record the final rationale, and test
+one frozen train-fitted pipeline once. This tutorial keeps the selected fitted
+pipeline unchanged rather than refitting it on validation. Test messages are
+omitted from the browser snippet namespace. Restarting Python does not undo test
+exposure.
 
-Case/whitespace-normalized identity removes 415 repeats before splitting. The
-retained text is unchanged: **3,095 train / 1,032 validation / 1,032 test**, stratified,
-seed 3612. Vocabulary and IDF are fitted on training data only; CV refits every
-pipeline stage inside each training fold. Test messages are omitted from the
-browser experiment namespace and final evaluation freezes the chosen decision.
+All worked SMS text comes from the actual training or validation split. The NB
+arithmetic uses priors and word counts fitted on all training SMS, and an
+unchanged validation message. Formulas and symbol definitions precede tables,
+substitutions, scores, normalization and the decision. Log-space evidence is
+visible. LR and KNN arithmetic views use six real training SMS with reduced word
+columns to expose every operation; they are clearly distinguished from the full
+models and never supply reported evaluation metrics. KNN explains cosine,
+Euclidean and Manhattan distances, works through their calculations, and shows
+selected neighbors and individual votes without requiring Python.
 
-All text vectorizers use NLTK `TreebankWordTokenizer`, lowercase and retain
-alphanumeric tokens. It requires no downloaded NLTK corpora or models. Removing
-punctuation, currency expressions or contractions can lose evidence; stopword
-removal and stemming are discussed as choices rather than required cleaning.
-Real text models keep sparse matrices, `min_df=2`, at most 2,500 vocabulary words.
-Toy examples retain every token to make their columns inspectable.
+Count and TF–IDF examples use real SMS and connect small inspectable matrices to
+training-fitted full-data matrices. Text models use NLTK `TreebankWordTokenizer`,
+lowercase and retain alphanumeric tokens, with no downloaded NLTK resources.
+This preprocessing can discard punctuation, currency, URLs or contractions;
+the lesson inspects what is lost. The real pipelines keep sparse matrices,
+`min_df=2`, and at most 2,500 vocabulary words. TF–IDF uses smoothed natural-log
+IDF and L2 normalization. Using TF–IDF with NB is an empirical nonnegative-weight
+extension rather than literal multinomial counts.
 
-TF–IDF uses sklearn's smoothed natural-log IDF and default L2 row normalization;
-the worked example also inspects weights with `norm=None`. NB starts with counts
-and additive smoothing. Using TF–IDF with NB is an empirical extension: weights
-are nonnegative but are not literal multinomial counts. KNN uses uniform votes
-and cosine distance for text.
-
-Numerical models use log(1+x) and training-fitted scaling of characters,
-retained tokens, links, digits and exclamation marks. LDA uses shared covariance
-with shrinkage. The GAM-style implementation uses separate cubic spline bases
-and regularized binomial logistic fitting, without interactions; its L2 penalty
-is not a derivative-based spline roughness penalty.
+Numerical models use log(1+x) and training-fitted scaling of characters, retained
+tokens, links, digits and exclamation marks. Compare numerical LR, LDA and GAM
+on the same features. LDA assumes Gaussian classes with shared covariance. The
+GAM implementation has separate cubic spline bases and a regularized binomial
+logistic fit, without interactions; its L2 coefficient penalty is not a
+spline-derivative roughness penalty.
 
 ## Student package
 
 Extract the complete zip. Keep the notebook beside `experiment.py`,
-`curriculum.json`, `model_figures.py`, `model_examples.json` and `data/`.
-The notebook includes editable small examples and plots for already-fitted models.
-Use Python 3.11+ in a virtual environment:
+`curriculum.json`, `diagrams.py`, `model_figures.py`, `model_examples.json` and
+`data/`. Use Python 3.11+ in a virtual environment:
 
 ```sh
 python -m pip install -r requirements.txt
 python -m jupyter lab
 ```
 
-Run setup, then the sections you are studying. Each browser snippet is self-contained after
-setup and shows its own package imports. Notebook examples run in a shared kernel.
-Predict what an edit will do, run it, then explain the observed output.
-
-Submit the executed notebook and your comparisons, representative errors and
-rationale. Run the final test cell only after writing a model/threshold reason.
-Restarting Python does not undo test exposure.
+Run setup and every chapter in order. Predict the effect of an edit, run it,
+then explain the output. Submit the executed notebook with the dataset audit,
+all training/validation comparisons, false positives and false negatives,
+the final model/threshold rationale, test metrics and dataset limitations.
 
 The browser uses Pyodide 0.27.7, scikit-learn 1.6.1 and NLTK 3.8.1; native
-notebook dependencies are in `requirements.txt`. Small version-dependent
-numerical differences are possible. All browser runtime assets, wheels and data
-are bundled locally; there are no runtime CDN or NLTK resource downloads.
+requirements are in `requirements.txt`. Small numerical differences between
+versions are possible. Runtime assets, wheels and data are bundled locally.
 
 ## Course maintenance
 
@@ -105,13 +93,11 @@ uv run python src/tutorials/tutorial05/build_notebook.py --execute
 uv run python scripts/verify.py tutorial05
 ```
 
-Regeneration replaces the course notebook; students edit downloaded copies.
-Maintain teaching content and flow definitions in `curriculum.json`;
-`FlowDiagram.vue` renders them on the web and `diagrams.py` renders standalone
-SVG outputs in the notebook. Keep the complete student package for both.
-`model_examples.json` supplies both the web illustrations and editable notebook
-examples; `model_figures.py` renders their notebook plots. Keep toy assumptions
-distinct from fitted results and preserve every feature contribution when grouping.
-Maintain scientific behavior in
-`experiment.py`. The generator places matching scientific functions in the
-appendix and supplies stable cell IDs for reviewable updates.
+Maintain shared teaching content and flows in `curriculum.json`. The web and
+notebook use the same formulas, text, SMS examples and workflow definitions.
+`model_examples.json` stores the fitted NB training quantities and the six-row
+LR/KNN arithmetic views; scientific regression tests check them against the
+actual split and sklearn. `model_figures.py` supplies notebook plots.
+Maintain scientific behavior in `experiment.py`; its functions are copied to
+the notebook appendix. Regeneration replaces the course notebook; students edit
+downloaded copies.

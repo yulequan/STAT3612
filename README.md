@@ -3,17 +3,15 @@
 A Vue 3 + TypeScript + Tailwind CSS 4 website with real Python experiments and a companion Jupyter notebook.
 Tutorial04 teaches one practical workflow: **data → preparation → prediction → loss →
 one update → training → evaluation and improvement → beyond linear models**.
-Tutorial05 teaches **Spam Message Classification** through a guided workflow:
-messages → NLTK tokenization → Bag of Words → TF–IDF → Naive Bayes, logistic
-regression and KNN → evaluation and error analysis. Small worked examples expose
-vocabulary columns, smoothed IDF, normalization and NB evidence before fitting
-real classifiers. Explicit NLTK/sklearn imports connect each concept to Python.
-Complete extensions retain regularization, training-only CV, numerical features,
-LDA and a binomial additive spline model (GAM) for instructor selection; the core
-route can skip them. Both the website and notebook share the teaching content.
-The original UCI SMS Spam Collection is bundled unchanged and browsable in the
-page. Data provenance and limitations are explained in the lesson and
-[dataset documentation](src/tutorials/tutorial05/data/README.md).
+Tutorial05 starts by downloading and opening the original UCI SMS Spam Collection,
+then defines the spam/ham task and audits the data before splitting train / validation /
+test. Real SMS examples connect NLTK tokenization, word counts and TF–IDF to NB, LR and
+KNN. Formulas precede worked calculations; KNN distance guidance and neighbor plots
+are visible. Every modeling chapter includes training, validation selection and the
+shared final test stage, including regularization, training-only CV, numerical LR,
+LDA and a binomial additive spline model (GAM). Follow all chapters in order.
+The website and executed notebook share the content and examples. See
+[dataset documentation](src/tutorials/tutorial05/data/README.md) for provenance.
 Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overview)
 or see its [student instructions](src/tutorials/tutorial05/README.md).
 
