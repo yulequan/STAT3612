@@ -1,0 +1,334 @@
+{
+  "nb": {
+    "title": "Naive Bayes: inspect the arithmetic in log space",
+    "caption": "The class-score calculation above gives the prediction. This optional view shows how sklearn uses logs to replace multiplication with addition.",
+    "challenge": "Add `meet` to `claim prize`. Predict which class its evidence will support.",
+    "priors": [
+      0.5,
+      0.5
+    ],
+    "totals": [
+      6,
+      6
+    ],
+    "vocabulary": 9,
+    "words": [
+      {
+        "name": "claim",
+        "counts": [
+          0,
+          1
+        ],
+        "initial": 1
+      },
+      {
+        "name": "prize",
+        "counts": [
+          0,
+          2
+        ],
+        "initial": 1
+      },
+      {
+        "name": "meet",
+        "counts": [
+          2,
+          0
+        ],
+        "initial": 0
+      },
+      {
+        "name": "class",
+        "counts": [
+          1,
+          0
+        ],
+        "initial": 0
+      }
+    ]
+  },
+  "logistic": {
+    "title": "Logistic regression: train, then predict",
+    "caption": "Start with labelled messages, turn them into word-count vectors, and let LogisticRegression.fit learn the weights. The small training set below makes every input visible.",
+    "challenge": "Choose a new message. Follow its vector through the learned weights to the predicted class.",
+    "bias": -0.078597427730741,
+    "words": [
+      {
+        "name": "free",
+        "weight": 0.17581195892566825,
+        "initial": 1
+      },
+      {
+        "name": "prize",
+        "weight": 0.8655002921285709,
+        "initial": 1
+      },
+      {
+        "name": "class",
+        "weight": -0.6002059771607013,
+        "initial": 0
+      },
+      {
+        "name": "meet",
+        "weight": -0.5673113001053123,
+        "initial": 0
+      }
+    ],
+    "training": [
+      {
+        "text": "free after class",
+        "label": 0,
+        "counts": [
+          1,
+          0,
+          1,
+          0
+        ]
+      },
+      {
+        "text": "meet after class",
+        "label": 0,
+        "counts": [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "text": "meet for lunch",
+        "label": 0,
+        "counts": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "text": "claim a free prize",
+        "label": 1,
+        "counts": [
+          1,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "text": "win a prize",
+        "label": 1,
+        "counts": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "text": "free prize now",
+        "label": 1,
+        "counts": [
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    ],
+    "queries": [
+      {
+        "text": "Claim your free prize now!",
+        "counts": {
+          "free": 1,
+          "prize": 1
+        }
+      },
+      {
+        "text": "Are you free after class?",
+        "counts": {
+          "free": 1,
+          "class": 1
+        }
+      },
+      {
+        "text": "Meet after class.",
+        "counts": {
+          "meet": 1,
+          "class": 1
+        }
+      }
+    ],
+    "flow": {
+      "title": "How logistic regression learns and predicts",
+      "layout": "vertical",
+      "stages": [
+        {
+          "title": "1 · Learn weights from the training vectors and labels",
+          "nodes": [
+            {
+              "label": "Fit once on the six training messages",
+              "code": "from sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression(C=1, solver=\"liblinear\")\nmodel.fit(X_toy, y_toy)\n\nLearned weights: {weights}\nIntercept: {bias}",
+              "text": "A weight is learned for each column. Positive weights support spam; negative weights support ham. These numbers come from fitting the training data above."
+            }
+          ]
+        },
+        {
+          "title": "2 · Convert the new message into the same columns",
+          "nodes": [
+            {
+              "label": "New message → word-count vector",
+              "code": "{text}\n\nColumn order: [free, prize, class, meet]\nNew vector: {vector}",
+              "text": "Use the training vocabulary. Other words do not create new columns."
+            }
+          ]
+        },
+        {
+          "title": "3 · Apply the learned weights, then predict",
+          "nodes": [
+            {
+              "label": "Calculate the score",
+              "code": "intercept + sum(feature value × learned weight)\n{calculation}\n≈ {score}",
+              "text": "Only words present in this message contribute."
+            },
+            {
+              "label": "Convert the score to a probability",
+              "code": "sigmoid({score}) = {probability}% spam\nHam: {hamProbability}%\nPrediction: {prediction}",
+              "text": "Choose the class with the larger probability. The model stays fixed when you change the new message."
+            }
+          ]
+        }
+      ],
+      "caption": "The training labels teach LR the weights. Prediction reuses those weights on a new word-count vector."
+    }
+  },
+  "knn": {
+    "title": "KNN: find neighbours, then vote",
+    "caption": "KNN keeps the labelled training vectors. For a new message, calculate distances, take the closest k, then count their labels. We keep only prize and class to make these vectors easy to inspect.",
+    "challenge": "Choose a message and follow the distance ranking. Changing k changes which training messages vote.",
+    "words": [
+      "prize",
+      "class"
+    ],
+    "query": [
+      1,
+      0
+    ],
+    "k": 3,
+    "points": [
+      {
+        "text": "Claim your prize. Win another prize!",
+        "label": 1,
+        "counts": [
+          2,
+          0
+        ]
+      },
+      {
+        "text": "Free prize now!",
+        "label": 1,
+        "counts": [
+          1,
+          0
+        ]
+      },
+      {
+        "text": "Win a prize! Another prize for your class.",
+        "label": 1,
+        "counts": [
+          2,
+          1
+        ]
+      },
+      {
+        "text": "Meet after class.",
+        "label": 0,
+        "counts": [
+          0,
+          1
+        ]
+      },
+      {
+        "text": "Class starts soon. See you after class.",
+        "label": 0,
+        "counts": [
+          0,
+          2
+        ]
+      },
+      {
+        "text": "Discuss the prize in class, after class.",
+        "label": 0,
+        "counts": [
+          1,
+          2
+        ]
+      }
+    ],
+    "queries": [
+      {
+        "text": "Claim your prize now!",
+        "counts": [
+          1,
+          0
+        ]
+      },
+      {
+        "text": "Meet after class.",
+        "counts": [
+          0,
+          1
+        ]
+      },
+      {
+        "text": "Win a prize for your class.",
+        "counts": [
+          1,
+          1
+        ]
+      }
+    ],
+    "flow": {
+      "title": "How KNN finds neighbours and predicts",
+      "layout": "vertical",
+      "stages": [
+        {
+          "title": "1 · Keep the labelled training vectors",
+          "nodes": [
+            {
+              "label": "Training uses no word coefficients",
+              "code": "from sklearn.neighbors import KNeighborsClassifier\nmodel = KNeighborsClassifier(n_neighbors=k, metric=\"cosine\")\nmodel.fit(X_toy, y_toy)",
+              "text": "KNN keeps the vectors and labels shown above; prediction looks up nearby examples."
+            }
+          ]
+        },
+        {
+          "title": "2 · Represent the new message and calculate distances",
+          "nodes": [
+            {
+              "label": "Use the same two word columns",
+              "code": "{text}\n\nColumn order: [prize, class]\nCount vector: {vector}\nNormalized direction: {direction}",
+              "text": "Cosine distance compares directions: 0 means the same direction, and smaller means closer."
+            },
+            {
+              "label": "Rank all training messages by distance",
+              "code": "{ranking}",
+              "text": "✓ marks the closest k messages selected to vote. Ties can depend on training order."
+            }
+          ]
+        },
+        {
+          "title": "3 · Count the selected labels, then predict",
+          "nodes": [
+            {
+              "label": "Each selected neighbour gets one vote",
+              "code": "Selected labels: {labels}\nSpam votes / k = {spam} / {k}\n= {probability}% spam\nPrediction: {prediction}",
+              "text": "Uniform voting uses the labels, not a weighted sum of word coefficients. Change k and follow which messages join the vote."
+            }
+          ]
+        }
+      ],
+      "caption": "New message → same feature columns → distances → closest k labels → majority vote. The full SMS model below uses TF–IDF instead of this small count example."
+    }
+  }
+}

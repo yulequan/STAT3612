@@ -6,7 +6,10 @@ import PythonCode from '../../components/PythonCode.vue'
 import PythonEditor from '../../components/PythonEditor.vue'
 import Plot from './Plot.vue'
 import ConceptFigure from './ConceptFigure.vue'
-import FlowDiagram from './FlowDiagram.vue'
+import ClassifierIllustration from './ClassifierIllustration.vue'
+import ScoreJourney, { type ScoreEvidence } from './ScoreJourney.vue'
+import NeighborExplorer from './NeighborExplorer.vue'
+import FlowDiagram, { type TeachingFlow } from './FlowDiagram.vue'
 import InlineText from './InlineText.vue'
 import DataTable from './DataTable.vue'
 import Confusion from './Confusion.vue'
@@ -82,8 +85,11 @@ type Explanation = {
   bias?: number
   score?: number
   probability: number
-  contributions?: { name: string; value: number }[]
+  prediction?: number
+  contributions?: { name: string; value: number; feature?: number; weight?: number }[]
   neighbors?: { text: string; label: number; distance: number }[]
+  metric?: string
+  zero_vector?: boolean
   priors?: number[]
   evidence?: { word: string; value: number; ham: number; spam: number; contribution: number }[]
 }
@@ -230,9 +236,101 @@ const comparisonRuns = computed(() =>
 const wordIndex = computed(() => vector.value?.vocabulary.indexOf(word.value) ?? -1)
 const distribution = computed(() => initial.value?.distributions[feature.value])
 const maxHistogram = computed(() => Math.max(0.01, ...(distribution.value?.groups.flat() ?? [])))
-const maxContribution = computed(() =>
-  Math.max(0.01, ...(currentExplanation.value?.contributions?.map((v) => Math.abs(v.value)) ?? [])),
-)
+const scoreEvidence = computed<ScoreEvidence | undefined>(() => {
+  const explanation = currentExplanation.value
+  if (!explanation || explanation.score === undefined || explanation.bias === undefined)
+    return undefined
+  const contributions =
+    explanation.evidence?.map((item) => ({
+      name: item.word,
+      feature: item.value,
+      weight: Math.log(item.spam / item.ham),
+      value: item.contribution,
+      ham: item.ham,
+      spam: item.spam,
+    })) ??
+    explanation.contributions ??
+    []
+  return { ...explanation, bias: explanation.bias, score: explanation.score, contributions }
+})
+const predictionFlow = computed<TeachingFlow | undefined>(() => {
+  const result = currentExplanation.value
+  if (!result || !activeRun.value) return undefined
+  const kind = activeRun.value.kind
+  const terms = scoreEvidence.value?.contributions ?? []
+  const features = terms
+    .slice(0, 6)
+    .map((t) => t.name + ': ' + (t.feature ?? t.value).toFixed(3))
+    .join(', ')
+  const votes = result.neighbors?.map((n) => (n.label ? 'Spam' : 'Ham')) ?? []
+  const spam = result.neighbors?.filter((n) => n.label).length ?? 0
+  return {
+    title: 'Predict a new message with the trained model',
+    layout: 'vertical',
+    stages: [
+      {
+        title: '1 · Reuse the fitted feature transformation',
+        nodes: [
+          {
+            label: 'Message → same feature columns',
+            code: result.text ?? '',
+            text:
+              kind === 'knn'
+                ? 'Transform with the training vocabulary and IDF; do not refit on this message.'
+                : (features || 'No active word features.') + (terms.length > 6 ? ', …' : ''),
+          },
+        ],
+      },
+      {
+        title:
+          kind === 'knn'
+            ? '2 · Find the closest training messages and count their labels'
+            : '2 · Apply what the model learned from training',
+        nodes: [
+          {
+            label:
+              kind === 'nb'
+                ? 'Class priors × word likelihoods, then normalize'
+                : kind === 'knn'
+                  ? 'Uniform neighbour vote'
+                  : 'Learned weights → score → sigmoid',
+            code:
+              kind === 'knn'
+                ? 'Labels: ' +
+                  votes.join(', ') +
+                  '\nSpam votes / k = ' +
+                  spam +
+                  ' / ' +
+                  votes.length
+                : 'model.predict_proba([message])',
+            text:
+              kind === 'nb'
+                ? 'Use the same calculation as in the worked example above, with the fitted vocabulary and likelihoods.'
+                : kind === 'knn'
+                  ? 'Smaller distance means a closer training vector. Each selected message supplies one vote.'
+                  : 'Multiply each feature by its learned weight, add the intercept, then map the score to a probability.',
+          },
+        ],
+      },
+      {
+        title: '3 · Choose the class with the larger probability',
+        nodes: [
+          {
+            label: 'Model prediction: ' + (result.prediction ? 'Spam' : 'Ham'),
+            code:
+              'Ham: ' +
+              ((1 - result.probability) * 100).toFixed(1) +
+              '%\nSpam: ' +
+              (result.probability * 100).toFixed(1) +
+              '%',
+            text: 'This uses the model’s default decision. Compare thresholds later in Evaluation.',
+          },
+        ],
+      },
+    ],
+    caption: '',
+  }
+})
 const sourceCode = computed(() =>
   section.value.functions
     .map((name) => {
@@ -511,7 +609,7 @@ watch(
   () => props.chapter,
   () => {
     error.value = ''
-    if (props.chapter === 'neighbors') representation.value = 'tfidf'
+    if (['logistic', 'neighbors'].includes(props.chapter)) representation.value = 'tfidf'
     if (props.chapter === 'naive' && representation.value === 'numeric')
       representation.value = 'count'
     if (['text', 'tfidf'].includes(props.chapter)) {
@@ -537,13 +635,6 @@ onUnmounted(() => {
 
 <template>
   <div class="spam-lesson">
-    <aside v-if="section.extension" class="extension-note">
-      <strong>Extension</strong> · Complete material for further study. You can follow the core
-      route directly to
-      <a :href="courseHref('tutorials/tutorial05/decision')"
-        >Evaluation: Compare Models and Inspect Errors →</a
-      >
-    </aside>
     <section id="concept" class="chapter-theory">
       <h2>{{ section.conceptTitle }}</h2>
       <p class="concept-intro"><InlineText :text="section.idea" /></p>
@@ -570,7 +661,7 @@ onUnmounted(() => {
         <FlowDiagram :flow="tokenFlow" />
       </div>
       <FlowDiagram
-        v-if="section.flow && !['tfidf', 'tokenize'].includes(chapter)"
+        v-if="section.flow && !['tfidf', 'tokenize', 'naive'].includes(chapter)"
         :flow="section.flow"
         :values="initial"
       />
@@ -595,11 +686,19 @@ onUnmounted(() => {
           </table>
         </div>
       </article>
-      <FlowDiagram v-if="section.flow && chapter === 'tfidf'" :flow="section.flow" />
+      <FlowDiagram
+        v-if="section.flow && ['tfidf', 'naive'].includes(chapter)"
+        :flow="section.flow"
+      />
       <PythonCode
         v-if="section.focus && chapter !== 'tokenize'"
         :code="focusCode"
         :title="section.focus.title"
+      />
+      <ClassifierIllustration
+        v-if="['naive', 'logistic', 'neighbors'].includes(chapter)"
+        :key="chapter"
+        :chapter="chapter"
       />
       <details
         v-if="chapter === 'regularization' || chapter === 'validation'"
@@ -964,49 +1063,47 @@ onUnmounted(() => {
           </template>
         </div>
         <div v-if="activeRun?.kind === 'nb' && currentExplanation?.evidence" class="panel">
-          <h3>Class priors and word evidence</h3>
-          <p>
-            Training priors: Ham {{ fmt(currentExplanation.priors![0]!) }} · Spam
-            {{ fmt(currentExplanation.priors![1]!) }}
-          </p>
-          <div class="table-scroll">
-            <table class="spam-table" aria-label="Naive Bayes word evidence">
-              <thead>
-                <tr>
-                  <th>Word</th>
-                  <th>Feature value</th>
-                  <th>P(word | ham)</th>
-                  <th>P(word | spam)</th>
-                  <th>Log evidence for spam</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in currentExplanation.evidence" :key="item.word">
-                  <th>
-                    <code>{{ item.word }}</code>
-                  </th>
-                  <td>{{ item.value.toFixed(3) }}</td>
-                  <td>{{ item.ham.toPrecision(3) }}</td>
-                  <td>{{ item.spam.toPrecision(3) }}</td>
-                  <td :class="item.contribution > 0 ? 'spam-text' : 'ham-key'">
-                    {{ item.contribution.toFixed(3) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <FlowDiagram v-if="predictionFlow" :flow="predictionFlow" />
+          <details>
+            <summary>Inspect log-space contributions (optional)</summary>
+            <ScoreJourney
+              v-if="scoreEvidence"
+              :evidence="scoreEvidence"
+              kind="nb"
+              title="Naive Bayes: evidence for this message"
+            />
+          </details>
+          <details class="implementation-details">
+            <summary>Exact word likelihoods and contributions</summary>
+            <div class="table-scroll">
+              <table class="spam-table" aria-label="Naive Bayes word evidence">
+                <thead>
+                  <tr>
+                    <th>Word</th>
+                    <th>Feature value</th>
+                    <th>P(word | ham)</th>
+                    <th>P(word | spam)</th>
+                    <th>Log evidence for spam</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in currentExplanation.evidence" :key="item.word">
+                    <th>
+                      <code>{{ item.word }}</code>
+                    </th>
+                    <td>{{ item.value.toFixed(3) }}</td>
+                    <td>{{ item.ham.toPrecision(3) }}</td>
+                    <td>{{ item.spam.toPrecision(3) }}</td>
+                    <td :class="item.contribution > 0 ? 'spam-text' : 'ham-key'">
+                      {{ item.contribution.toFixed(3) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
           <p v-if="!currentExplanation.evidence.length">
             No known words remain. This prediction uses only the learned class priors.
-          </p>
-          <p>
-            Positive log evidence favours spam; negative favours ham. Each term is feature value ×
-            log(P(word | spam) / P(word | ham)). Add the log prior ratio
-            {{ currentExplanation.bias!.toFixed(3) }} to get
-            {{ currentExplanation.score!.toFixed(3) }}.
-          </p>
-          <p><strong>Message:</strong> {{ currentExplanation.text }}</p>
-          <p>
-            <strong>Estimated spam probability: {{ fmt(currentExplanation.probability) }}</strong>
           </p>
           <p v-if="activeRun.representation === 'tfidf'" class="muted">
             With TF–IDF, these are fitted nonnegative weight-based estimates rather than literal
@@ -1019,9 +1116,7 @@ onUnmounted(() => {
         <div class="panel">
           <h3>
             {{
-              chapter === 'neighbors'
-                ? 'Fit a local-vote classifier'
-                : 'Fit a learned weighted rule'
+              chapter === 'neighbors' ? 'Fit KNN on training messages' : 'Fit logistic regression'
             }}
           </h3>
           <div class="control-row">
@@ -1047,7 +1142,7 @@ onUnmounted(() => {
                 max="100"
                 step="0.1"
             /></label>
-            <p>Use the default C = 1 first. Explore its effect in the Regularization extension.</p>
+            <p>Use the default C = 1 first. Explore its effect in the Regularization chapter.</p>
           </details>
           <button
             class="primary"
@@ -1069,62 +1164,30 @@ onUnmounted(() => {
         </div>
         <template v-if="activeRun?.kind === chapterModel && currentExplanation"
           ><div class="panel">
-            <p class="colored-message">{{ currentExplanation.text }}</p>
-            <div class="spam-metrics">
-              <span
-                >Spam score<strong>{{ fmt(currentExplanation.probability) }}</strong></span
-              ><span v-if="currentExplanation.score !== undefined"
-                >Linear score z<strong>{{ currentExplanation.score.toFixed(3) }}</strong></span
-              ><span v-if="currentExplanation.bias !== undefined"
-                >Intercept b<strong>{{ currentExplanation.bias.toFixed(3) }}</strong></span
-              >
-            </div>
-            <template v-if="currentExplanation.contributions"
-              ><h3>Message-specific contributions wⱼxⱼ</h3>
-              <p class="muted">Largest 14 shown. z = intercept + sum of all contributions.</p>
-              <div
-                v-for="item in currentExplanation.contributions.slice(0, 14)"
-                :key="item.name"
-                class="contribution"
-              >
-                <code>{{ item.name }}</code>
-                <div class="signed-track">
-                  <i
-                    :class="item.value < 0 ? 'negative' : 'positive'"
-                    :style="{ width: `${(Math.abs(item.value) / maxContribution) * 48}%` }"
-                  />
-                </div>
-                <span>{{ item.value.toFixed(3) }}</span>
-              </div></template
-            >
-            <template v-if="currentExplanation.neighbors"
-              ><h3>The neighbours that voted</h3>
-              <div class="vote-bar" aria-label="Neighbour vote">
-                <span
-                  v-for="(item, i) in currentExplanation.neighbors"
-                  :key="i"
-                  :class="item.label ? 'spam' : 'ham'"
-                  >{{ label(item.label) }}</span
-                >
-              </div>
-              <article
-                v-for="(item, i) in currentExplanation.neighbors"
-                :key="i"
-                class="mail-card neighbour"
-              >
-                <div class="neighbour-head">
-                  <span class="tag" :class="item.label ? 'spam' : 'ham'">{{
-                    label(item.label)
-                  }}</span>
-                  <span class="distance-track"
-                    ><i :style="{ width: `${Math.min(100, item.distance * 100)}%` }"
-                  /></span>
-                  <span class="muted">distance {{ item.distance.toFixed(3) }}</span>
-                </div>
-                <p>{{ item.text }}</p>
-              </article>
-              <p class="muted">Spam vote = spam neighbours / k.</p></template
-            >
+            <FlowDiagram v-if="predictionFlow" :flow="predictionFlow" />
+            <details>
+              <summary>
+                {{
+                  chapter === 'neighbors'
+                    ? 'Inspect neighbour distances (optional)'
+                    : 'Inspect word contributions (optional)'
+                }}
+              </summary>
+              <ScoreJourney
+                v-if="scoreEvidence && currentExplanation.contributions"
+                :evidence="scoreEvidence"
+                kind="logistic"
+                title="Logistic regression: evidence for this message"
+              />
+              <NeighborExplorer
+                v-if="currentExplanation.neighbors"
+                title="KNN: neighbours for this message"
+                :neighbors="currentExplanation.neighbors"
+                :probability="currentExplanation.probability"
+                :metric="currentExplanation.metric"
+                :zero-vector="currentExplanation.zero_vector"
+              />
+            </details>
           </div>
           <details v-if="currentExplanation.score !== undefined" class="formula-recap">
             <summary>Recall the score-to-probability mapping</summary>
@@ -1375,10 +1438,7 @@ onUnmounted(() => {
       <template v-if="chapter === 'decision'">
         <div class="panel">
           <h3>Compare representations, then classifiers</h3>
-          <p>
-            These comparisons work even if you skipped the extensions. All candidates use the same
-            train / validation split.
-          </p>
+          <p>All candidates use the same train / validation split.</p>
           <div class="control-row">
             <button
               class="primary"
@@ -1674,13 +1734,6 @@ onUnmounted(() => {
 .spam-lesson {
   padding-bottom: 28px;
 }
-.extension-note {
-  margin-top: 20px;
-  padding: 14px 18px;
-  background: #edf3f7;
-  border-radius: 5px;
-  line-height: 1.7;
-}
 .worked-example {
   margin: 24px 0;
 }
@@ -1783,54 +1836,7 @@ summary {
   outline: 2px solid #aa613d;
   outline-offset: -2px;
 }
-.colored-message {
-  font-size: 1.1rem;
-  line-height: 2;
-}
 
-.vote-bar {
-  display: flex;
-  gap: 3px;
-  margin: 10px 0 16px;
-}
-.vote-bar span {
-  flex: 1;
-  text-align: center;
-  padding: 8px 0;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #45657e;
-  border-radius: 3px;
-}
-.vote-bar .spam {
-  background: #aa613d;
-}
-.neighbour {
-  margin: 8px 0;
-  padding: 12px 16px;
-}
-.neighbour p {
-  margin: 6px 0 0;
-}
-.neighbour-head {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 0.75rem;
-}
-.distance-track {
-  flex: 0 1 160px;
-  height: 8px;
-  background: #eef1f3;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.distance-track i {
-  display: block;
-  height: 100%;
-  background: #84929c;
-}
 .small-multiples {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1967,39 +1973,6 @@ summary {
 .spam-key {
   color: #aa613d;
 }
-.contribution {
-  display: grid;
-  grid-template-columns: minmax(90px, 1fr) 2fr 65px;
-  align-items: center;
-  gap: 12px;
-  margin: 10px 0;
-  font-size: 0.78rem;
-}
-.contribution code {
-  overflow-wrap: anywhere;
-}
-.contribution > span {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.signed-track {
-  height: 20px;
-  position: relative;
-  background: linear-gradient(to right, #f5f7f9 49.7%, #9dabb5 49.7%, #9dabb5 50.3%, #f5f7f9 50.3%);
-}
-.signed-track i {
-  position: absolute;
-  height: 12px;
-  top: 4px;
-}
-.signed-track .positive {
-  left: 50%;
-  background: #aa613d;
-}
-.signed-track .negative {
-  right: 50%;
-  background: #45657e;
-}
 .folds {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2057,10 +2030,6 @@ summary {
   }
   .small-multiples {
     grid-template-columns: 1fr;
-  }
-  .contribution {
-    grid-template-columns: 80px minmax(0, 1fr) 48px;
-    gap: 5px;
   }
   .spam-table th:first-child {
     min-width: 150px;

@@ -18,6 +18,9 @@ FOLDER = ROOT / 'src/tutorials/tutorial05'
 spec = importlib.util.spec_from_file_location('spam_experiment', FOLDER / 'experiment.py')
 science = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(science)
+figure_spec = importlib.util.spec_from_file_location('model_figures', FOLDER / 'model_figures.py')
+figures = importlib.util.module_from_spec(figure_spec)
+figure_spec.loader.exec_module(figures)
 
 
 class SpamExperimentTests(unittest.TestCase):
@@ -198,6 +201,76 @@ class SpamExperimentTests(unittest.TestCase):
             self.assertEqual(len(result['neighbors']), 5)
             self.assertEqual(result['probability'], sum(n['label'] for n in result['neighbors']) / 5)
             self.assertEqual([n['distance'] for n in result['neighbors']], sorted(n['distance'] for n in result['neighbors']))
+
+    def test_nb_illustration_matches_sklearn_on_the_worked_messages(self):
+        from sklearn.naive_bayes import MultinomialNB
+        documents = ['meet after class', 'meet for lunch', 'claim your prize', 'win your prize']
+        labels = [0, 0, 1, 1]
+        vectorizer = science.text_vectorizer('count', min_df=1, max_features=None)
+        counts = vectorizer.fit_transform(documents)
+        source = figures.EXAMPLES['nb']
+        self.assertEqual(len(vectorizer.vocabulary_), source['vocabulary'])
+        for label in (0, 1):
+            class_counts = np.asarray(counts[np.array(labels) == label].sum(axis=0)).ravel()
+            self.assertEqual(class_counts.sum(), source['totals'][label])
+            for word in source['words']:
+                self.assertEqual(class_counts[vectorizer.vocabulary_[word['name']]], word['counts'][label])
+        for alpha in (.1, 1, 5):
+            model = MultinomialNB(alpha=alpha).fit(counts, labels)
+            for text in ('claim prize', 'claim prize meet', '', 'prize prize class meet'):
+                features = {word: text.split().count(word) for word in vectorizer.vocabulary_}
+                example = figures.nb_example(features, alpha)
+                self.assertAlmostEqual(example['probability'], model.predict_proba(vectorizer.transform([text]))[0, 1])
+                self.assertAlmostEqual(example['bias'] + sum(t['value'] for t in example['contributions']), example['score'])
+        self.assertAlmostEqual(figures.nb_example()['probability'], 6 / 7)
+
+    def test_knn_illustration_uses_actual_cosine_distances_and_uniform_votes(self):
+        from sklearn.neighbors import KNeighborsClassifier
+        points = figures.EXAMPLES['knn']['points']
+        values, labels = [p['counts'] for p in points], [p['label'] for p in points]
+        for counts in [(3, 1), (1, 3), (5, 2)]:
+            for k in (1, 3, 5):
+                model = KNeighborsClassifier(n_neighbors=k, metric='cosine', algorithm='brute').fit(values, labels)
+                example = figures.knn_example(counts, k)
+                distances, _ = model.kneighbors([counts])
+                np.testing.assert_allclose([n['distance'] for n in example['neighbors']], distances[0], atol=1e-14)
+                self.assertAlmostEqual(example['probability'], model.predict_proba([counts])[0, 1])
+                for point in example['points']:
+                    self.assertAlmostEqual(point['x'] ** 2 + point['y'] ** 2, 1)
+        empty = figures.knn_example((0, 0))
+        self.assertTrue(empty['zero_vector'])
+        self.assertEqual(empty['neighbors'], [])
+        self.assertIsNone(empty['probability'])
+
+    def test_lr_illustration_and_fitted_feature_multiplications_reconstruct_scores(self):
+        example = figures.lr_example()
+        from sklearn.linear_model import LogisticRegression
+        source = figures.EXAMPLES['logistic']
+        rows = source['training']
+        vectorizer = science.text_vectorizer('count', vocabulary=[w['name'] for w in source['words']])
+        X = vectorizer.fit_transform([r['text'] for r in rows])
+        np.testing.assert_array_equal(X.toarray(), [r['counts'] for r in rows])
+        model = LogisticRegression(C=1, solver='liblinear', max_iter=1000, random_state=3612).fit(X, [r['label'] for r in rows])
+        np.testing.assert_allclose(model.coef_[0], [w['weight'] for w in source['words']])
+        self.assertAlmostEqual(model.intercept_[0], source['bias'])
+        for query in source['queries']:
+            state = figures.lr_example(query['counts'])
+            self.assertAlmostEqual(state['probability'], model.predict_proba(vectorizer.transform([query['text']]))[0, 1])
+        self.assertAlmostEqual(example['probability'], model.predict_proba([[1, 1, 0, 0]])[0, 1])
+        for representation in ('count', 'tfidf', 'numeric'):
+            model = science.build_model(kind='logistic', representation=representation).fit(self.lab.X_train, self.lab.y_train)
+            text = 'Claim your FREE £1000 prize now!!!'
+            result = science.explain_model(model, text, self.lab.X_train, self.lab.y_train)
+            for term in result['contributions']:
+                self.assertAlmostEqual(term['feature'] * term['weight'], term['value'])
+            self.assertAlmostEqual(result['bias'] + sum(t['value'] for t in figures.evidence_terms(result)), model.decision_function([text])[0])
+
+    def test_unknown_knn_message_explicitly_identifies_distance_ties(self):
+        model = science.build_model(kind='knn', representation='tfidf').fit(self.lab.X_train, self.lab.y_train)
+        result = science.explain_model(model, 'unknown3612', self.lab.X_train, self.lab.y_train)
+        self.assertTrue(result['zero_vector'])
+        self.assertEqual(result['metric'], 'cosine')
+        np.testing.assert_allclose([n['distance'] for n in result['neighbors']], 1)
 
     def test_additive_curves_center_at_reference_and_have_no_interactions(self):
         lab = science.Experiment(self.path)

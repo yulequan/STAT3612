@@ -16,7 +16,11 @@ function resolve(value: string): string {
       if (typeof result !== 'object' || result === null) return '…'
       result = (result as Record<string, unknown>)[key]
     }
-    return typeof result === 'number' ? result.toLocaleString('en-US') : '…'
+    return typeof result === 'number'
+      ? result.toLocaleString('en-US')
+      : typeof result === 'string'
+        ? result
+        : '…'
   })
 }
 </script>
@@ -30,7 +34,7 @@ function resolve(value: string): string {
         <div class="flow-nodes">
           <div v-for="node in stage.nodes" :key="node.label" class="flow-node">
             <strong><InlineText :text="resolve(node.label)" /></strong>
-            <code v-if="node.code" class="flow-code">{{ node.code }}</code>
+            <code v-if="node.code" class="flow-code">{{ resolve(node.code) }}</code>
             <p v-if="node.text"><InlineText :text="resolve(node.text)" /></p>
           </div>
         </div>

@@ -2,11 +2,11 @@
   "title": "Spam Message Classification",
   "subtitle": "From text to features to predictions",
   "task": "Turn labelled messages into a text classifier, explain how its inputs are built, and inspect its mistakes.",
-  "motivation": "No NLP background is assumed. Start with the original UCI SMS Spam Collection, see how NLTK splits text into tokens, build word-count and TF–IDF vectors, then use Naive Bayes, logistic regression and KNN. Complete extensions cover regularization, cross-validation, numerical features, LDA and an additive spline model (GAM); they can be studied separately.",
+  "motivation": "No NLP background is assumed. Start with the original UCI SMS Spam Collection, see how NLTK splits text into tokens, build word-count and TF–IDF vectors, then use Naive Bayes, logistic regression and KNN. The tutorial also covers regularization, cross-validation, numerical features, LDA and an additive spline model (GAM); they can be studied separately.",
   "stages": [
     {
       "title": "Understand and represent text",
-      "description": "Core route: inspect labels, tokenize a message, build a vocabulary and understand TF–IDF weights.",
+      "description": "inspect labels, tokenize a message, build a vocabulary and understand TF–IDF weights.",
       "chapters": [
         "inbox",
         "data",
@@ -17,7 +17,7 @@
     },
     {
       "title": "Learn from labelled messages",
-      "description": "Core route: connect word vectors to Naive Bayes, logistic regression and KNN.",
+      "description": "connect word vectors to Naive Bayes, logistic regression and KNN.",
       "chapters": [
         "naive",
         "logistic",
@@ -26,7 +26,7 @@
     },
     {
       "title": "Explore model selection and other features",
-      "description": "Extensions for instructor selection: regularization and training-only CV; numerical features with LDA and a binomial additive spline model (GAM). Skip directly to evaluation when following the core route.",
+      "description": "Regularization and training-only CV; numerical features with LDA and a binomial additive spline model (GAM). Compare the models in the Evaluation chapter.",
       "chapters": [
         "regularization",
         "validation",
@@ -48,9 +48,9 @@
     "Explain TF, document frequency, smoothed IDF and normalization using a small example.",
     "Train Naive Bayes, logistic regression and KNN with explicit sklearn tools.",
     "Compare representations and classifiers fairly, then explain false alarms and missed spam.",
-    "In the extensions: explore regularization, leakage-free CV, LDA and GAM on suitable features."
+    "Explore regularization, leakage-free CV, LDA and GAM on suitable features."
   ],
-  "prerequisites": "Basic Python and familiarity with classification from lectures. No previous NLP course is needed. Extension chapters briefly reconnect to regularization, cross-validation, LDA and GAM.",
+  "prerequisites": "Basic Python and familiarity with classification from lectures. No previous NLP course is needed. The later chapters reconnect to regularization, cross-validation, LDA and GAM.",
   "outcome": "An executed notebook with inspectable text features, model comparisons, representative errors and a justified final decision.",
   "chapters": [
     {
@@ -551,7 +551,7 @@
       "idea": "Naive Bayes combines the class proportions with word evidence.",
       "points": [
         "The prior is the class proportion. The likelihood describes how frequently a word occurs among tokens from that class.",
-        "Multinomial Naive Bayes uses word counts. “Naive” means treating word occurrences as conditionally independent given the class; real language does not fully satisfy this assumption.",
+        "Multinomial Naive Bayes uses word counts. “Naive” means treating word occurrences as conditionally independent given the class; real language does not fully satisfy this assumption. This assumption can make its probability estimates overconfident.",
         "Additive smoothing gives every vocabulary word a positive count in each class. With `alpha=1`, a word absent from a class does not force its whole message likelihood to zero."
       ],
       "worked": [
@@ -582,9 +582,10 @@
           ]
         },
         {
-          "title": "Classify `claim prize` by hand",
+          "title": "Word likelihoods for `claim prize`",
           "text": [
-            "Vocabulary size = 9; each class has 6 observed tokens. With `alpha=1`, each denominator is 6 + 9 = 15. Each prior is 1/2."
+            "Vocabulary size = 9; each class has 6 observed tokens. With `alpha=1`, each denominator is 6 + 9 = 15. Each class has 2 of the 4 training messages, so each prior is 2/4 = 1/2.",
+            "These are word likelihoods, not the probability that the message is spam. Combine them with each class prior, then normalize the two scores."
           ],
           "columns": [
             "Word",
@@ -609,42 +610,10 @@
               "3/15"
             ]
           ]
-        },
-        {
-          "title": "Multiply prior × word evidence, then normalize",
-          "text": [
-            "P(spam | `claim prize`) = 6 / (1 + 6) ≈ 0.857. sklearn uses log space to avoid multiplying tiny numbers. Repeated words contribute repeatedly; predicted probabilities need not be well calibrated."
-          ],
-          "columns": [
-            "Class",
-            "Prior × P(claim | class) × P(prize | class)",
-            "Score"
-          ],
-          "rows": [
-            [
-              "Ham",
-              "(1/2) × (1/15) × (1/15)",
-              "1/450"
-            ],
-            [
-              "Spam",
-              "(1/2) × (2/15) × (3/15)",
-              "6/450"
-            ]
-          ]
-        },
-        {
-          "title": "Compare counts with TF–IDF on real messages",
-          "text": [
-            "A `Pipeline` fits the vectorizer and `MultinomialNB` on training data, then reuses them for validation. Change only the vectorizer when comparing representations.",
-            "NB also accepts nonnegative TF–IDF weights, although they are not literal multinomial counts. Compare empirically using average precision (AP): a precision–recall ranking summary, where higher is better."
-          ],
-          "columns": [],
-          "rows": []
         }
       ],
       "starter": "from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\nfrom sklearn.pipeline import Pipeline\nfrom experiment import tokens\n\ntoy = [\"meet after class\", \"meet for lunch\", \"claim your prize\", \"win your prize\"]\nvectorizer = CountVectorizer(tokenizer=tokens, token_pattern=None, lowercase=False)\nX_toy = vectorizer.fit_transform(toy)\nclassifier = MultinomialNB(alpha=1)\nclassifier.fit(X_toy, [0, 0, 1, 1])\nprint(\"Vocabulary:\", vectorizer.get_feature_names_out())\nprint(\"Tokens per class:\", classifier.feature_count_.sum(axis=1))\nprint(\"P(spam | claim prize):\", classifier.predict_proba(vectorizer.transform([\"claim prize\"]))[0, 1])\n\nfor Vectorizer in [CountVectorizer, TfidfVectorizer]:\n    model = Pipeline([\n        (\"vectorizer\", Vectorizer(tokenizer=tokens, token_pattern=None, lowercase=False, min_df=2, max_features=2500)),\n        (\"classifier\", MultinomialNB(alpha=1))\n    ])\n    model.fit(X_train, y_train)\n    result = metrics(y_val, model.predict_proba(X_val)[:, 1])\n    print(\"NB representation comparison:\", Vectorizer.__name__, \"AP:\", round(result[\"average_precision\"], 3), \"recall:\", round(result[\"recall\"], 3))",
-      "experiment": "Keep NB fixed and compare counts with TF–IDF. Inspect a normal message containing `free`: which other words and prior evidence affect its prediction?",
+      "experiment": "Keep NB fixed and compare counts with TF–IDF. TF–IDF weights are not literal counts, so compare empirically using validation average precision (AP): a precision–recall ranking summary where higher is better. Inspect a normal message containing `free`: which other words and prior evidence affect its prediction?",
       "equation": "P(w_j\\mid c)=\\frac{N_{cj}+\\alpha}{\\sum_k N_{ck}+\\alpha V},\\qquad P(c\\mid\\mathbf x)\\propto P(c)\\prod_j P(w_j\\mid c)^{x_j}",
       "notation": [
         [
@@ -665,7 +634,8 @@
         ]
       ],
       "functions": [
-        "build_model"
+        "build_model",
+        "explain_model"
       ],
       "extension": false,
       "links": [
@@ -677,7 +647,53 @@
       "conceptTitle": "From class word counts to a prediction",
       "activityTitle": "Inspect learned word evidence",
       "pythonTitle": "Python: MultinomialNB and a representation comparison",
-      "flow": null,
+      "flow": {
+        "title": "From word likelihoods to a class prediction",
+        "layout": "vertical",
+        "stages": [
+          {
+            "title": "1 · Multiply prior × word likelihoods for each class",
+            "nodes": [
+              {
+                "label": "Ham score",
+                "code": "1/2 × 1/15 × 1/15 = 1/450",
+                "text": "P(ham) × P(claim | ham) × P(prize | ham)"
+              },
+              {
+                "label": "Spam score",
+                "code": "1/2 × 2/15 × 3/15 = 6/450",
+                "text": "P(spam) × P(claim | spam) × P(prize | spam)"
+              }
+            ]
+          },
+          {
+            "title": "2 · Divide each score by their sum: 1/450 + 6/450 = 7/450",
+            "nodes": [
+              {
+                "label": "P(ham | claim prize)",
+                "code": "(1/450) / (7/450)\n= 1/7 ≈ 14.3%",
+                "text": ""
+              },
+              {
+                "label": "P(spam | claim prize)",
+                "code": "(6/450) / (7/450)\n= 6/7 ≈ 85.7%",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "title": "3 · Choose the class with the larger probability",
+            "nodes": [
+              {
+                "label": "Prediction: Spam",
+                "code": "85.7% > 14.3%",
+                "text": "Both class probabilities sum to 100%."
+              }
+            ]
+          }
+        ],
+        "caption": "Dividing by the sum turns the two class scores into probabilities. Use the larger probability for the default prediction."
+      },
       "focus": {
         "title": "MultinomialNB: learn class counts and predict",
         "ranges": [
@@ -721,7 +737,8 @@
         ]
       ],
       "functions": [
-        "build_model"
+        "build_model",
+        "explain_model"
       ],
       "extension": false,
       "links": [],
@@ -769,7 +786,8 @@
         ]
       ],
       "functions": [
-        "build_model"
+        "build_model",
+        "explain_model"
       ],
       "extension": false,
       "links": [],
@@ -783,7 +801,7 @@
       "id": "regularization",
       "title": "Regularization: Controlling Word Weights",
       "question": "Should one rare word receive a huge weight?",
-      "idea": "With thousands of word features, rare training coincidences can receive large weights. This extension returns to the LR model and changes only its penalty strength.",
+      "idea": "With thousands of word features, rare training coincidences can receive large weights. Return to the LR model and changes only its penalty strength.",
       "points": [
         "Thousands of word columns can capture accidental associations. Compare training and validation performance while keeping the representation fixed.",
         "The L2 penalty shrinks weights towards 0. In sklearn, smaller `C` means a stronger penalty.",
@@ -863,7 +881,7 @@
       "id": "features",
       "title": "Numerical Features: Measuring a Message",
       "question": "What can we measure before understanding language?",
-      "idea": "Word vectors are one representation. For the LDA and GAM extensions, we instead measure five properties of each message.",
+      "idea": "Word vectors are one representation. For LDA and GAM, we instead measure five properties of each message.",
       "points": [
         "Measure characters, retained NLTK tokens, links, digits and exclamation marks.",
         "Spam tends to be longer and to contain more digits (prices, phone numbers), but the two classes overlap.",
@@ -952,7 +970,7 @@
       "id": "gam",
       "title": "GAM: Learning Curved Feature Effects",
       "question": "Allow curved effects of the log-transformed numerical measurements.",
-      "idea": "A numerical feature may have a curved effect. This extension builds an additive binomial model with separate spline bases for the five measurements.",
+      "idea": "A numerical feature may have a curved effect. We build an additive binomial model with separate spline bases for the five measurements.",
       "points": [
         "Numerical LR uses a constant slope for each log-transformed measurement. GAM allows that slope to change through a smooth curve.",
         "Each feature has its own spline basis, fitted by `SplineTransformer` followed by `LogisticRegression`. Effects add together; there are no feature interactions."

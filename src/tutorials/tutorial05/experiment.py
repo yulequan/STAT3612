@@ -126,6 +126,55 @@ def build_model(kind='logistic', representation='count', C=1., k=5, alpha=1.):
     return Pipeline(steps + [('classifier', classifier)])
 
 
+def explain_model(model, text, X_train, y_train):
+    """Explain the fitted pipeline on one message without refitting any step."""
+    vector = model[:-1].transform([text])
+    classifier = model.named_steps['classifier']
+    prediction = int(model.predict([text])[0])
+    if isinstance(classifier, MultinomialNB):
+        values = vector.toarray()[0]
+        names = model.named_steps['vectorizer'].get_feature_names_out()
+        log_ratio = classifier.feature_log_prob_[1] - classifier.feature_log_prob_[0]
+        contributions = values * log_ratio
+        active = np.flatnonzero(values)
+        order = active[np.argsort(-np.abs(contributions[active]))]
+        bias = float(classifier.class_log_prior_[1] - classifier.class_log_prior_[0])
+        return {'text': text, 'bias': bias, 'score': float(bias + contributions.sum()),
+                'probability': float(model.predict_proba([text])[0, 1]), 'prediction': prediction,
+                'priors': np.exp(classifier.class_log_prior_).tolist(),
+                'evidence': [{'word': str(names[j]), 'value': float(values[j]),
+                              'ham': float(np.exp(classifier.feature_log_prob_[0, j])),
+                              'spam': float(np.exp(classifier.feature_log_prob_[1, j])),
+                              'contribution': float(contributions[j])} for j in order]}
+    if not hasattr(classifier, 'coef_'):
+        distances, indices = classifier.kneighbors(vector)
+        return {'text': text, 'neighbors': [{'text': str(X_train[i]), 'label': int(y_train[i]),
+                               'distance': float(d)} for d, i in zip(distances[0], indices[0])],
+                'probability': float(model.predict_proba([text])[0, 1]), 'prediction': prediction,
+                'metric': classifier.metric,
+                'zero_vector': bool('vectorizer' in model.named_steps and vector.nnz == 0)}
+    values = vector.toarray()[0] if hasattr(vector, 'toarray') else vector[0]
+    contributions = values * classifier.coef_[0]
+    if 'vectorizer' in model.named_steps:
+        names = model.named_steps['vectorizer'].get_feature_names_out()
+    elif 'splines' in model.named_steps:
+        n = len(values) // len(FEATURES)
+        contributions = contributions.reshape(len(FEATURES), n).sum(axis=1)
+        names = FEATURES
+    else:
+        names = FEATURES
+    active = np.flatnonzero(contributions)
+    order = active[np.argsort(-np.abs(contributions[active]))]
+    bias = float(classifier.intercept_[0])
+    return {'contributions': [dict(name=str(names[i]), value=float(contributions[i]),
+                            **({'feature': float(values[i]), 'weight': float(classifier.coef_[0, i])}
+                               if isinstance(classifier, LogisticRegression) and 'splines' not in model.named_steps else {}))
+                        for i in order],
+            'bias': bias, 'score': float(bias + contributions.sum()),
+            'probability': float(model.predict_proba([text])[0, 1]), 'prediction': prediction,
+            'text': text, 'numeric': numerical_features([text])[0].tolist()}
+
+
 def cross_validate(messages, labels, representation='count', values=(.01, .1, 1., 10.)):
     """Fit vocabulary, IDF and model afresh inside EACH training fold."""
     folds = list(StratifiedKFold(5, shuffle=True, random_state=SEED).split(messages, labels))
@@ -269,48 +318,9 @@ class Experiment:
                 'fold_unknown': unknown[:16], 'run': self.fit({'C': best['C'], 'representation': representation})}
 
     def explain(self, params):
-        run = self.runs[params['id']]
-        model = run['model']
+        model = self.runs[params['id']]['model']
         text = params.get('text', 'Congratulations! Claim your free prize now!')
-        vector = model[:-1].transform([text])
-        classifier = model.named_steps['classifier']
-        if isinstance(classifier, MultinomialNB):
-            values = vector.toarray()[0]
-            names = model.named_steps['vectorizer'].get_feature_names_out()
-            log_ratio = classifier.feature_log_prob_[1] - classifier.feature_log_prob_[0]
-            contributions = values * log_ratio
-            active = np.flatnonzero(values)
-            order = active[np.argsort(-np.abs(contributions[active]))]
-            bias = float(classifier.class_log_prior_[1] - classifier.class_log_prior_[0])
-            return {'text': text, 'bias': bias, 'score': float(bias + contributions.sum()),
-                    'probability': float(model.predict_proba([text])[0, 1]),
-                    'priors': np.exp(classifier.class_log_prior_).tolist(),
-                    'evidence': [{'word': str(names[j]), 'value': float(values[j]),
-                                  'ham': float(np.exp(classifier.feature_log_prob_[0, j])),
-                                  'spam': float(np.exp(classifier.feature_log_prob_[1, j])),
-                                  'contribution': float(contributions[j])} for j in order]}
-        if not hasattr(classifier, 'coef_'):
-            distances, indices = classifier.kneighbors(vector)
-            return {'text': text, 'neighbors': [{'text': str(self.X_train[i]), 'label': int(self.y_train[i]),
-                                   'distance': float(d)} for d, i in zip(distances[0], indices[0])],
-                    'probability': float(model.predict_proba([text])[0, 1])}
-        values = vector.toarray()[0] if hasattr(vector, 'toarray') else vector[0]
-        contributions = values * classifier.coef_[0]
-        if 'vectorizer' in model.named_steps:
-            names = model.named_steps['vectorizer'].get_feature_names_out()
-        elif run['row']['kind'] == 'gam':
-            n = len(values) // len(FEATURES)
-            contributions = contributions.reshape(len(FEATURES), n).sum(axis=1)
-            names = FEATURES
-        else:
-            names = FEATURES
-        active = np.flatnonzero(contributions)
-        order = active[np.argsort(-np.abs(contributions[active]))]
-        bias = float(classifier.intercept_[0])
-        return {'contributions': [{'name': str(names[i]), 'value': float(contributions[i])} for i in order],
-                'bias': bias, 'score': float(bias + contributions.sum()),
-                'probability': float(model.predict_proba([text])[0, 1]),
-                'text': text, 'numeric': numerical_features([text])[0].tolist()}
+        return explain_model(model, text, self.X_train, self.y_train)
 
     def lda(self, params):
         row = self.fit({'kind': 'lda'})
