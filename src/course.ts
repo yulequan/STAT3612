@@ -28,6 +28,14 @@ export const demos: Demo[] = [
     href: courseHref('demos/gd-vs-sgd'),
     file: 'gd-vs-sgd-logistic-regression.html',
   },
+  {
+    id: 'svm',
+    title: 'Support Vector Machines',
+    description:
+      'Explore maximum margins, support vectors, hinge loss, feature maps and RBF generalization.',
+    href: courseHref('demos/svm'),
+    file: 'svm-explorations.html',
+  },
 ]
 
 export const quizzes: CourseItem[] = [
