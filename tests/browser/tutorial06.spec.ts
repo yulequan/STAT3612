@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
 const tutorial = `${base}tutorials/tutorial06/`
 
-test('Tutorial 06 is discoverable with direct notebook downloads and no Python runtime', async ({
+test('Tutorial 06 is discoverable with one ZIP download and no Python runtime', async ({
   page,
 }) => {
   await page.goto(base)
@@ -17,19 +17,21 @@ test('Tutorial 06 is discoverable with direct notebook downloads and no Python r
     page.getByRole('heading', { name: 'Machine Learning for Time Series Data', exact: true }),
   ).toBeVisible()
   const materials = page.getByRole('region', { name: 'Tutorial materials' })
-  await expect(materials.getByRole('link', { name: 'Download Jupyter notebook' })).toHaveAttribute(
+  await expect(materials.locator('a[download]')).toHaveCount(1)
+  await expect(materials.getByRole('link', { name: 'Notebook + setup (ZIP)' })).toHaveAttribute(
     'href',
-    '/dist/tutorials/tutorial06/time_series_tutorial.ipynb',
+    '/dist/tutorials/tutorial06/student.zip',
   )
+  await expect(page.locator('a[href$=".ipynb"]')).toHaveCount(0)
   const downloaded = page.waitForEvent('download')
-  await materials.getByRole('link', { name: 'Download Jupyter notebook' }).click()
+  await materials.getByRole('link', { name: 'Notebook + setup (ZIP)' }).click()
   const download = await downloaded
-  expect(download.suggestedFilename()).toBe('time_series_tutorial.ipynb')
-  const notebook = JSON.parse(readFileSync((await download.path())!, 'utf8'))
-  expect(notebook.nbformat).toBe(4)
+  expect(download.suggestedFilename()).toBe('student.zip')
   expect(
-    notebook.cells.filter((cell: { cell_type: string }) => cell.cell_type === 'code'),
-  ).toHaveLength(33)
+    readFileSync((await download.path())!)
+      .subarray(0, 2)
+      .toString(),
+  ).toBe('PK')
   expect(page.workers()).toHaveLength(0)
   await page.goto(`${base}tutorials`)
   await expect(page.getByRole('main').getByRole('link', { name: /Tutorial 06/ })).toBeVisible()
@@ -65,11 +67,11 @@ test('PDF, notebook and setup package work on a direct static subdirectory visit
     `${new URL(tutorial).pathname}time_series_slides.pdf`,
   )
   await expect(standalone).toHaveAttribute('target', '_blank')
-  const setup = await request.get(`${tutorial}requirements.txt`)
-  expect(setup.ok()).toBeTruthy()
-  expect(await setup.text()).toContain('statsmodels')
-  const instructions = await request.get(`${tutorial}README.md`)
-  expect(await instructions.text()).toContain('python -m pip install -r requirements.txt')
+  await expect(page.getByRole('main').locator('a[download]')).toHaveCount(1)
+  await expect(page.locator('a[href$=".ipynb"]')).toHaveCount(0)
+  await expect(page.getByRole('main')).toContainText(
+    'The ZIP includes requirements.txt and README.md',
+  )
   const downloaded = page.waitForEvent('download')
   await page.getByRole('main').getByRole('link', { name: 'Notebook + setup (ZIP)' }).click()
   expect(
@@ -113,6 +115,8 @@ test('Tutorial 06 fits phones and is searchable through the mobile menu', async 
   )
   await page.getByRole('button', { name: 'Open course menu' }).click()
   await expect(
-    page.locator('.sidebar-bottom').getByRole('link', { name: 'Download Jupyter notebook' }),
+    page.locator('.sidebar-bottom').getByRole('link', { name: 'Notebook + setup (ZIP)' }),
   ).toBeVisible()
+  await expect(page.locator('.sidebar-bottom a[download]')).toHaveCount(1)
+  await expect(page.locator('a[href$=".ipynb"]')).toHaveCount(0)
 })

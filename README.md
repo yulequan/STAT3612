@@ -16,8 +16,8 @@ Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overv
 or see its [student instructions](src/tutorials/tutorial05/README.md).
 
 Tutorial06 publishes **Machine Learning for Time Series Data: From Data Structures
-to Learned Representations** as a 34-slide embedded PDF with a direct Jupyter
-notebook download. Its companion has saved synthetic outputs, 33 code cells and
+to Learned Representations** as a 34-slide embedded PDF with a complete notebook
+ZIP download. Its companion has saved synthetic outputs, 33 code cells and
 14 figures; run it locally with the supplied requirements, not in browser Python.
 Open [Tutorial06](https://yulequan.github.io/STAT3612/tutorials/tutorial06/overview)
 or see its [setup and teaching notes](src/tutorials/tutorial06/README.md).
@@ -207,8 +207,8 @@ restricted security sandbox; the provided namespace omits held-out test arrays.
 ## Notebook
 
 For interactive tutorials, the **Notebook + data** link at the bottom of the sidebar downloads a
-complete student zip. Tutorial06 offers both a direct **Download Jupyter notebook**
-link and **Notebook + setup (ZIP)** in its overview, slides page and sidebar.
+complete student zip. Tutorial06 offers **Notebook + setup (ZIP)** in its overview,
+slides page and sidebar; the ZIP includes all notebook and setup files.
 On phones, open **Menu** to find sidebar downloads. Tutorial04 has
 one 35-cell notebook, including editable numerical functions, baseline outputs, a practical
 investigation and a bridge to alternative classifiers and convolution. Each web chapter links
