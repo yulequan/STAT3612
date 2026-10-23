@@ -266,7 +266,7 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main).toContainText('preliminary baseline results on your validation set')
   await expect(main).toContainText('one PDF directly to the Moodle proposal submission')
   const submissions = main.getByRole('table', { name: 'Final submission files' })
-  await expect(submissions.getByRole('row')).toHaveCount(4)
+  await expect(submissions.getByRole('row')).toHaveCount(5)
   const report = submissions.getByRole('row').filter({ hasText: 'Final report (PDF)' })
   await expect(report).toContainText('GroupID.pdf')
   await expect(report).toContainText('uploaded separately, not inside the ZIP')
@@ -278,7 +278,11 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main).toContainText('Jupyter notebooks, a Python project or another runnable format')
   await expect(main).toContainText('README.md')
   await expect(main).toContainText('instructions to reproduce your results and final predictions')
-  await expect(main).toContainText('strictly no longer than 8 minutes')
+  const video = submissions.getByRole('row').filter({ hasText: 'Presentation video' })
+  await expect(video).toContainText('Strictly no longer than 8 minutes')
+  await expect(video).toContainText('Unlisted')
+  await expect(video).toContainText('putting the link at the start of your report')
+  await expect(video).toContainText('Alternatively, include the video file in your ZIP')
   await expect(main).toContainText(
     'full name, university ID, HKU email, contribution percentage and work contributed',
   )
@@ -301,6 +305,22 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible()
   await expect(main).toContainText('Use only the data supplied through the course competition')
   await expect(main).toContainText('No external datasets, labels or pretrained model weights')
+  await expect(main.getByRole('link', { name: 'Overleaf', exact: true })).toHaveAttribute(
+    'href',
+    'https://www.overleaf.com/',
+  )
+  await expect(structure).toContainText('References numbered in order of first citation')
+  await expect(structure).toContainText('unsrt')
+  await expect(main).toContainText(
+    'Yes. We recommend using PyTorch to develop your deep neural networks.',
+  )
+  await expect(main.getByRole('link', { name: 'PyTorch', exact: true })).toHaveAttribute(
+    'href',
+    'https://pytorch.org/',
+  )
+  await expect(main).not.toContainText(
+    /probing|recover test labels|Compare them with simpler baselines/i,
+  )
   const text = await main.innerText()
   expect(text.match(/12 November 2026/g)).toHaveLength(1)
   expect(text.match(/6 December 2026/g)).toHaveLength(1)
@@ -321,7 +341,10 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
     expect(download.suggestedFilename()).toBe(file)
     const data = readFileSync((await download.path())!)
     if (file.endsWith('.docx')) expect(data.subarray(0, 2).toString()).toBe('PK')
-    else expect(data.toString()).toContain('\\documentclass[11pt,a4paper]{article}')
+    else {
+      expect(data.toString()).toContain('\\documentclass[11pt,a4paper]{article}')
+      expect(data.toString()).toContain('\\bibliographystyle{unsrt}')
+    }
   }
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)

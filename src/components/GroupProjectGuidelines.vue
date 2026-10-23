@@ -103,6 +103,17 @@ import { courseHref } from '../navigation'
             <td>Moodle: <code>GroupID.zip</code>, with the contents listed below.</td>
           </tr>
           <tr>
+            <th scope="row">Presentation video</th>
+            <td>
+              <strong>Strictly no longer than 8 minutes.</strong> We recommend uploading to
+              <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"
+                >YouTube</a
+              >
+              as <strong>Unlisted</strong> and putting the link at the start of your report.
+              Alternatively, include the video file in your ZIP.
+            </td>
+          </tr>
+          <tr>
             <th scope="row">Final predictions</th>
             <td>Kaggle: submit and select your final entries before the deadline.</td>
           </tr>
@@ -111,7 +122,6 @@ import { courseHref } from '../navigation'
       <p><strong>ZIP contents:</strong></p>
       <ul>
         <li>Presentation slides (PDF).</li>
-        <li>Presentation video: <strong>strictly no longer than 8 minutes</strong>.</li>
         <li>Code: Jupyter notebooks, a Python project or another runnable format.</li>
         <li>
           <code>README.md</code>: environment/dependencies, data locations, and instructions to
@@ -124,7 +134,8 @@ import { courseHref } from '../navigation'
       <h2 id="project-templates">Report templates</h2>
       <p>
         Use either template below. Keep its font size, margins and section headings, and export your
-        report as a PDF.
+        report as a PDF. For LaTeX, we recommend
+        <a href="https://www.overleaf.com/" target="_blank" rel="noopener noreferrer">Overleaf</a>.
       </p>
       <p>
         At the start of the report, include every member's
@@ -181,7 +192,10 @@ import { courseHref } from '../navigation'
           </tr>
           <tr>
             <th scope="row">References; Appendix (optional)</th>
-            <td>Cited sources; supplementary results or details, if needed.</td>
+            <td>
+              References numbered in order of first citation (LaTeX: BibTeX with
+              <code>unsrt</code>); supplementary results or details, if needed.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -194,10 +208,7 @@ import { courseHref } from '../navigation'
           Use only the data supplied through the course competition. No external datasets, labels or
           pretrained model weights; software libraries are allowed.
         </li>
-        <li>
-          Develop and tune models using your own validation split from the training data. Do not
-          attempt to recover test labels by probing the leaderboard.
-        </li>
+        <li>Develop and tune models using your own validation split from the training data.</li>
         <li>
           Do not share solutions or prediction files across groups. Keep course data within the
           course and Kaggle notebooks containing it private. Cite any reused code or ideas.
@@ -209,7 +220,11 @@ import { courseHref } from '../navigation'
       <h2 id="project-faq">Frequently asked questions</h2>
       <dl>
         <dt>Can we use deep neural networks?</dt>
-        <dd>Yes. Compare them with simpler baselines and justify your design choices.</dd>
+        <dd>
+          Yes. We recommend using
+          <a href="https://pytorch.org/" target="_blank" rel="noopener noreferrer">PyTorch</a> to
+          develop your deep neural networks.
+        </dd>
         <dt>Do we need a GPU?</dt>
         <dd>
           Not necessarily; it depends on your model. Google Colab is an option if GPU resources are

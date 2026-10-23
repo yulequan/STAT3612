@@ -1,3 +1,21 @@
+% Recommended editor: https://www.overleaf.com/ (upload this .tex file).
+% Edit the sample BibTeX entries below; this block rewrites references.bib.
+% Overleaf runs BibTeX automatically when you recompile.
+\begin{filecontents*}[overwrite]{references.bib}
+@book{hastie2009,
+  author = {Trevor Hastie and Robert Tibshirani and Jerome Friedman},
+  title = {The Elements of Statistical Learning: Data Mining, Inference, and Prediction},
+  publisher = {Springer},
+  edition = {2nd},
+  year = {2009}
+}
+@book{bishop2006,
+  author = {Christopher M. Bishop},
+  title = {Pattern Recognition and Machine Learning},
+  publisher = {Springer},
+  year = {2006}
+}
+\end{filecontents*}
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
 \usepackage{mathptmx,array,tabularx,titlesec,url}
@@ -11,7 +29,8 @@
 \begin{document}
 {\fontsize{16}{19}\selectfont\bfseries [Project Title]}\par
 STAT / SDST 3612 -- Fall 2026\par
-\textbf{Group ID:} [Group ID]
+\textbf{Group ID:} [Group ID]\par
+\textbf{Presentation video:} \url{[YouTube-Unlisted-URL]}
 
 \section*{Group Members and Contributions}
 Replace the example entries with every member's full name, university ID, HKU email, contribution percentage and work contributed. Percentages must total exactly 100\%. For a four-person group, remove one row and adjust the percentages.
@@ -37,6 +56,8 @@ Introduce the motivation, project objectives and main contributions.
 
 \section{Related Work}
 Discuss relevant studies and approaches, with citations.
+
+Cite sources as \cite{hastie2009}, \cite{bishop2006}, etc., numbered in order of first citation. Replace these example citations and reference entries with your own.
 
 \section{Methodology}
 Present your overall pipeline and explain your approach.
@@ -77,8 +98,8 @@ Discuss the implications, limitations and potential improvements.
 \section{Conclusion}
 Summarise the main findings and takeaways.
 
-\section*{References}
-List the sources, software and other work cited in the report.
+\bibliographystyle{unsrt}
+\bibliography{references}
 
 \section*{Appendix (Optional)}
 Include supplementary results or details, if needed; otherwise remove this section.
