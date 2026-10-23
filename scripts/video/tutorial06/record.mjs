@@ -58,8 +58,8 @@ try {
   for (const [index, scene] of spec.scenes.entries()) {
     const folder = path.join(output, scene.id + '-frames')
     await page.evaluate(
-      ({ image, cues }) => window.prepareScene({ image, cues }),
-      { image: scene.image, cues: scene.cues },
+      ({ image, cues, showPointer }) => window.prepareScene({ image, cues, showPointer }),
+      { image: scene.image, cues: scene.cues, showPointer: scene.showPointer !== false },
     )
     const capture = new SceneCapture(page)
     await capture.start(folder)

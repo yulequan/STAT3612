@@ -8,7 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'tutorial06_sample', ROOT / 'scripts/video/tutorial06/build_sample.py'
+    'tutorial06_sample', ROOT / 'scripts/video/tutorial06/build.py'
 )
 sample = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sample)
@@ -16,7 +16,7 @@ spec.loader.exec_module(sample)
 
 class Tutorial06SampleTest(unittest.TestCase):
     def test_focus_boxes_stay_inside_the_pdf_page(self):
-        for scene in sample.SCENES:
+        for scene in sample.ALL_SCENES:
             for cue in scene['cues']:
                 x0, y0, x1, y1 = cue['box']
                 self.assertLess(x0, x1)
@@ -67,6 +67,26 @@ class Tutorial06SampleTest(unittest.TestCase):
             subtitles = (output / 'tutorial06-sample.srt').read_text()
             self.assertIn('Hello. Next sentence.', subtitles)
             self.assertIn('00:00:00,450 --> 00:00:01,450', subtitles)
+
+
+    def test_all_34_slides_have_ordered_spoken_cues(self):
+        self.assertEqual([scene['page'] for scene in sample.ALL_SCENES], list(range(1, 35)))
+        import csv
+        import re
+        with open(ROOT / 'scripts/video/tutorial06/narration.csv', newline='') as handle:
+            scripts = {
+                int(row['page']): row['script_en']
+                for row in csv.DictReader(handle)
+            }
+        for scene in sample.ALL_SCENES:
+            script = re.sub(r'\s+', ' ', scripts[scene['page']].lower())
+            self.assertGreaterEqual(len(scene['cues']), 1)
+            for cue in scene['cues']:
+                self.assertIn(re.sub(r'\s+', ' ', cue['phrase'].lower()), script)
+
+    def test_page_selection(self):
+        self.assertEqual([scene['page'] for scene in sample.select_scenes('1-4')], [1, 2, 3, 4])
+        self.assertEqual(len(sample.select_scenes('all')), 34)
 
 
 if __name__ == '__main__':

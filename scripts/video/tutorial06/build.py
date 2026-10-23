@@ -1,9 +1,9 @@
-"""Build a short Tutorial 06 slide-video sample (pages 1-4).
+"""Build the narrated Tutorial 06 slide video.
 
 Usage:
-  python3 scripts/video/tutorial06/build_sample.py
-  python3 scripts/video/tutorial06/build_sample.py --skip-tts --skip-record
-  python3 scripts/video/tutorial06/build_sample.py --skip-record   # reuse capture
+  python3 scripts/video/tutorial06/build.py --pages all          # all 34 slides
+  python3 scripts/video/tutorial06/build.py --pages 1-4 --output-dir .cache/video/tutorial06-sample --pointer
+  python3 scripts/video/tutorial06/build.py --pages all --skip-tts --skip-record
 """
 
 import argparse
@@ -23,55 +23,25 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 SPEC = ROOT / 'src/tutorials/tutorial06/time_series_slides.pdf'
 CSV = HERE / 'narration.csv'
-DEFAULT_OUTPUT = ROOT / '.cache/video/tutorial06-sample'
+DEFAULT_OUTPUT = ROOT / '.cache/video/tutorial06-complete'
 PDF_WIDTH = 453.54
 PDF_HEIGHT = 255.12
 WIDTH = 1920
 HEIGHT = 1080
 FPS = 30
-
-# Focus boxes are in PDF points: [x0, y0, x1, y1].
-# Phrase timing comes from MiniMax word timestamps, so the pointer moves on the
-# spoken cue rather than on a guessed fraction of the audio.
-SCENES = [
-    {
-        'page': 1,
-        'id': '01-title',
-        'cues': [
-            {'phrase': 'Welcome to Tutorial Six', 'box': [30, 52, 338, 142]},
-        ],
-    },
-    {
-        'page': 2,
-        'id': '02-outline',
-        'cues': [
-            {'phrase': 'We begin with data', 'box': [14, 46, 325, 63]},
-            {'phrase': 'Next, models', 'box': [14, 113, 333, 130]},
-            {'phrase': 'Evaluation comes next', 'box': [14, 136, 334, 153]},
-            {'phrase': 'Finally, I introduce the group project', 'box': [14, 158, 332, 175]},
-        ],
-    },
-    {
-        'page': 3,
-        'id': '03-time-series',
-        'cues': [
-            {'phrase': 'Tabular data gives one row per patient', 'box': [14, 45, 145, 128]},
-            {'phrase': 'Here patient A has heart rate', 'box': [195, 45, 390, 152]},
-            {'phrase': 'The values matter, but so do their order', 'box': [80, 181, 372, 198]},
-        ],
-    },
-    {
-        'page': 4,
-        'id': '04-data-structures',
-        'cues': [
-            {'phrase': 'On the left, a table', 'box': [14, 45, 215, 142]},
-            {'phrase': 'On the right, a sequence tensor', 'box': [225, 45, 395, 145]},
-            {'phrase': 'Our synthetic ICU cohort has one hundred patients', 'box': [225, 164, 395, 200]},
-            {'phrase': 'When you load data, check which axis is time', 'box': [225, 45, 395, 68]},
-        ],
-    },
+CHAPTERS = [
+    ('Opening & roadmap', 1),
+    ('Data structures & tasks', 3),
+    ('Patterns & features', 6),
+    ('Preprocessing & leakage', 11),
+    ('Models: simple to sequence', 16),
+    ('Forecasting with ARIMA', 22),
+    ('Validation & evaluation', 25),
+    ('Summary & group project', 30),
 ]
 
+sys.path.insert(0, str(HERE))
+from scenes import SCENES as ALL_SCENES, SAMPLE_PAGES  # noqa: E402
 
 def ffmpeg_binary():
     configured = os.environ.get('FFMPEG_BIN') or shutil.which('ffmpeg')
@@ -141,12 +111,12 @@ def load_scripts():
         return {int(row['page']): row['script_en'] for row in csv.DictReader(handle)}
 
 
-def ensure_audio(output, scripts, skip_tts=False):
+def ensure_audio(output, scripts, scenes, skip_tts=False):
     audio_dir = output / 'audio'
     audio_dir.mkdir(parents=True, exist_ok=True)
     generated = False
     last_request = 0.0
-    for scene in SCENES:
+    for scene in scenes:
         page = scene['page']
         audio = audio_dir / f'{page:02d}.mp3'
         sidecar = audio.with_suffix('.json')
@@ -172,13 +142,13 @@ def ensure_audio(output, scripts, skip_tts=False):
         generated = True
         print(f'Generated audio for page {page}', flush=True)
     if not generated:
-        print('Reused all sample audio; no TTS request was made.', flush=True)
+        print('Reused all lesson audio; no TTS request was made.', flush=True)
 
 
-def ensure_pages(output):
+def ensure_pages(output, scenes):
     page_dir = output / 'pages'
     page_dir.mkdir(parents=True, exist_ok=True)
-    wanted = {scene['page'] for scene in SCENES}
+    wanted = {scene['page'] for scene in scenes}
     missing = [page for page in wanted if not (page_dir / f'{page:02d}.png').exists()]
     if not missing:
         return
@@ -195,10 +165,10 @@ def ensure_pages(output):
         source.replace(page_dir / f'{page:02d}.png')
 
 
-def write_record(output, scripts):
-    scenes = []
+def write_record(output, scripts, lesson_scenes, show_pointer=False):
+    timeline_scenes = []
     offset = 0.0
-    for scene in SCENES:
+    for scene in lesson_scenes:
         page = scene['page']
         audio = output / 'audio' / f'{page:02d}.mp3'
         meta = json.loads(audio.with_suffix('.json').read_text())
@@ -212,7 +182,7 @@ def write_record(output, scripts):
         lead = 0.45
         tail = 0.55
         total = math.ceil((lead + duration + tail) * FPS) / FPS
-        scenes.append({
+        timeline_scenes.append({
             'id': scene['id'],
             'page': page,
             'image': f'pages/{page:02d}.png',
@@ -223,10 +193,14 @@ def write_record(output, scripts):
             'tail': tail,
             'total': total,
             'cues': cues,
+            'showPointer': show_pointer,
             'offset': offset,
         })
         offset += total
-    record = {'title': 'Tutorial 06 · sample', 'scenes': scenes}
+    record = {
+        'title': 'Tutorial 06 · ' + ('complete' if len(lesson_scenes) == 34 else 'sample'),
+        'scenes': timeline_scenes,
+    }
     (output / 'record.json').write_text(json.dumps(record, indent=2))
     return record
 
@@ -236,7 +210,7 @@ def prepare_stage(output):
 
 
 def run_record(output):
-    run(['node', str(HERE / 'record_sample.mjs'), str(output)], cwd=ROOT)
+    run(['node', str(HERE / 'record.mjs'), str(output)], cwd=ROOT)
 
 
 def frames_file(folder, total):
@@ -305,7 +279,7 @@ def subtitle_cues(subtitle):
     return chunks
 
 
-def write_srt(output, timeline):
+def write_srt(output, timeline, filename='tutorial06-sample.srt'):
     entries = []
     for scene in timeline['scenes']:
         subtitles = json.loads(
@@ -320,12 +294,40 @@ def write_srt(output, timeline):
                 cue_text = re.sub(r'([.!?])(?=[A-Za-z])', r'\1 ', cue_text)
                 text = '\n'.join(textwrap.wrap(cue_text, width=42))
                 entries.append(f'{len(entries) + 1}\n{timestamp(start)} --> {timestamp(stop)}\n{text}')
-    (output / 'tutorial06-sample.srt').write_text('\n\n'.join(entries) + '\n')
+    (output / filename).write_text('\n\n'.join(entries) + '\n')
+
+
+def select_scenes(value):
+    if value == 'all':
+        return ALL_SCENES
+    pages = set()
+    for part in value.split(','):
+        part = part.strip()
+        if '-' in part:
+            first, last = (int(number) for number in part.split('-', 1))
+            pages.update(range(first, last + 1))
+        elif part:
+            pages.add(int(part))
+    selected = [scene for scene in ALL_SCENES if scene['page'] in pages]
+    if not selected:
+        raise ValueError(f'No slides selected by --pages {value!r}')
+    return selected
+
+
+def write_chapters(output, timeline):
+    by_page = {scene['page']: scene for scene in timeline['scenes']}
+    lines = []
+    for name, page in CHAPTERS:
+        start = by_page[page]['offset']
+        lines.append(f'{int(start // 60):02d}:{int(start % 60):02d} {name}')
+    (output / 'youtube-chapters.txt').write_text('\n'.join(lines) + '\n')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument('--pages', default='all', help='all, 1-4, or a comma-separated list')
+    parser.add_argument('--pointer', action='store_true', help='draw the arrow pointer (sample only)')
     parser.add_argument('--skip-tts', action='store_true')
     parser.add_argument('--skip-record', action='store_true')
     parser.add_argument('--skip-encode', action='store_true')
@@ -334,9 +336,11 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     ffmpeg = ffmpeg_binary()  # Fail before paid TTS if the encoder is unavailable.
     scripts = load_scripts()
-    ensure_audio(output, scripts, skip_tts=args.skip_tts)
-    ensure_pages(output)
-    timeline = write_record(output, scripts)
+    scenes = select_scenes(args.pages)
+    label = 'sample' if {scene['page'] for scene in scenes} <= SAMPLE_PAGES else 'complete'
+    ensure_audio(output, scripts, scenes, skip_tts=args.skip_tts)
+    ensure_pages(output, scenes)
+    timeline = write_record(output, scripts, scenes, show_pointer=args.pointer)
     prepare_stage(output)
     if not args.skip_record:
         run_record(output)
@@ -348,14 +352,15 @@ def main():
         encode_scene(ffmpeg, output, scene)
     clips = '\n'.join(f"file 'clips/{scene['id']}.mp4'" for scene in timeline['scenes']) + '\n'
     (output / 'clips.txt').write_text(clips)
-    final = output / 'tutorial06-sample.mp4'
+    final = output / f'tutorial06-{label}.mp4'
     run([
         ffmpeg, '-hide_banner', '-loglevel', 'error', '-y',
         '-f', 'concat', '-safe', '0', '-i', str(output / 'clips.txt'),
         '-c', 'copy', '-movflags', '+faststart',
-        '-metadata', 'title=STAT3612 Tutorial 06 - sample', str(final),
+        '-metadata', f'title=STAT3612 Tutorial 06 - {label}', str(final),
     ])
-    write_srt(output, timeline)
+    write_srt(output, timeline, f'tutorial06-{label}.srt')
+    write_chapters(output, timeline)
     usage = sum(
         json.loads((output / 'audio' / f'{scene["page"]:02d}.json').read_text())
         ['extra_info']['usage_characters']
@@ -372,7 +377,8 @@ def main():
         'usage_characters': usage,
         'estimated_tts_cny_at_turbo_rate': round(usage * 2 / 10000, 4),
         'subtitles': 'external SRT only; no burned-in captions or background',
-        'note': 'Sample only. Full Tutorial 06 will add pages 5-34.',
+        'pointer': args.pointer,
+        'note': 'Sample.' if label == 'sample' else 'Complete Tutorial 06, pages 1-34.',
     }
     (output / 'summary.json').write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))

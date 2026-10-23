@@ -1,18 +1,18 @@
-# Tutorial 06 讲解视频 · 分页讲稿（待确认）
+# Tutorial 06 讲解视频 · 分页讲稿
 
-**状态：** 仅讲稿 / 尚未生成音频或视频。确认后再进入 MiniMax TTS 与录制。
+**状态：** 讲稿已确认；34 页完整视频已生成。
 
 **口播语言：** English（slides 全英文；与 Tutorial 04 的英文讲解一致）。中文只用于本文件的审阅说明。
 
 **声音：** MiniMax `speech-2.8-turbo`，`English_Insightful_Speaker`，speed `0.95`，mono MP3 32 kHz / 128 kbps（与 Tutorial 04 相同）。
 
-**预计时长：** 34 页，约 **23:36**（按 145 wpm 估算；TTS 实际语速会有差异，目标 24–25 分钟）。每页已预留约 0.7 s 的 lead/tail。
+**实际时长：** **24:25**（narration 23:50；34 页，含每页 lead/tail）。原按 145 wpm 估算为 23:36。
 
-**Pointer：** 白色小箭头 + 琥珀色圆角 focus ring；不压暗、不裁切、不遮挡正文。箭头停在目标框外侧，随讲稿关键词平滑移动；每页 2–5 个 focus 点。
+**Focus：** 完整视频不使用箭头 pointer；每页只显示琥珀色圆角 focus ring，不压暗、不裁切、不遮挡正文。下面的“Pointer”行记录 focus 的移动路径。
 
 **字幕：** 外挂 SRT（MiniMax word timestamps），不烧录进画面。
 
-**输出：** 一个 `tutorial06-complete.mp4` + `.srt` + `youtube-chapters.txt`；可选按 chapter 切分。
+**输出：** `.cache/video/tutorial06-complete/` 下的 `tutorial06-complete.mp4`、`.srt`、`youtube-chapters.txt`、`contact-sheet.png`。
 
 
 ---
@@ -21,24 +21,24 @@
 
 | Chapter | Slides | Time |
 |---|---:|---:|
-| 00 Opening & roadmap | 1–2 | 0:48 |
-| 01 Data structures & tasks | 3–5 | 2:09 |
-| 02 Patterns & features | 6–10 | 3:22 |
-| 03 Preprocessing & leakage | 11–15 | 3:58 |
-| 04 Models: simple to sequence | 16–21 | 4:00 |
-| 05 Forecasting with ARIMA | 22–24 | 2:17 |
-| 06 Validation & evaluation | 25–29 | 3:39 |
-| 07 Summary & group project | 30–34 | 3:26 |
-| **Total** | **1–34** | **23:36** |
+| 00 Opening & roadmap | 1–2 | 0:49 |
+| 01 Data structures & tasks | 3–5 | 2:14 |
+| 02 Patterns & features | 6–10 | 3:37 |
+| 03 Preprocessing & leakage | 11–15 | 3:43 |
+| 04 Models: simple to sequence | 16–21 | 3:58 |
+| 05 Forecasting with ARIMA | 22–24 | 2:19 |
+| 06 Validation & evaluation | 25–29 | 4:07 |
+| 07 Summary & group project | 30–34 | 3:37 |
+| **Total** | **1–34** | **24:25** |
 
-> 时长按 145 wpm 估算。若 TTS 偏慢，优先压缩第 4、14、26、31 页的句子；内容结构不变。
+> 以上为实际 TTS 视频时长（含每页 0.45 s lead + 0.55 s tail）。
 
 
 ---
 
-## 00 · Opening & roadmap（0:48）
+## 00 · Opening & roadmap（0:49）
 
-### 01 · Title — 14.5 s
+### 01 · Title — 12.3 s
 
 **Pointer：** 标题 → “Machine Learning for Time Series Data” → 左下角 Tutor 信息（轻点即离开）
 
@@ -48,7 +48,7 @@
 
 > Welcome to Tutorial Six. Today we look at machine learning for time series data, and connect the data structures, the features, the models, and the evaluation choices that make a time-series project trustworthy.
 
-### 02 · Tutorial outline — 33.0 s
+### 02 · Tutorial outline — 34.8 s
 
 **Pointer：** 依次指 1 Data、4 Models、5 Evaluation、6 Group project；最后停在 6。
 
@@ -60,9 +60,9 @@
 
 ---
 
-## 01 · Data structures & tasks（2:09）
+## 01 · Data structures & tasks（2:14）
 
-### 03 · Time series data: adding a time dimension — 37.5 s
+### 03 · Time series data: adding a time dimension — 39.3 s
 
 **Pointer：** 先指左侧表格，再指 patient A 的折线图，最后指底部 “Observations indexed by time”。
 
@@ -72,7 +72,7 @@
 
 > Tabular data gives one row per patient: age, heart rate, and so on. A time series keeps the same patient but adds an axis. Here patient A has heart rate at hours zero to three: 80, 84, 96, 108. The values matter, but so do their order and the interval between them. That sounds simple, yet it changes everything downstream. We can no longer shuffle rows freely, and a single summary may hide the pattern we care about. The rest of this tutorial is about making those choices deliberately.
 
-### 04 · Data structures: rows, time steps and channels — 48.5 s
+### 04 · Data structures: rows, time steps and channels — 46.7 s
 
 **Pointer：** 先框 Z ∈ R^{N×D} 表格，再框右侧 X ∈ R^{N×L×F} 张量，最后停在 “100 × 24 × 3”。
 
@@ -82,7 +82,7 @@
 
 > These are the two shapes you will use all the time. On the left, a table: N examples and D features per example. One row is one patient. On the right, a sequence tensor: N examples, L time steps, and F channels. One patient is an L by F block. Our synthetic ICU cohort has one hundred patients, twenty-four hourly steps, and three vital signs, so the tensor is one hundred by twenty-four by three. With one vital sign, F equals one, and many libraries store it as N by L. When you load data, check which axis is time. Most bugs start with a shape that looks plausible but has time in the wrong place.
 
-### 05 · Time series tasks: prediction and detection — 43.0 s
+### 05 · Time series tasks: prediction and detection — 44.9 s
 
 **Pointer：** 按行移动：Forecasting → Classification → Sequence labeling → Anomaly detection；最后指 “Output axes”。
 
@@ -94,9 +94,9 @@
 
 ---
 
-## 02 · Patterns & features（3:22）
+## 02 · Patterns & features（3:37）
 
-### 06 · Characteristics: order and temporal patterns — 40.0 s
+### 06 · Characteristics: order and temporal patterns — 37.6 s
 
 **Pointer：** 依次框 Trend、Daily rhythm、Sudden change 三个小图；最后指 “Temporal order”。
 
@@ -106,7 +106,7 @@
 
 > Time series have patterns that tabular rows do not. The left panel shows a trend, a sustained rise. The middle panel shows a daily rhythm, a repeating seasonal shape. The right panel shows a sudden change, a shock. Order is the common thread: which reading came first? If you shuffle these points, the trend and the rhythm disappear. So before you engineer features, look at the series. Ask whether the pattern is a trend, a cycle, a shock, or dependence on recent values. That diagnosis suggests which features and which validation scheme will be honest.
 
-### 07 · Modeling approach: from sequences to features — 37.5 s
+### 07 · Modeling approach: from sequences to features — 36.7 s
 
 **Pointer：** 沿箭头 Hourly readings → Temporal features → Classifier → Class probability；最后指下面的问题。
 
@@ -116,7 +116,7 @@
 
 > One practical approach is to compress the history into features, then use a standard classifier. Hourly readings become a small set of numbers, such as the mean, the latest value, and the change. A logistic model or a tree ensemble maps those features to a probability. This is often the strongest baseline, and it is easy to explain. The key question is on the slide: which feature distinguishes a rising series from a falling one? If your features cannot tell those two apart, no classifier can recover the information.
 
-### 08 · Feature engineering: level, recency and change — 41.5 s
+### 08 · Feature engineering: level, recency and change — 47.8 s
 
 **Pointer：** 先框 A/B 两行原始序列，再指 Mean 列的 90/90，再指 Latest value 的 120/60，最后指 Change 的 +60/−60。
 
@@ -126,7 +126,7 @@
 
 > Here is why one summary is not enough. Patient A rises from 60 to 120; patient B falls from 120 to 60. Both have mean 90. The mean captures the overall level, but it loses the order. The latest value separates them: 120 versus 60. The change, latest minus earliest, is plus 60 versus minus 60. That is the direction and size of the movement. In practice, give the model several complementary views: level, recency, and change. Later, add variability and extremes. The model can then combine them, but you must make sure the information is actually present.
 
-### 09 · Feature engineering: temporal summaries — 35.0 s
+### 09 · Feature engineering: temporal summaries — 44.1 s
 
 **Pointer：** 按行轻点：Overall level、Recency、Change、Variability、Extremes、Context。
 
@@ -136,7 +136,7 @@
 
 > These are useful summaries to compute over the observed window. Overall level: the mean heart rate. Recency: time since the last measurement, and the latest value. Change: the recent six-hour mean minus the previous six-hour mean. Variability: the standard deviation, or hour-to-hour differences. Extremes: maximum heart rate, minimum blood pressure. Context: age and admission type. Notice that these are not model-specific. They are a language for describing a history. Build a small, interpretable set first, then check whether more features improve validation performance.
 
-### 10 · Task definition: input window and target — 47.5 s
+### 10 · Task definition: input window and target — 45.8 s
 
 **Pointer：** 先框左侧 observed 0–23，再指 Prediction cutoff 竖线，再框右侧 outcome 24–29，最后指 Cohort。
 
@@ -148,9 +148,9 @@
 
 ---
 
-## 03 · Preprocessing & leakage（3:58）
+## 03 · Preprocessing & leakage（3:43）
 
-### 11 · Preprocessing: where gaps come from — 43.5 s
+### 11 · Preprocessing: where gaps come from — 37.2 s
 
 **Pointer：** 先指 A/B/C 三类 gap 标签，再框 Patient A 图中的阴影缺口，最后指底部三条定义。
 
@@ -160,7 +160,7 @@
 
 > Real clinical data are full of gaps, and the reason for a gap matters. Not measured means no reading or test was ordered. The absence itself can be informative, because monitoring decisions are not random. A charting gap means the value exists but was not entered, so check whether the gap follows a pattern, such as nights or weekends. Irregular timing means readings arrive at event times, not on a fixed grid. Patient A shows a long gap around hours six to twelve. If we treat that gap as a zero, we invent a dramatic drop that never happened. Missing is not zero.
 
-### 12 · Preprocessing: filling one gap — 48.5 s
+### 12 · Preprocessing: filling one gap — 41.5 s
 
 **Pointer：** 依次框 LOCF、Mean/median、Linear interpolation、Missing indicator 四个小图；最后指 “Keep the trace”。
 
@@ -170,7 +170,7 @@
 
 > There are several ways to fill a gap, and each has a failure mode. Last value carried forward keeps the last level, but it invents a flat run that can hide a real change. Mean or median is simple and stable, but it erases the within-window pattern. Linear interpolation is smooth for short gaps, but it assumes a straight path across long ones. A better default is to keep the trace: add a missing-value indicator and the time since the last measured value. Then the model knows that the value is imputed, and how old the information is. Choose the fill method on validation data, not on the test set. And never fill using future values.
 
-### 13 · Preprocessing: irregular timing to a grid — 48.5 s
+### 13 · Preprocessing: irregular timing to a grid — 48.3 s
 
 **Pointer：** 先框左上 “Irregular readings, 4-hour bins”，再指阴影 empty bin，再框右侧 daily grid，最后指底部三条规则。
 
@@ -180,7 +180,7 @@
 
 > Irregular readings need a grid. For vitals, an hourly grid is natural; for the project, one row per day. Bins are half-open, so each event belongs to exactly one bin. Then aggregate: count, sum, last, mean, max, and time since the last event. The empty-bin rule is crucial. In an event log, an empty day means zero clicks, so fill it with zero. For a measurement, an empty bin means unknown, so keep it missing. The bottom of the slide shows the difference: the four-hour bin with no reading is not a measured value of zero. This one distinction, zero versus unknown, changes the meaning of the feature and the model that can learn from it.
 
-### 14 · Preprocessing in pandas — 53.5 s
+### 14 · Preprocessing in pandas — 50.9 s
 
 **Pointer：** 先指左侧 daily grid 代码（pivot_table / reindex），再指右侧 hourly grid 代码（date_range / reindex / ffill / interpolate），最后指 “Development data”。
 
@@ -190,7 +190,7 @@
 
 > Here is the same logic in pandas. On the left, events become a daily grid. A pivot table puts sample id on the rows and day on the columns, sums clicks, and fills an empty day with zero. Re-indexing makes sure every day from zero to twenty-eight exists. On the right, readings become an hourly grid. A date range creates the full index, re-indexing introduces missing values for absent hours, forward fill carries the last value forward for at most two hours, and interpolation fills short gaps for at most three hours. The missing indicator is a separate column, not a replacement. Development data means explore these choices on train and validation, and keep the test set independent. The test set is not a place to tune imputation.
 
-### 15 · Feature engineering in Python — 43.5 s
+### 15 · Feature engineering in Python — 40.2 s
 
 **Pointer：** 先指 mean/max 两行，再指 last_6h / previous_6h / change 三行，最后框底部的 “Can we use hour 24?” 问题。
 
@@ -202,7 +202,7 @@
 
 ---
 
-## 04 · Models: simple to sequence（4:00）
+## 04 · Models: simple to sequence（3:58）
 
 ### 16 · Classifiers: logistic regression and trees — 38.5 s
 
@@ -214,7 +214,7 @@
 
 > With a feature table, standard classifiers apply. Logistic regression computes a linear score and passes it through a sigmoid, so the output is a probability. Tree-based methods, such as a random forest or gradient boosting, can capture nonlinear rules and interactions among the summaries. Neither is automatically better. Always start with a baseline: predict the training event rate for everyone. If a model cannot beat that baseline on validation log loss, the extra complexity is not earning its place. And use the same features and the same split when you compare.
 
-### 17 · Sequence models: learning a representation — 45.5 s
+### 17 · Sequence models: learning a representation — 48.7 s
 
 **Pointer：** 沿箭头 Hourly vitals → Temporal encoder → Representation → Task head；最后指 “Training objective”。
 
@@ -224,7 +224,7 @@
 
 > Instead of hand-building features, a sequence model learns a representation. An encoder, g with parameters theta, reads the hourly vitals and produces either a single representation vector per patient, h, or a representation for every time step, H. A task head then maps that representation to the required output: a forecast, a class, a label sequence, or an anomaly score. Training uses a suitable objective, such as forecast error, classification loss, or an anomaly-learning objective. The important idea is the separation: the encoder learns temporal structure, and the head answers the question. You can reuse the encoder for a different task if the input history is the same.
 
-### 18 · RNN: recurrent memory — 33.5 s
+### 18 · RNN: recurrent memory — 32.0 s
 
 **Pointer：** 沿 x1 → h1 → h2 → … → hL → Task head 移动；最后指 “Limitation”。
 
@@ -234,7 +234,7 @@
 
 > The simplest sequence encoder is a recurrent network. At each hour it combines the current input with the previous hidden state through a hyperbolic tangent nonlinearity. The hidden state is the memory of the sequence so far. The limitation is practical: on long sequences, gradients can vanish or explode, so the network may forget distant information. That motivates gated architectures. We will not derive the gradients here; just recognize the failure mode and the reason for the next slide.
 
-### 19 · GRU: gated memory — 42.0 s
+### 19 · GRU: gated memory — 36.9 s
 
 **Pointer：** 先指左侧 GRU cell 流程，再指 Reset gate、Update gate，最后指 LSTM 三行。
 
@@ -244,7 +244,7 @@
 
 > A gated recurrent unit, or G R U, adds gates to the recurrent cell. The reset gate controls how much past information is used in the candidate state. The update gate balances the old state against the new candidate. A long short-term memory model, L S T M, takes a related approach but keeps a separate cell state. You do not need the equations today. The practical message is that gating gives the model a way to keep information over longer spans and to forget what is no longer relevant. For the project, these are options to try, not requirements.
 
-### 20 · Transformer: attention across time — 39.5 s
+### 20 · Transformer: attention across time — 37.4 s
 
 **Pointer：** 先框四个 hour token，再框 Self-attention + time encoding 条带，最后指 “Time order”。
 
@@ -254,7 +254,7 @@
 
 > A transformer takes a different route. Self-attention lets each hour look at other hours in the window and decide what to combine. The formula on the slide is the standard attention operation. Intuitively, a query says what to look for, a key says what is available, and a value is the content that gets combined. Because attention alone has no notion of order, we add positional or time encodings. For time series, the window is short enough that this can work well, but it needs more data and more compute than the simpler baselines.
 
-### 21 · Attention masks: observed vs. future inputs — 40.5 s
+### 21 · Attention masks: observed vs. future inputs — 38.9 s
 
 **Pointer：** 按行移动：Whole window → Alerting hour by hour → Forecasting → Padding。
 
@@ -266,9 +266,9 @@
 
 ---
 
-## 05 · Forecasting with ARIMA（2:17）
+## 05 · Forecasting with ARIMA（2:19）
 
-### 22 · Forecasting: ARIMA (p, d, q) in pictures — 48.0 s
+### 22 · Forecasting: ARIMA (p, d, q) in pictures — 42.2 s
 
 **Pointer：** 沿 Observed levels → Difference d times → AR(p)+MA(q) → Restore levels；再指 last p values / last q surprises；最后指 Example (1,1,1)。
 
@@ -278,7 +278,7 @@
 
 > Now a short detour into classical forecasting. ARIMA is a family of models for a single series. The picture shows the logic. Start with the observed levels. Difference the series d times to remove a trend and stabilize the mean. Fit an autoregressive part and a moving-average part to the differenced values. The AR part uses the last p values; the MA part uses the last q surprises, or errors. Then restore the levels to get the forecast. For example, with p, d, q equal to one, one, one, we predict the next change from the last change and the last surprise. We will not cover estimation or order search; just recognize the structure.
 
-### 23 · Forecasting: what differencing does — 44.0 s
+### 23 · Forecasting: what differencing does — 43.8 s
 
 **Pointer：** 依次框 d=0、d=1、d=2 三个面板；最后指底部三行解释。
 
@@ -288,7 +288,7 @@
 
 > Differencing is the key idea, and this slide shows why. With d equal to zero, we model the level directly. A constant mean misses the drift, and the lag-one autocorrelation stays near one. With d equal to one, we model the change. The drift becomes a stable mean, and the autocorrelation drops to about zero. With d equal to two, we model changes of changes; here that adds unnecessary noise, and the autocorrelation becomes negative. So d is not a knob to maximize. It is a choice about what you want to model: levels, changes, or changes of changes. Check the differenced series before fitting.
 
-### 24 · Forecasting: ARIMA and its variants — 45.0 s
+### 24 · Forecasting: ARIMA and its variants — 49.6 s
 
 **Pointer：** 按行移动：AR/MA/ARMA → ARIMA → SARIMA → ARIMAX/SARIMAX；最后指底部 seasonal lag 图。
 
@@ -300,9 +300,9 @@
 
 ---
 
-## 06 · Validation & evaluation（3:39）
+## 06 · Validation & evaluation（4:07）
 
-### 25 · Model comparison: assumptions and trade-offs — 44.5 s
+### 25 · Model comparison: assumptions and trade-offs — 49.6 s
 
 **Pointer：** 按行移动 constant → logistic → trees → RNN/GRU → transformer；最后框 “Fair comparison”。
 
@@ -312,7 +312,7 @@
 
 > Here is the comparison we want you to carry away. A constant probability is the first reference. Logistic regression uses explicit summaries and is easy to audit. Tree ensembles capture interactions among summaries, but can overfit and can produce poorly calibrated probabilities. Recurrent networks and gated recurrent units learn memory from hourly vitals; check window length, tuning, and variability across runs. Transformers use attention across hours; check position encodings, data size, and compute. The last row is the most important: a fair comparison uses the same patients, the same input window, the same labels, and the same metric. Otherwise you are comparing experimental setups, not models.
 
-### 26 · Validation: development splits and a final test — 48.5 s
+### 26 · Validation: development splits and a final test — 52.5 s
 
 **Pointer：** 先沿 Train → Validation → Test 三个框移动，再指 “Choose the question”“Combine if needed”“Develop freely”“Freeze, then test”。
 
@@ -322,7 +322,7 @@
 
 > Validation is where time-series projects usually fail. We need three parts: train, validation, and test. Train fits candidates. Validation is for exploring, comparing, and tuning. Test is the final evaluation. The split must respect the prediction question. For new patients, group by patient, so the same person does not appear in both train and test. For future admissions, split by time. If you need both, enforce group and time separation. You may develop freely on train and validation: choose features, revise the split, inspect errors. But once you freeze the pipeline, refit on train plus validation, and apply that frozen pipeline to test once. That is the sequence that gives you an honest final number.
 
-### 27 · Data leakage: three boundaries to protect — 46.5 s
+### 27 · Data leakage: three boundaries to protect — 51.6 s
 
 **Pointer：** 依次指 Prediction cutoff、Evaluation unit、Final test；最后指 “Validation is development”。
 
@@ -332,7 +332,7 @@
 
 > Leakage has three boundaries. First, the prediction cutoff: every input must be available when the prediction is made. A diagnosis first recorded after hour twenty-three is not a valid input. Second, the evaluation unit: keep related records together when evaluating unseen people. Hourly rows from one patient, or repeat stays from one person, are the same grouping problem. Third, the final test: keep test statistics, labels, and feedback out of development. Fitting a scaler on train plus test is a classic mistake. Finally, remember that validation is development. Using validation to improve a model is expected, but its score can become optimistic. That is why the final test must stay untouched.
 
-### 28 · Evaluation: log loss — 36.0 s
+### 28 · Evaluation: log loss — 46.2 s
 
 **Pointer：** 先框公式，再依次指表格三行（0.60、0.90、0.90 且 y=0），最后指 2.303。
 
@@ -342,7 +342,7 @@
 
 > Log loss measures probability quality. The formula averages the negative log likelihood of the observed labels. The table makes the scale concrete. A septic patient predicted at 0.60 contributes 0.511. The same patient predicted at 0.90 contributes 0.105, a much smaller loss. A patient without sepsis predicted at 0.90 contributes 2.303, because being confidently wrong is expensive. This asymmetry is the point: log loss rewards calibrated probabilities and punishes overconfidence. It is the metric to use when the probability itself matters, not just the ranking.
 
-### 29 · Evaluation: ranking, calibration and errors — 43.5 s
+### 29 · Evaluation: ranking, calibration and errors — 42.3 s
 
 **Pointer：** 按行移动 Log loss → Ranking → Calibration → Decision errors → Slices。
 
@@ -354,9 +354,9 @@
 
 ---
 
-## 07 · Summary & group project（3:26）
+## 07 · Summary & group project（3:37）
 
-### 30 · Summary: two ways to represent a history — 36.5 s
+### 30 · Summary: two ways to represent a history — 39.3 s
 
 **Pointer：** 先框左侧 Temporal features 分支，再框右侧 Learned representation 分支，最后指底部 task-specific output。
 
@@ -366,7 +366,7 @@
 
 > Here is the summary in one picture. There are two ways to represent a history. On the left, temporal features plus a standard model: regression, classification, or anomaly scoring. On the right, a learned representation: an encoder plus a task head. Both end in a task-specific output: a forecast, a class, a state sequence, or an anomaly score. The choice is not about fashion. It is about data size, interpretability, and how much temporal structure you need to learn. Start simple, then justify complexity with validation evidence.
 
-### 31 · Group project: predict a two-week pause — 55.0 s
+### 31 · Group project: predict a two-week pause — 65.2 s
 
 **Pointer：** 先框 Input days 0–28，再指 cutoff，再框 Outcome days 29–42，最后指 Output 和 Example/History tables。
 
@@ -376,7 +376,7 @@
 
 > Now the group project. You will predict a two-week learning-platform pause. The input is days zero to twenty-eight: enrollment, learning activity, and eligible past assessments. The outcome is days twenty-nine to forty-two. If a student has no clicks in that window, the label is one; any clicks means zero. The prediction cutoff is the end of day twenty-eight. One example is one student in one module presentation. The output is the probability of zero clicks. train.csv is labeled; test.csv is unlabeled. The VLE events Parquet file gives clicks by day and type. The past assessments Parquet file gives past submissions. Your job is to build a history for each example without using anything after the cutoff. The project is deliberately open-ended; the brief and data instructions live on Moodle and Kaggle.
 
-### 32 · Group project: file formats and loading — 46.5 s
+### 32 · Group project: file formats and loading — 43.7 s
 
 **Pointer：** 按行移动 CSV → Parquet → JSON/JSONL → Pickle；最后框底部读取代码。
 
@@ -386,7 +386,7 @@
 
 > Use the right file format for the job. CSV is portable and easy to inspect, but it is slow and types are inferred. Parquet is typed, compressed, and columnar, which suits the event tables; it needs pyarrow. JSON is convenient for small nested records, and JSON Lines stores one record per line, which is easier to stream. Pickle is fast as a local cache, but it is unsafe to load from untrusted sources and fragile across versions. The code shows the project files: read train.csv, read the Parquet columns you need, read past assessments, and read the sample submission. Read only the columns you need; the event table can be large.
 
-### 33 · Group project: starting questions — 39.0 s
+### 33 · Group project: starting questions — 38.1 s
 
 **Pointer：** 按行移动 Representation → Baseline → Validation → Improvement；最后指 Instructions。
 
@@ -396,7 +396,7 @@
 
 > These questions are your starting point. Representation: which parts of the history might matter? Baseline: what is the simplest probability prediction you can make? Validation: how will you handle later presentations and repeated students? Improvement: does a change improve validation log loss, not just training accuracy? Instructions: read the project brief on Moodle and the data and submission instructions on Kaggle. Treat these as design questions, not a recipe. A good project explains why a feature is available at the cutoff, why the split is fair, and why the metric matches the decision.
 
-### 34 · Further reading — 28.5 s
+### 34 · Further reading — 25.3 s
 
 **Pointer：** 依次指 Course project、Features and splits、Data and formats、Sequence models、Forecasting background；最后停在 Contact。
 
@@ -408,17 +408,12 @@
 
 ---
 
-## 确认清单
+## 制作状态
 
-1. **语言**：English 口播是否 OK？（如需中文口播，需要重写全部讲稿，时长也会变化。）
-
-2. **深度**：模型页（16–25）是否保持“只告诉学生有这个东西”的深度？目前 RNN/GRU/Transformer 各约 35–42 s，ARIMA 三页约 2:17，不推导公式、不练习定阶。
-
-3. **Pointer**：箭头 + 琥珀 focus ring、不压暗，是否符合预期？需要更明显的“激光点”或更弱的框线都可以调。
-
-4. **内容**：有没有必须加/删的点？例如是否要在第 15 页插入 notebook 代码演示，或用第 34 页后加 30–60 s 的 notebook 使用说明。
-
-5. **输出**：一个完整 MP4 是否足够？是否需要按 chapter 额外导出 8 个小视频（便于 LMS 分周发布）。
-
-
-确认后我会：提取 34 页 PDF → 生成/缓存 MiniMax 音频 → 按 word timestamps 驱动 pointer → Chromium compositor 录制 → FFmpeg 编码 + 外挂 SRT + YouTube chapters → 校验时长、指针边界、字幕时间戳和缺页。
+- 讲稿已确认；完整 34 页视频已生成，无箭头 pointer，仅保留 focus ring。
+- 视频：`.cache/video/tutorial06-complete/tutorial06-complete.mp4`（24:25，1920×1080，30 fps）。
+- 字幕：`.cache/video/tutorial06-complete/tutorial06-complete.srt`（313 条，外挂，不烧录）。
+- 章节：`.cache/video/tutorial06-complete/youtube-chapters.txt`。
+- 预览：`.cache/video/tutorial06-complete/contact-sheet.png`。
+- 声音：MiniMax `speech-2.8-turbo` / `English_Insightful_Speaker` / speed `0.95`。
+- 复现：`python3 scripts/video/tutorial06/build.py --pages all`；音频已缓存，不会自动重复计费。

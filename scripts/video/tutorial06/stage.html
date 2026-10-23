@@ -157,9 +157,10 @@
         state.raf = requestAnimationFrame(frame)
       }
 
-      async function prepareScene({ image, cues }) {
+      async function prepareScene({ image, cues, showPointer = true }) {
         slide.src = image
         await slide.decode()
+        pointer.style.display = showPointer ? 'block' : 'none'
         state.cues = cues
         state.lastCue = -1
         state.move = null
