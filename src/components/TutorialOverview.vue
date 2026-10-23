@@ -58,9 +58,21 @@ defineProps<{ lesson: Lesson }>()
       </div>
     </section>
     <p class="overview-format">
-      Explore the ideas and run small Python experiments here. Use the companion notebook to keep
-      your code, comparisons and reasoning together.
+      {{
+        lesson.overview.format ??
+        'Explore the ideas and run small Python experiments here. Use the companion notebook to keep your code, comparisons and reasoning together.'
+      }}
     </p>
+    <section v-if="lesson.materials" aria-label="Tutorial materials">
+      <h2>Materials</h2>
+      <ul>
+        <li v-for="material in lesson.materials" :key="material.file">
+          <a :href="courseHref(`tutorials/${lesson.id}/${material.file}`)" download>
+            {{ material.title }}
+          </a>
+        </li>
+      </ul>
+    </section>
     <a class="button primary" :href="courseHref(`tutorials/${lesson.id}/${lesson.chapters[0]!.id}`)"
       >Begin: {{ lesson.chapters[0]!.title }} →</a
     >

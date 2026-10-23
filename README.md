@@ -15,6 +15,15 @@ The website and executed notebook share the content and examples. See
 Open [Tutorial05](https://yulequan.github.io/STAT3612/tutorials/tutorial05/overview)
 or see its [student instructions](src/tutorials/tutorial05/README.md).
 
+Tutorial06 publishes **Machine Learning for Time Series Data: From Data Structures
+to Learned Representations** as a 34-slide embedded PDF with a direct Jupyter
+notebook download. Its companion has saved synthetic outputs, 33 code cells and
+14 figures; run it locally with the supplied requirements, not in browser Python.
+Open [Tutorial06](https://yulequan.github.io/STAT3612/tutorials/tutorial06/overview)
+or see its [setup and teaching notes](src/tutorials/tutorial06/README.md).
+The slides page includes a standalone PDF link for browsers without embedded PDF
+support. PDF, notebook, requirements and instructions are bundled in the offline ZIP.
+
 The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
 **Demos**. The homepage shows two levels: sections and their materials. The sidebar
 starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
@@ -158,6 +167,7 @@ src/
       requirements.txt         student notebook dependencies
       README.md                student instructions
     tutorial05/                spam lesson, shared curriculum, notebook and original UCI data
+    tutorial06/                time-series PDF, executed notebook and local setup instructions
 public/                        original standalone demos and demo overview
 .github/workflows/             GitHub Pages build, browser checks and deployment
 scripts/                       prepare assets, package, scaffold, verify
@@ -196,8 +206,10 @@ restricted security sandbox; the provided namespace omits held-out test arrays.
 
 ## Notebook
 
-The single **Notebook + data** link at the bottom of the tutorial sidebar downloads a
-complete student zip. On phones, open **Menu** to find it. Tutorial04 has
+For interactive tutorials, the **Notebook + data** link at the bottom of the sidebar downloads a
+complete student zip. Tutorial06 offers both a direct **Download Jupyter notebook**
+link and **Notebook + setup (ZIP)** in its overview, slides page and sidebar.
+On phones, open **Menu** to find sidebar downloads. Tutorial04 has
 one 35-cell notebook, including editable numerical functions, baseline outputs, a practical
 investigation and a bridge to alternative classifiers and convolution. Each web chapter links
 to its corresponding notebook section. File loading and image operations use its adjacent
@@ -257,23 +269,27 @@ use this registry; the course homepage never automatically opens a tutorial or d
 ## Add the next tutorial
 
 ```sh
-python3 scripts/new_tutorial.py 6 --title "Your next practical topic"
+python3 scripts/new_tutorial.py 7 --title "Your next practical topic"
 ```
 
-This creates one folder, `src/tutorials/tutorial06/`, with a runnable Vue/Python scaffold.
+This creates one folder, `src/tutorials/tutorial07/`, with a runnable Vue/Python scaffold.
 The registry discovers it automatically. Add its actual content, dataset and notebook before
 sharing it; the scaffold is not a completed lesson. No future topic is assumed.
 
 The small authoring contract:
 
 - `lesson.ts` exports id, number, title, subtitle, overview, ordered chapters and a Vue component.
+  Optional `materials` entries (`title`, `file`) provide direct downloads in the overview
+  and sidebar; otherwise the standard student ZIP link is used. `overview.format` can
+  describe a PDF/local-notebook lesson instead of browser experiments.
   The required `overview` defines the task, motivation, learning stages (with chapter ids),
   objectives, prerequisites and expected work. The shared shell renders it before loading the
   practical lesson, and passes the selected `chapter` to the lesson component. Chapters may
   supply an optional `heading` for a topic title; otherwise the shell displays their `question`. The scaffold
   includes this structure for every new tutorial.
-- `tutorial.json` declares the Python `experiment`, optional `dataset`, `python_packages`,
-  `web_assets` and `student_files`. The build packages every discovered tutorial.
+- `tutorial.json` declares `python_packages`, `web_assets` and `student_files`, plus
+  `experiment` and an optional `dataset` for Python-runtime lessons. Static PDF lessons
+  use an empty package list and need no experiment. The build packages every discovered tutorial.
 - The Python module exports `Experiment(path)` with `dispatch(action, params)` returning a
   JSON string. `initialize` supplies starting data; other actions are lesson-specific.
 - Training lessons may implement `fit(config, progress_callback)`. Progress is a JSON record,

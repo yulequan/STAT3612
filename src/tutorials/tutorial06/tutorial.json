@@ -1,0 +1,18 @@
+{
+  "id": "tutorial06",
+  "title": "Machine Learning for Time Series Data",
+  "subtitle": "From Data Structures to Learned Representations",
+  "python_packages": [],
+  "web_assets": [
+    "time_series_slides.pdf",
+    "time_series_tutorial.ipynb",
+    "requirements.txt",
+    "README.md"
+  ],
+  "student_files": [
+    "time_series_slides.pdf",
+    "time_series_tutorial.ipynb",
+    "requirements.txt",
+    "README.md"
+  ]
+}

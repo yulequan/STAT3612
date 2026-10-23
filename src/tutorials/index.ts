@@ -5,6 +5,7 @@ export type Lesson = {
   title: string
   subtitle: string
   tutor?: { name: string; email: string }
+  materials?: { title: string; file: string }[]
   overview: {
     task: string
     motivation: string
@@ -12,6 +13,7 @@ export type Lesson = {
     objectives: string[]
     prerequisites: string
     outcome: string
+    format?: string
     dataset?: {
       title: string
       source: string
