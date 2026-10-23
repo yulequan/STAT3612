@@ -234,42 +234,62 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main).toContainText('4–5 students')
   await expect(main).toContainText('40% of your final course grade')
   await expect(main.locator('time')).toHaveText([
-    'Thursday, 12 November 2026, 23:59 HKT',
-    'Sunday, 6 December 2026, 23:59 HKT',
+    '12 November 2026, 23:59 HKT (UTC+8)',
+    '6 December 2026, 23:59 HKT (UTC+8)',
   ])
   await expect(main.locator('time').first()).toHaveAttribute(
     'datetime',
     '2026-11-12T23:59:00+08:00',
   )
   await expect(main.locator('time').last()).toHaveAttribute('datetime', '2026-12-06T23:59:00+08:00')
-  const weights = main.getByRole('region', { name: 'Project grading weights' })
-  for (const [component, weight, marks] of [
-    ['Proposal', '10%', '4 / 100'],
-    ['Performance', '30%', '12 / 100'],
-    ['Written report', '35%', '14 / 100'],
-    ['Oral presentation (video)', '25%', '10 / 100'],
+  const weights = main.getByRole('table', { name: 'Project grading weights' })
+  for (const [component, weight] of [
+    ['Proposal', '10%'],
+    ['Performance (public and private leaderboards)', '30%'],
+    ['Written report', '35%'],
+    ['Oral presentation', '25%'],
   ]) {
     await expect(
-      weights.getByRole('row', { name: `${component} ${weight} ${marks}`, exact: true }),
+      weights.getByRole('row', { name: `${component} ${weight}`, exact: true }),
     ).toBeVisible()
   }
   await expect(main).toContainText('GroupID.pdf')
   await expect(main).toContainText('group_02.pdf')
-  await expect(main).toContainText('Preliminary baseline results on your validation set')
-  for (const name of [
-    'Final report — PDF',
-    'Code — ZIP attachment',
-    'Presentation slides — PDF',
-    'Oral presentation — video, maximum 8 minutes',
+  await expect(main).toContainText('preliminary baseline results on your validation set')
+  await expect(main).toContainText('one ZIP')
+  await expect(main).toContainText('GroupID.zip')
+  await expect(main).toContainText('Final report (PDF)')
+  await expect(main).toContainText('Presentation slides (PDF)')
+  await expect(main).toContainText('Jupyter notebooks, a Python project or another runnable format')
+  await expect(main).toContainText('README.md')
+  await expect(main).toContainText('instructions to reproduce your results and final predictions')
+  await expect(main).toContainText('strictly no longer than 8 minutes')
+  await expect(main).toContainText(
+    'full name, university ID, HKU email, contribution percentage and work contributed',
+  )
+  await expect(main).toContainText('exactly 100%')
+  const text = await main.innerText()
+  expect(text.match(/12 November 2026/g)).toHaveLength(1)
+  expect(text.match(/6 December 2026/g)).toHaveLength(1)
+  expect(text.match(/README\.md/g)).toHaveLength(1)
+  expect(text.trim().split(/\s+/).length).toBeLessThan(450)
+  await expect(main).not.toContainText(
+    /invitation|EHR|MIMIC|2025|separate tracks|activity pause|log loss|sample_submission|frequently asked|before you submit/i,
+  )
+  for (const [name, file] of [
+    ['LaTeX template (.tex)', 'report-template.tex'],
+    ['Word template (.docx)', 'report-template.docx'],
   ]) {
-    await expect(main.getByRole('heading', { name, exact: true })).toBeVisible()
+    const link = main.getByRole('link', { name, exact: true })
+    await expect(link).toHaveAttribute('href', `${new URL(base).pathname}group-project/${file}`)
+    const pending = page.waitForEvent('download')
+    await link.click()
+    const download = await pending
+    expect(download.suggestedFilename()).toBe(file)
+    const data = readFileSync((await download.path())!)
+    if (file.endsWith('.docx')) expect(data.subarray(0, 2).toString()).toBe('PK')
+    else expect(data.toString()).toContain('\\documentclass[11pt,a4paper]{article}')
   }
-  await expect(main).toContainText('no required code format')
-  await expect(main).toContainText('strictly 8 minutes or less for the entire video')
-  await expect(main).toContainText('both public and private performance will be weighed')
-  await expect(main).toContainText('dataset proportions, not grading weights')
-  await expect(main).toContainText('binary log loss; lower is better')
-  await expect(main).not.toContainText(/invitation|EHR|MIMIC|2025|GroupXX_Track/i)
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
   await page.screenshot({ path: info.outputPath('group-project-desktop.png'), fullPage: true })

@@ -52,24 +52,25 @@ expected work; chapters are freely navigable.
 ## Fall 2026 group project
 
 The public [submission guidelines](https://yulequan.github.io/STAT3612/group-project/submission-guidelines)
-are published in a dedicated **Group Project** section, using the same homepage,
-sidebar and static-route generation as the teaching materials. Content lives in
-`src/components/GroupProjectGuidelines.vue`; its catalog entry is in `src/course.ts`.
-No competition invitation links or course datasets are published with these instructions.
+live in `src/components/GroupProjectGuidelines.vue`. The page is the submission reference
+for deadlines, grading and required files; it does not repeat Kaggle documentation.
+Students upload one proposal PDF and one final ZIP to Moodle. The ZIP contains the
+report, slides, video, code and a `README.md` with reproduction instructions.
 
-- Groups contain 4–5 students; the project is worth 40% of the course grade.
-- Proposal: one PDF named `GroupID.pdf` on Moodle by **12 November 2026, 23:59 HKT**.
-- Final deliverables: report PDF, reproducible code ZIP, slides PDF and a presentation
-  video **no longer than 8 minutes** on Moodle, plus predictions on Kaggle, by
-  **6 December 2026, 23:59 HKT**.
-- Within-project weights: proposal 10%, performance 30%, report 35%, oral presentation 25%.
-- Code can be a notebook, Python project or another reproducible structure. Both public
-  and private leaderboard performance count; detailed score weighting is left to Moodle
-  announcements rather than inventing a formula. Test-subset proportions are not grade weights.
+Matching LaTeX and Word report templates are served from `public/group-project/`.
+Both use A4, 11-point Times-style text, 25 mm margins and the same section headings.
+The opening contribution table records each member's identity, work and share,
+with shares totaling exactly 100%. Regenerate both downloads using the standard library:
 
-The page follows the current single learning-platform prediction task and `group_XX`
-team naming. Browser regression coverage in `tests/browser/deployment.spec.ts` checks
-deadlines, grading, formats, static subdirectory access, history, navigation and mobile layout.
+```sh
+python3 scripts/build_report_templates.py
+python3 -m unittest discover -s tests -p 'test_project_report_templates.py' -v
+```
+
+The generated `.tex` and `.docx` are tracked; CI checks that they match the generator.
+Browser tests in `tests/browser/deployment.spec.ts` cover content, template downloads,
+static subdirectory access, navigation and mobile layout. For visual template checks,
+compile the LaTeX with `pdflatex` and open/export the Word document in Word or LibreOffice.
 
 Each chapter connects a mathematical explanation, an interactive demonstration, highlighted
 Python source and a small editable experiment. LaTeX is rendered locally with KaTeX. The SGD
