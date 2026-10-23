@@ -15,7 +15,7 @@ SECTIONS = (
     ('References', 'List the sources, software and other work cited in the report.'),
 )
 HEADERS = ('Full name', 'University ID', 'HKU email', 'Share (%)', 'Work contributed')
-MEMBERS = tuple((f'[Member {i}]', '[University ID]', '[HKU email]', '20%', '[Work completed]')
+MEMBERS = tuple((f'[Member {i}]', '[University ID]', '[HKU-email]', '20%', '[Work completed]')
                 for i in range(1, 6))
 CONTRIBUTION_NOTE = (
     'Replace the example entries with every member\'s full name, university ID, HKU email, '
@@ -27,11 +27,15 @@ W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 
 def latex():
     def row(cells):
-        return ' & '.join(cell.replace('%', r'\%') for cell in cells) + r' \\ \hline'
+        values = [cell.replace('%', r'\%') for cell in cells]
+        if cells in MEMBERS:
+            values[2] = r'\url{' + values[2] + '}'
+        return ' & '.join(values) + r' \\ \hline'
 
     return r'''\documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
-\usepackage{mathptmx,array,tabularx,titlesec}
+\usepackage{mathptmx,array,tabularx,titlesec,url}
+\urlstyle{same}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
 \titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
