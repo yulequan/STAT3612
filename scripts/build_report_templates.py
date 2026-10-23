@@ -29,6 +29,30 @@ BACK_MATTER = (
     ('References', 'List the sources, software and other work cited in the report.'),
     ('Appendix (Optional)', 'Include supplementary results or details, if needed; otherwise remove this section.'),
 )
+CITATION_EXAMPLE = (
+    'Cite sources as [1], [2], etc., numbered in order of first citation. '
+    'Replace these example citations and reference entries with your own.'
+)
+REFERENCES = (
+    '[1] Trevor Hastie, Robert Tibshirani, and Jerome Friedman. '
+    'The Elements of Statistical Learning: Data Mining, Inference, and Prediction. '
+    'Springer, 2nd edition, 2009.',
+    '[2] Christopher M. Bishop. Pattern Recognition and Machine Learning. Springer, 2006.',
+)
+BIBTEX = '''@book{hastie2009,
+  author = {Trevor Hastie and Robert Tibshirani and Jerome Friedman},
+  title = {The Elements of Statistical Learning: Data Mining, Inference, and Prediction},
+  publisher = {Springer},
+  edition = {2nd},
+  year = {2009}
+}
+@book{bishop2006,
+  author = {Christopher M. Bishop},
+  title = {Pattern Recognition and Machine Learning},
+  publisher = {Springer},
+  year = {2006}
+}
+'''
 PIPELINE_PROMPT = 'Show the flow from data and preprocessing to modelling and predictions.'
 PIPELINE_CAPTION = 'Overall pipeline (replace the placeholder with your figure).'
 HEADERS = ('Full name', 'University ID', 'HKU email', 'Share (%)', 'Work contributed')
@@ -52,6 +76,10 @@ def latex():
     sections = []
     for title, prompt, subsections in SECTIONS:
         sections.append(f'\n\\section{{{title}}}\n{prompt}\n')
+        if title == 'Related Work':
+            sections.append('\n' + CITATION_EXAMPLE.replace('[1]', r'\cite{hastie2009}').replace(
+                '[2]', r'\cite{bishop2006}'
+            ) + '\n')
         if title == 'Methodology':
             sections.append(r'''
 \begin{figure}[!ht]
@@ -65,11 +93,21 @@ def latex():
 ''')
         for subtitle, description in subsections:
             sections.append(f'\n\\subsection{{{subtitle}}}\n{description}\n')
-    sections.extend(f'\n\\section*{{{title}}}\n{prompt}\n' for title, prompt in BACK_MATTER)
+    for title, prompt in BACK_MATTER:
+        if title == 'References':
+            sections.append('\n\\bibliographystyle{unsrt}\n\\bibliography{references}\n')
+        else:
+            sections.append(f'\n\\section*{{{title}}}\n{prompt}\n')
 
-    return r'''\documentclass[11pt,a4paper]{article}
+    return r'''% Recommended editor: https://www.overleaf.com/ (upload this .tex file).
+% Edit the sample BibTeX entries below; this block rewrites references.bib.
+% Overleaf runs BibTeX automatically when you recompile.
+\begin{filecontents*}[overwrite]{references.bib}
+''' + BIBTEX + r'''\end{filecontents*}
+\documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
 \usepackage{mathptmx,array,tabularx,titlesec,url}
+\usepackage[hidelinks]{hyperref}
 \urlstyle{same}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
@@ -80,7 +118,8 @@ def latex():
 \begin{document}
 {\fontsize{16}{19}\selectfont\bfseries [Project Title]}\par
 STAT / SDST 3612 -- Fall 2026\par
-\textbf{Group ID:} [Group ID]
+\textbf{Group ID:} [Group ID]\par
+\textbf{Presentation video:} \url{[YouTube-Unlisted-URL]}
 
 \section*{Group Members and Contributions}
 ''' + CONTRIBUTION_NOTE.replace('%', r'\%') + r'''
@@ -108,6 +147,7 @@ def paragraph(text, style=None):
 def document():
     body = [paragraph('[Project Title]', 'Title'),
             paragraph('STAT / SDST 3612 - Fall 2026'), paragraph('Group ID: [Group ID]'),
+            paragraph('Presentation video: [YouTube Unlisted URL]'),
             paragraph('Group Members and Contributions', 'Heading1'), paragraph(CONTRIBUTION_NOTE)]
     widths = (1464, 1407, 1974, 897, 3330)
     rows = (HEADERS, *MEMBERS, ('Total', '', '', '100%', ''))
@@ -130,6 +170,8 @@ def document():
     body.extend([''.join(table) + '</w:tbl>'])
     for index, (title, prompt, subsections) in enumerate(SECTIONS, start=1):
         body.extend([paragraph(f'{index}. {title}', 'Heading1'), paragraph(prompt)])
+        if title == 'Related Work':
+            body.append(paragraph(CITATION_EXAMPLE))
         if title == 'Methodology':
             body.append('<w:tbl><w:tblPr><w:tblW w:w="9072" w:type="dxa"/>'
                         '<w:tblBorders>' + ''.join(
@@ -146,6 +188,8 @@ def document():
             body.extend([paragraph(f'{index}.{subindex} {subtitle}', 'Heading2'), paragraph(description)])
     for title, prompt in BACK_MATTER:
         body.extend([paragraph(title, 'Heading1'), paragraph(prompt)])
+        if title == 'References':
+            body.extend(paragraph(reference) for reference in REFERENCES)
     body.append('<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
                 '<w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417"/>'
                 '</w:sectPr>')

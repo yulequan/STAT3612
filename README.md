@@ -55,8 +55,11 @@ The public [submission guidelines](https://yulequan.github.io/STAT3612/group-pro
 live in `src/components/GroupProjectGuidelines.vue`. The page is the submission reference
 for deadlines, grading, required files, group/team naming, integrity rules and FAQs.
 Students upload proposal and final-report PDFs separately to their respective Moodle
-submissions. The final supporting ZIP contains slides, video, code and a `README.md`
+submissions. The final supporting ZIP contains slides, code and a `README.md`
 with reproduction instructions, not the report PDF. Predictions go to Kaggle.
+Recommend YouTube Unlisted for the presentation video (strictly no longer than eight
+minutes), with its URL at the start of the report; a video file in the ZIP is an
+alternative. Both report templates include the opening video-link placeholder.
 
 Matching LaTeX and Word report templates are served from `public/group-project/`.
 Both use A4, 11-point Times-style text, 25 mm margins and the same section headings.
@@ -64,6 +67,10 @@ The structure covers Introduction, Related Work, Methodology (pipeline figure,
 problem formulation and method design), Experimental Setups (data/task/evaluation,
 baselines and implementation), Experimental Results and Analysis, Discussion,
 Conclusion, References and an optional Appendix.
+LaTeX users are directed to Overleaf. The self-contained `.tex` writes its sample
+`references.bib` on compilation and uses BibTeX `unsrt`; edit the embedded entries
+and replace the example citations. Word uses the same numbered, citation-order
+reference convention with matching examples.
 The opening contribution table records each member's identity, work and share,
 with shares totaling exactly 100%. Regenerate both downloads using the standard library:
 
@@ -75,7 +82,8 @@ python3 -m unittest discover -s tests -p 'test_project_report_templates.py' -v
 The generated `.tex` and `.docx` are tracked; CI checks that they match the generator.
 Browser tests in `tests/browser/deployment.spec.ts` cover content, template downloads,
 static subdirectory access, navigation and mobile layout. For visual template checks,
-compile the LaTeX with `pdflatex` and open/export the Word document in Word or LibreOffice.
+compile the LaTeX with `pdflatex`, `bibtex`, then `pdflatex` twice (or use Overleaf),
+and open/export the Word document in Word or LibreOffice.
 
 Each chapter connects a mathematical explanation, an interactive demonstration, highlighted
 Python source and a small editable experiment. LaTeX is rendered locally with KaTeX. The SGD

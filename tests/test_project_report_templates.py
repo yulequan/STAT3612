@@ -81,7 +81,9 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertEqual([title for title, _, _ in templates.SECTIONS], list(EXPECTED_SECTIONS))
         for title in EXPECTED_SECTIONS:
             self.assertGreater(source.index(f'\\section{{{title}}}'), end)
-        self.assertIn(r'\section*{References}', source)
+        self.assertIn(r'\bibliographystyle{unsrt}', source)
+        self.assertIn(r'\bibliography{references}', source)
+        self.assertNotIn(r'\section*{References}', source)
         self.assertIn(r'\section*{Appendix (Optional)}', source)
         for heading in EXPECTED_SUBSECTIONS:
             self.assertIn('\\subsection{' + heading.split(' ', 1)[1] + '}', source)
@@ -108,6 +110,35 @@ class ReportTemplateTests(unittest.TestCase):
         for detail in ('hyperparameters', 'hardware', 'software configuration', 'random seeds'):
             self.assertIn(detail, source)
             self.assertIn(detail, ''.join(root.itertext()))
+
+    def test_numbered_citation_order_references_match_in_both_templates(self):
+        source = (templates.DESTINATION / 'report-template.tex').read_text()
+        self.assertIn('https://www.overleaf.com/', source)
+        self.assertIn(r'\begin{filecontents*}[overwrite]{references.bib}', source)
+        self.assertIn(templates.BIBTEX, source)
+        self.assertLess(source.index(r'\cite{hastie2009}'), source.index(r'\cite{bishop2006}'))
+        self.assertLess(source.index(r'\section{Conclusion}'), source.index(r'\bibliographystyle{unsrt}'))
+        self.assertLess(source.index(r'\bibliography{references}'), source.index(r'\section*{Appendix'))
+        with ZipFile(templates.DESTINATION / 'report-template.docx') as archive:
+            root = ET.fromstring(archive.read('word/document.xml'))
+        paragraphs = [''.join(element.itertext()) for element in root.findall('w:body/w:p', NS)]
+        self.assertIn(templates.CITATION_EXAMPLE, paragraphs)
+        reference_index = paragraphs.index('References')
+        self.assertEqual(paragraphs[reference_index + 2:reference_index + 4], list(templates.REFERENCES))
+        self.assertTrue(templates.REFERENCES[0].startswith('[1] Trevor Hastie'))
+        self.assertTrue(templates.REFERENCES[1].startswith('[2] Christopher M. Bishop'))
+
+    def test_video_link_placeholder_is_at_the_start_of_both_templates(self):
+        source = (templates.DESTINATION / 'report-template.tex').read_text()
+        placeholder = r'\textbf{Presentation video:} \url{[YouTube-Unlisted-URL]}'
+        self.assertIn(placeholder, source)
+        self.assertIn(r'\usepackage[hidelinks]{hyperref}', source)
+        self.assertLess(source.index(placeholder), source.index(r'\section*{Group Members'))
+        with ZipFile(templates.DESTINATION / 'report-template.docx') as archive:
+            root = ET.fromstring(archive.read('word/document.xml'))
+        paragraphs = [''.join(element.itertext()) for element in root.findall('w:body/w:p', NS)]
+        self.assertLess(paragraphs.index('Presentation video: [YouTube Unlisted URL]'),
+                        paragraphs.index('Group Members and Contributions'))
 
 
 if __name__ == '__main__':
