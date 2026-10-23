@@ -7,10 +7,7 @@ export default {
   title: 'Machine Learning for Time Series Data',
   subtitle: 'From data structures and temporal features to learned representations and evaluation',
   tutor: { name: 'Yinghao Zhu', email: 'yhzhu99@connect.hku.hk' },
-  materials: [
-    { title: 'Download Jupyter notebook', file: 'time_series_tutorial.ipynb' },
-    { title: 'Notebook + setup (ZIP)', file: 'student.zip' },
-  ],
+  materials: [{ title: 'Notebook + setup (ZIP)', file: 'student.zip' }],
   overview: {
     task: 'Turn time-stamped observations into useful machine-learning inputs, choose a prediction task, and evaluate it without leaking future information.',
     motivation:
@@ -25,7 +22,7 @@ export default {
       {
         title: 'Experiment in Jupyter',
         description:
-          'Download the companion notebook below. It includes saved outputs, 33 short code cells and 14 figures. Allow 60-90 minutes to read and experiment; all example data are generated locally.',
+          'Download and extract the ZIP below for the companion notebook and setup files. The notebook includes saved outputs, 33 short code cells and 14 figures. Allow 60-90 minutes to read and experiment; all example data are generated locally.',
         chapters: ['slides'],
       },
     ],

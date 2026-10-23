@@ -14,10 +14,7 @@ const slides = asset('time_series_slides.pdf')
     </p>
     <div class="material-actions" aria-label="Tutorial downloads">
       <a class="button" :href="slides" target="_blank" rel="noopener">Open PDF in a new tab</a>
-      <a class="button primary" :href="asset('time_series_tutorial.ipynb')" download>
-        Download Jupyter notebook
-      </a>
-      <a class="button" :href="asset('student.zip')" download>Notebook + setup (ZIP)</a>
+      <a class="button primary" :href="asset('student.zip')" download>Notebook + setup (ZIP)</a>
     </div>
     <p class="muted">
       If your browser cannot display the embedded PDF, use the link above to open or save it.
@@ -45,10 +42,9 @@ python -m jupyterlab time_series_tutorial.ipynb</code></pre>
         experiment; execution itself takes only a few seconds on a typical CPU.
       </p>
       <p>
-        If you downloaded just the notebook, also download
-        <a :href="asset('requirements.txt')" download>requirements.txt</a>. See the
-        <a :href="asset('README.md')" download>notebook instructions</a> for the suggested route and
-        the distinction between trained examples and illustrative architecture weights.
+        The ZIP includes <code>requirements.txt</code> and <code>README.md</code>. See the README
+        for the suggested route and the distinction between trained examples and illustrative
+        architecture weights.
       </p>
     </section>
   </article>

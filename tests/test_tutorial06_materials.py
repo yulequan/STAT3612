@@ -16,10 +16,14 @@ class Tutorial06MaterialsTests(unittest.TestCase):
     def test_assets_and_complete_student_package(self):
         manifest = json.loads((FOLDER / 'tutorial.json').read_text())
         self.assertEqual(manifest['python_packages'], [])
+        self.assertEqual(manifest['web_assets'], ['time_series_slides.pdf'])
+        self.assertEqual(set(manifest['student_files']), {
+            'time_series_slides.pdf', 'time_series_tutorial.ipynb', 'requirements.txt', 'README.md',
+        })
         self.assertTrue((FOLDER / 'time_series_slides.pdf').read_bytes().startswith(b'%PDF-'))
         with ZipFile(package(FOLDER)) as archive:
             self.assertEqual(set(archive.namelist()), set(manifest['student_files']))
-            for name in manifest['web_assets']:
+            for name in manifest['student_files']:
                 self.assertEqual(archive.read(name), (FOLDER / name).read_bytes())
             self.assertIn('statsmodels', archive.read('requirements.txt').decode())
             self.assertIn('python -m pip install -r requirements.txt',
