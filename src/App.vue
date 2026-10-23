@@ -76,7 +76,9 @@ const activeHref = computed(() =>
     ? courseHref(`tutorials/${lesson.value.id}/overview`)
     : courseHref(path.value),
 )
-const notebook = computed(() => courseHref(`tutorials/${lesson.value?.id}/student.zip`))
+const materials = computed(
+  () => lesson.value?.materials ?? [{ title: '↓ Notebook + data', file: 'student.zip' }],
+)
 function link(i: number) {
   return courseHref(`tutorials/${lesson.value!.id}/${lesson.value!.chapters[i]!.id}`)
 }
@@ -166,7 +168,14 @@ watch(
     </nav>
     <div v-if="lesson" class="sidebar-bottom">
       <span class="eyebrow">TUTORIAL {{ lesson.number }} · MATERIALS</span>
-      <a class="download-link" :href="notebook" download>↓ Notebook + data</a>
+      <a
+        v-for="material in materials"
+        :key="material.file"
+        class="download-link"
+        :href="courseHref(`tutorials/${lesson.id}/${material.file}`)"
+        download
+        >{{ material.title }}</a
+      >
     </div>
   </aside>
   <main id="main" tabindex="-1" class="lesson-main" :inert="menuOpen">
