@@ -96,7 +96,7 @@ export const courseSections: CourseSection[] = [
         id: 'submission-guidelines',
         title: 'Submission Guidelines & Deadlines',
         description:
-          'Proposal: 12 November. Final report, code, predictions and presentation: 6 December. Both at 23:59 HKT.',
+          'Proposal and final submission requirements, grading weights and report templates.',
         href: courseHref('group-project/submission-guidelines'),
       },
     ],

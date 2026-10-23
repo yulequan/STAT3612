@@ -1,0 +1,50 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{mathptmx,array,tabularx,titlesec}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\begin{document}
+{\fontsize{16}{19}\selectfont\bfseries [Project Title]}\par
+STAT / SDST 3612 -- Fall 2026\par
+\textbf{Group ID:} [Group ID]
+
+\section*{Group Members and Contributions}
+Replace the example entries with every member's full name, university ID, HKU email, contribution percentage and work contributed. Percentages must total exactly 100\%. For a four-person group, remove one row and adjust the percentages.
+
+\begingroup
+\fontsize{10}{12}\selectfont
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{23mm}|>{\raggedright\arraybackslash}p{22mm}|>{\raggedright\arraybackslash}p{32mm}|>{\centering\arraybackslash}p{13mm}|>{\raggedright\arraybackslash}X|}
+\hline
+Full name & University ID & HKU email & Share (\%) & Work contributed \\ \hline
+[Member 1] & [University ID] & [HKU email] & 20\% & [Work completed] \\ \hline
+[Member 2] & [University ID] & [HKU email] & 20\% & [Work completed] \\ \hline
+[Member 3] & [University ID] & [HKU email] & 20\% & [Work completed] \\ \hline
+[Member 4] & [University ID] & [HKU email] & 20\% & [Work completed] \\ \hline
+[Member 5] & [University ID] & [HKU email] & 20\% & [Work completed] \\ \hline
+Total &  &  & 100\% &  \\ \hline
+\end{tabularx}
+\endgroup
+
+\section{Introduction}
+State the prediction problem and project objectives.
+
+\section{Data and Preprocessing}
+Describe the data, preprocessing and feature engineering.
+
+\section{Methods and Validation}
+Explain the baseline, candidate models, validation design and tuning.
+
+\section{Results and Model Analysis}
+Compare results and analyse model behaviour with tables or figures.
+
+\section{Discussion and Conclusion}
+Summarise findings, limitations and conclusions.
+
+\section{References}
+List the sources, software and other work cited in the report.
+
+\end{document}
