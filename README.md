@@ -57,9 +57,10 @@ for deadlines, grading, required files, group/team naming, integrity rules and F
 Students upload proposal and final-report PDFs separately to their respective Moodle
 submissions. The final supporting ZIP contains slides, code and a `README.md`
 with reproduction instructions, not the report PDF. Predictions go to Kaggle.
-Recommend YouTube Unlisted for the presentation video (strictly no longer than eight
-minutes), with its URL at the start of the report; a video file in the ZIP is an
-alternative. Both report templates include the opening video-link placeholder.
+The presentation video must be uploaded to YouTube as Unlisted (strictly no longer
+than eight minutes), with its URL at the start of the report, not as a file in the
+ZIP. Both report templates include the opening video-link placeholder. The final
+submission table lists ZIP contents directly in the supporting-files row.
 
 Matching LaTeX and Word report templates are served from `public/group-project/`.
 Both use A4, 11-point Times-style text, 25 mm margins and the same section headings.
