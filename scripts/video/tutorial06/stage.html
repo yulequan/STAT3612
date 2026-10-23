@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Tutorial 06 · slide stage</title>
+    <style>
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #0f1c22;
+        cursor: none;
+      }
+      #slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        object-fit: fill;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      #focus {
+        position: absolute;
+        z-index: 10;
+        border: 3px solid #df9a36;
+        border-radius: 8px;
+        box-shadow:
+          0 0 0 6px rgba(223, 154, 54, 0.12),
+          0 0 18px rgba(223, 154, 54, 0.35);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          left 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+          top 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+          width 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+          height 0.38s cubic-bezier(0.22, 0.61, 0.36, 1),
+          opacity 0.18s ease;
+      }
+      #pointer {
+        position: absolute;
+        z-index: 11;
+        width: 34px;
+        height: 44px;
+        pointer-events: none;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+        transform: translate(40px, 80px);
+      }
+      #pointer svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="slide" alt="" />
+    <div id="focus"></div>
+    <div id="pointer" aria-hidden="true">
+      <svg viewBox="0 0 30 38" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M3 2 L3 29 L10 23 L16 35 L22 32 L16 21 L27 21 Z"
+          fill="#ffffff"
+          stroke="#18322d"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </div>
+    <script>
+      const W = 1920
+      const H = 1080
+      const PW = 453.54
+      const PH = 255.12
+      const slide = document.getElementById('slide')
+      const focus = document.getElementById('focus')
+      const pointer = document.getElementById('pointer')
+      const state = {
+        cues: [],
+        lead: 0,
+        start: 0,
+        raf: 0,
+        lastCue: -1,
+        move: null,
+        pointer: { x: 40, y: 80 },
+      }
+
+      function boxToPixels(box) {
+        return {
+          x: (box[0] / PW) * W,
+          y: (box[1] / PH) * H,
+          w: ((box[2] - box[0]) / PW) * W,
+          h: ((box[3] - box[1]) / PH) * H,
+        }
+      }
+
+      function pointerTarget(box) {
+        const b = boxToPixels(box)
+        let x = b.x - 40
+        let y = b.y + 18
+        if (x < 8) x = 8
+        if (x > W - 38) x = W - 38
+        if (y < 8) y = 8
+        if (y > H - 46) y = H - 46
+        return { x, y }
+      }
+
+      function setFocus(box) {
+        const b = boxToPixels(box)
+        focus.style.left = `${b.x - 5}px`
+        focus.style.top = `${b.y - 5}px`
+        focus.style.width = `${b.w + 10}px`
+        focus.style.height = `${b.h + 10}px`
+        focus.style.opacity = '1'
+      }
+
+      function setPointer(x, y) {
+        pointer.style.transform = `translate(${x}px, ${y}px)`
+      }
+
+      function movePointerTo(x, y, ms = 520) {
+        state.move = {
+          from: { ...state.pointer },
+          to: { x, y },
+          start: performance.now(),
+          ms,
+        }
+      }
+
+      function ease(t) {
+        return t * t * (3 - 2 * t)
+      }
+
+      function frame(now) {
+        if (state.move) {
+          const t = Math.min(1, (now - state.move.start) / state.move.ms)
+          const e = ease(t)
+          state.pointer = {
+            x: state.move.from.x + (state.move.to.x - state.move.from.x) * e,
+            y: state.move.from.y + (state.move.to.y - state.move.from.y) * e,
+          }
+          setPointer(state.pointer.x, state.pointer.y)
+          if (t >= 1) state.move = null
+        }
+        const t = (now - state.start) / 1000
+        for (let i = state.lastCue + 1; i < state.cues.length; i += 1) {
+          if (t >= state.cues[i].at) {
+            state.lastCue = i
+            setFocus(state.cues[i].box)
+            const target = pointerTarget(state.cues[i].box)
+            movePointerTo(target.x, target.y)
+          }
+        }
+        state.raf = requestAnimationFrame(frame)
+      }
+
+      async function prepareScene({ image, cues, showPointer = true }) {
+        slide.src = image
+        await slide.decode()
+        pointer.style.display = showPointer ? 'block' : 'none'
+        state.cues = cues
+        state.lastCue = -1
+        state.move = null
+        state.start = performance.now()
+        cancelAnimationFrame(state.raf)
+        state.raf = 0
+        // Do not animate the old slide's focus box into the new slide's box.
+        focus.style.transition = 'none'
+        focus.style.opacity = '0'
+        focus.style.left = '-9999px'
+        const start = { x: 40, y: 80 }
+        state.pointer = start
+        setPointer(start.x, start.y)
+        if (cues.length) {
+          setFocus(cues[0].box)
+          const target = pointerTarget(cues[0].box)
+          state.pointer = target
+          setPointer(target.x, target.y)
+        }
+        void focus.offsetWidth
+        focus.style.transition = ''
+      }
+
+      function playScene({ cues, lead }) {
+        state.cues = cues.map((cue) => ({ ...cue, at: lead + cue.time }))
+        state.lastCue = -1
+        state.start = performance.now()
+        cancelAnimationFrame(state.raf)
+        state.raf = requestAnimationFrame(frame)
+      }
+
+      function stopScene() {
+        cancelAnimationFrame(state.raf)
+        state.raf = 0
+        state.move = null
+      }
+
+      window.prepareScene = prepareScene
+      window.playScene = playScene
+      window.stopScene = stopScene
+    </script>
+  </body>
+</html>

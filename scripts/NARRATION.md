@@ -228,3 +228,45 @@ Captions are always external; the video has no subtitle background strip.
 `full.py` deduplicates audio by text + model + voice + speed, and encodes only
 changed scenes. Encoded clip outputs are atomic. The complete output deliberately
 has a different filename from the short `tutorial04-update` sample.
+
+## Complete Tutorial 06: 34-slide narrated deck
+
+The time-series tutorial is a PDF deck plus a notebook, not a chapter-based Vue
+lesson. The video pipeline renders each PDF page at 1920 × 1080, draws an amber
+focus ring around the region being discussed, and moves the ring on MiniMax word
+timestamps. **The complete video has no pointer/cursor**; the focus ring is the
+only attention cue. A short sample can opt into the pointer with `--pointer`.
+
+```bash
+# All 34 slides (about 24-25 minutes)
+python3 scripts/video/tutorial06/build.py --pages all
+# Short pages 1-4 sample with the arrow pointer
+python3 scripts/video/tutorial06/build.py --pages 1-4 \
+  --output-dir .cache/video/tutorial06-sample --pointer
+# Reuse cached audio and visuals:
+python3 scripts/video/tutorial06/build.py --pages all --skip-tts --skip-record
+```
+
+The narration lives in `scripts/video/tutorial06/narration.csv` (one row per
+slide) and the focus boxes/cue phrases in `scenes.py`. Focus boxes use PDF
+points; cue times come from the provider's word timestamps. The script refuses
+to continue when a spoken cue is missing from the subtitles or a box leaves the
+slide. Audio is cached per page and never regenerated automatically.
+
+Outputs under `.cache/video/tutorial06-complete/`:
+
+- `tutorial06-complete.mp4`: H.264/AAC 1920 × 1080, 30 fps, external subtitles.
+- `tutorial06-complete.srt`: 313 word-timed cues, no burned-in captions.
+- `youtube-chapters.txt`: eight chapter starts.
+- `record.json`, `summary.json`, per-page captures and encoded clips.
+- `contact-sheet.png`: representative frames for a quick visual review.
+
+Offline tests (never call the paid API):
+
+```bash
+.venv/bin/python -m unittest tests.test_tutorial06_sample -v
+```
+
+`--skip-tts` fails if a page audio file is missing rather than charging again.
+`--skip-record` reuses existing browser captures. `--skip-encode` stops after
+preparing the audio, page images and `record.json`.
