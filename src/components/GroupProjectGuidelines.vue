@@ -100,17 +100,26 @@ import { courseHref } from '../navigation'
           </tr>
           <tr>
             <th scope="row">Supporting files (one ZIP)</th>
-            <td>Moodle: <code>GroupID.zip</code>, with the contents listed below.</td>
+            <td>
+              Moodle: <code>GroupID.zip</code>, containing:
+              <ul>
+                <li>Presentation slides (PDF).</li>
+                <li>Code: Jupyter notebooks, a Python project or another runnable format.</li>
+                <li>
+                  <code>README.md</code>: environment/dependencies, data locations, and instructions
+                  to reproduce your results and final predictions.
+                </li>
+              </ul>
+            </td>
           </tr>
           <tr>
             <th scope="row">Presentation video</th>
             <td>
-              <strong>Strictly no longer than 8 minutes.</strong> We recommend uploading to
+              <strong>Strictly no longer than 8 minutes.</strong> Upload to
               <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"
                 >YouTube</a
               >
-              as <strong>Unlisted</strong> and putting the link at the start of your report.
-              Alternatively, include the video file in your ZIP.
+              as <strong>Unlisted</strong> and put the link at the start of your report.
             </td>
           </tr>
           <tr>
@@ -119,15 +128,6 @@ import { courseHref } from '../navigation'
           </tr>
         </tbody>
       </table>
-      <p><strong>ZIP contents:</strong></p>
-      <ul>
-        <li>Presentation slides (PDF).</li>
-        <li>Code: Jupyter notebooks, a Python project or another runnable format.</li>
-        <li>
-          <code>README.md</code>: environment/dependencies, data locations, and instructions to
-          reproduce your results and final predictions.
-        </li>
-      </ul>
     </section>
 
     <section aria-labelledby="project-templates">
