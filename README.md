@@ -24,9 +24,10 @@ or see its [setup and teaching notes](src/tutorials/tutorial06/README.md).
 The slides page includes a standalone PDF link for browsers without embedded PDF
 support. PDF, notebook, requirements and instructions are bundled in the offline ZIP.
 
-The course homepage opens at `/` and offers three sections: **Lectures**, **Tutorials** and
-**Demos**. The homepage shows two levels: sections and their materials. The sidebar
-starts at the same depth, with each tutorial's Overview and chapters collapsed. Entering
+The course homepage opens at `/` and offers five sections: **Lectures**, **Tutorials**,
+**Group Project**, **Demos** and **Quizzes**. The homepage shows two levels: sections and
+their materials. The sidebar starts at the same depth, with each tutorial's Overview and
+chapters collapsed. Entering
 a tutorial (including a direct chapter URL) reveals its full chapter list. Separate caret
 buttons collapse each branch independently; navigation leaves other branches as they were.
 Search reveals matching chapters without changing the saved expansion state. Use the sidebar,
@@ -47,6 +48,28 @@ The homepage identifies Prof. Lequan Yu as the instructor. Tutorial04's overview
 with the tutor's name and contact email.
 Tutorials open with an Overview of the task, learning route, objectives, prerequisites and
 expected work; chapters are freely navigable.
+
+## Fall 2026 group project
+
+The public [submission guidelines](https://yulequan.github.io/STAT3612/group-project/submission-guidelines)
+are published in a dedicated **Group Project** section, using the same homepage,
+sidebar and static-route generation as the teaching materials. Content lives in
+`src/components/GroupProjectGuidelines.vue`; its catalog entry is in `src/course.ts`.
+No competition invitation links or course datasets are published with these instructions.
+
+- Groups contain 4–5 students; the project is worth 40% of the course grade.
+- Proposal: one PDF named `GroupID.pdf` on Moodle by **12 November 2026, 23:59 HKT**.
+- Final deliverables: report PDF, reproducible code ZIP, slides PDF and a presentation
+  video **no longer than 8 minutes** on Moodle, plus predictions on Kaggle, by
+  **6 December 2026, 23:59 HKT**.
+- Within-project weights: proposal 10%, performance 30%, report 35%, oral presentation 25%.
+- Code can be a notebook, Python project or another reproducible structure. Both public
+  and private leaderboard performance count; detailed score weighting is left to Moodle
+  announcements rather than inventing a formula. Test-subset proportions are not grade weights.
+
+The page follows the current single learning-platform prediction task and `group_XX`
+team naming. Browser regression coverage in `tests/browser/deployment.spec.ts` checks
+deadlines, grading, formats, static subdirectory access, history, navigation and mobile layout.
 
 Each chapter connects a mathematical explanation, an interactive demonstration, highlighted
 Python source and a small editable experiment. LaTeX is rendered locally with KaTeX. The SGD
@@ -119,6 +142,7 @@ Course routes follow the material hierarchy:
 
 - `/lectures` — lecture catalog (ready for future materials).
 - `/tutorials` → `/tutorials/tutorial04/overview` → individual chapters.
+- `/group-project` → `/group-project/submission-guidelines` — Fall 2026 deadlines and assessment.
 - `/demos` → `/demos/gradient-descent` or `/demos/gd-vs-sgd`.
 
 Paths above are relative to the site root (`/STAT3612/` on GitHub Pages).

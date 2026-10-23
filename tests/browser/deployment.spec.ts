@@ -104,13 +104,14 @@ test('course outline reveals chapters and preserves independent expansion', asyn
   await expect(outline).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
-  for (const name of ['Tutorials', 'Demos', 'Quizzes']) {
+  for (const name of ['Tutorials', 'Group Project', 'Demos', 'Quizzes']) {
     await expect(
       outline.getByRole('button', { name: `Toggle ${name}`, exact: true }),
     ).toHaveAttribute('aria-expanded', 'true')
   }
   for (const href of [
     `${new URL(base).pathname}tutorials/tutorial04/overview`,
+    `${new URL(base).pathname}group-project/submission-guidelines`,
     `${new URL(base).pathname}demos/gradient-descent`,
     `${new URL(base).pathname}demos/gd-vs-sgd`,
     `${new URL(base).pathname}quizzes/lecture-3-classification.html`,
@@ -207,6 +208,104 @@ test('course outline reveals chapters and preserves independent expansion', asyn
     'aria-current',
     'page',
   )
+})
+
+test('Fall 2026 project guidelines publish deadlines, formats and grading in the course shell', async ({
+  page,
+}, info) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto(base)
+  const main = page.getByRole('main')
+  const outline = page.getByRole('navigation', { name: 'Course outline' })
+  await main.getByRole('link', { name: 'Group Project', exact: true }).click()
+  await expect(page).toHaveURL(`${base}group-project`)
+  await expect(main.getByRole('heading', { name: 'Group Project', exact: true })).toBeVisible()
+  await main.getByRole('link', { name: /Submission Guidelines & Deadlines/ }).click()
+  const url = `${base}group-project/submission-guidelines`
+  await expect(page).toHaveURL(url)
+  await expect(page).toHaveTitle('Group Project Submission Guidelines · STAT3612')
+  await expect(
+    outline.getByRole('link', { name: 'Submission Guidelines & Deadlines', exact: true }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText(
+    'Submission Guidelines & Deadlines',
+  )
+  await expect(main).toContainText('4–5 students')
+  await expect(main).toContainText('40% of your final course grade')
+  await expect(main.locator('time')).toHaveText([
+    'Thursday, 12 November 2026, 23:59 HKT',
+    'Sunday, 6 December 2026, 23:59 HKT',
+  ])
+  await expect(main.locator('time').first()).toHaveAttribute(
+    'datetime',
+    '2026-11-12T23:59:00+08:00',
+  )
+  await expect(main.locator('time').last()).toHaveAttribute('datetime', '2026-12-06T23:59:00+08:00')
+  const weights = main.getByRole('region', { name: 'Project grading weights' })
+  for (const [component, weight, marks] of [
+    ['Proposal', '10%', '4 / 100'],
+    ['Performance', '30%', '12 / 100'],
+    ['Written report', '35%', '14 / 100'],
+    ['Oral presentation (video)', '25%', '10 / 100'],
+  ]) {
+    await expect(
+      weights.getByRole('row', { name: `${component} ${weight} ${marks}`, exact: true }),
+    ).toBeVisible()
+  }
+  await expect(main).toContainText('GroupID.pdf')
+  await expect(main).toContainText('group_02.pdf')
+  await expect(main).toContainText('Preliminary baseline results on your validation set')
+  for (const name of [
+    'Final report — PDF',
+    'Code — ZIP attachment',
+    'Presentation slides — PDF',
+    'Oral presentation — video, maximum 8 minutes',
+  ]) {
+    await expect(main.getByRole('heading', { name, exact: true })).toBeVisible()
+  }
+  await expect(main).toContainText('no required code format')
+  await expect(main).toContainText('strictly 8 minutes or less for the entire video')
+  await expect(main).toContainText('both public and private performance will be weighed')
+  await expect(main).toContainText('dataset proportions, not grading weights')
+  await expect(main).toContainText('binary log loss; lower is better')
+  await expect(main).not.toContainText(/invitation|EHR|MIMIC|2025|GroupXX_Track/i)
+  await expect(page.locator('iframe')).toHaveCount(0)
+  expect(page.workers()).toHaveLength(0)
+  await page.screenshot({ path: info.outputPath('group-project-desktop.png'), fullPage: true })
+  await page.reload()
+  await expect(page).toHaveURL(url)
+  expect(await page.evaluate(() => document.baseURI)).toBe(base)
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText(
+    'Submission Guidelines & Deadlines',
+  )
+  await page.goBack()
+  await expect(page).toHaveURL(`${base}group-project`)
+  await page.goForward()
+  await expect(page).toHaveURL(url)
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      `${width}px project page`,
+    ).toBeTruthy()
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.screenshot({ path: info.outputPath('group-project-mobile.png'), fullPage: true })
+  await page.getByRole('button', { name: 'Open course menu' }).click()
+  await page.getByLabel('Find course content').fill('proposal')
+  await expect(
+    outline.getByRole('link', { name: 'Submission Guidelines & Deadlines', exact: true }),
+  ).toBeVisible()
+  await outline
+    .getByRole('link', { name: 'Submission Guidelines & Deadlines', exact: true })
+    .click()
+  await expect(page.getByRole('button', { name: 'Open course menu' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+  expect(errors).toEqual([])
 })
 
 test('quiz pages are linked, responsive and reveal answers', async ({ page }) => {

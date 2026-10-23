@@ -5,6 +5,7 @@ import HomePage from './components/HomePage.vue'
 import TutorialOverview from './components/TutorialOverview.vue'
 import CourseCatalog from './components/CourseCatalog.vue'
 import DemoPage from './components/DemoPage.vue'
+import GroupProjectGuidelines from './components/GroupProjectGuidelines.vue'
 import { courseSections, demos, matchesCourseItem } from './course'
 import CourseNavItem from './components/CourseNavItem.vue'
 import { courseHref, navigateCourse, readPath } from './navigation'
@@ -54,6 +55,7 @@ const parts = computed(() => path.value.split('/'))
 const isHome = computed(() => !parts.value[0])
 const courseSection = computed(() => courseSections.find((s) => s.id === parts.value[0]))
 const catalog = computed(() => (!parts.value[1] ? courseSection.value : undefined))
+const isProjectGuidelines = computed(() => path.value === 'group-project/submission-guidelines')
 const lesson = computed(() =>
   parts.value[0] === 'tutorials' ? tutorials.find((t) => t.id === parts.value[1]) : undefined,
 )
@@ -95,9 +97,11 @@ watch(
         ? `Overview · ${lesson.value.title} · STAT3612`
         : demo.value
           ? `${demo.value.title} · STAT3612`
-          : catalog.value
-            ? `${catalog.value.title} · STAT3612`
-            : 'STAT3612 · Statistical Machine Learning'
+          : isProjectGuidelines.value
+            ? 'Group Project Submission Guidelines · STAT3612'
+            : catalog.value
+              ? `${catalog.value.title} · STAT3612`
+              : 'STAT3612 · Statistical Machine Learning'
   },
   { immediate: true },
 )
@@ -181,6 +185,7 @@ watch(
   <main id="main" tabindex="-1" class="lesson-main" :inert="menuOpen">
     <HomePage v-if="isHome" />
     <CourseCatalog v-else-if="catalog" :section="catalog" />
+    <GroupProjectGuidelines v-else-if="isProjectGuidelines" />
     <DemoPage v-else-if="demo" :key="demo.id" :demo="demo" />
     <div v-else-if="!lesson" class="not-found">
       <span class="eyebrow">PAGE NOT FOUND</span>
