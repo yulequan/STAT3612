@@ -88,6 +88,20 @@ export const courseSections: CourseSection[] = [
     })),
   },
   {
+    id: 'group-project',
+    title: 'Group Project',
+    description: 'Fall 2026 project assessment, deliverables and submission deadlines.',
+    items: [
+      {
+        id: 'submission-guidelines',
+        title: 'Submission Guidelines & Deadlines',
+        description:
+          'Proposal: 12 November. Final report, code, predictions and presentation: 6 December. Both at 23:59 HKT.',
+        href: courseHref('group-project/submission-guidelines'),
+      },
+    ],
+  },
+  {
     id: 'demos',
     title: 'Demos',
     description: 'Interactive demonstrations to explore how the methods work.',
