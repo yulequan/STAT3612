@@ -59,6 +59,8 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertIn(r'\usepackage[margin=25mm]{geometry}', source)
         self.assertIn(r'Percentages must total exactly 100\%.', source)
         self.assertEqual(source.count(r'20\%'), 5)
+        self.assertEqual(source.count(r'\url{[HKU-email]}'), 5)
+        self.assertIn(r'\urlstyle{same}', source)
         end = source.index(r'\end{tabularx}')
         for title, _ in templates.SECTIONS:
             self.assertGreater(source.index(f'\\section{{{title}}}'), end)
