@@ -132,6 +132,7 @@ class ReportTemplateTests(unittest.TestCase):
         source = (templates.DESTINATION / 'report-template.tex').read_text()
         placeholder = r'\textbf{Presentation video:} \url{[YouTube-Unlisted-URL]}'
         self.assertIn(placeholder, source)
+        self.assertIn(r'\usepackage[hidelinks]{hyperref}', source)
         self.assertLess(source.index(placeholder), source.index(r'\section*{Group Members'))
         with ZipFile(templates.DESTINATION / 'report-template.docx') as archive:
             root = ET.fromstring(archive.read('word/document.xml'))

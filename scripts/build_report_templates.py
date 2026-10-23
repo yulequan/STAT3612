@@ -107,6 +107,7 @@ def latex():
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
 \usepackage{mathptmx,array,tabularx,titlesec,url}
+\usepackage[hidelinks]{hyperref}
 \urlstyle{same}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
