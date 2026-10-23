@@ -11,6 +11,14 @@ spec = importlib.util.spec_from_file_location('report_templates', ROOT / 'script
 templates = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(templates)
 NS = {'w': templates.W}
+EXPECTED_SECTIONS = (
+    'Introduction', 'Related Work', 'Methodology', 'Experimental Setups',
+    'Experimental Results and Analysis', 'Discussion', 'Conclusion',
+)
+EXPECTED_SUBSECTIONS = (
+    '3.1 Problem Formulation', '3.2 Method Design',
+    '4.1 Datasets, Tasks, and Evaluation', '4.2 Baseline Methods', '4.3 Implementation Details',
+)
 
 
 class ReportTemplateTests(unittest.TestCase):
@@ -43,9 +51,17 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertIn('Percentages must total exactly 100%.', text(root))
         self.assertIn('four-person group', text(root))
 
-        for index, (title, _) in enumerate(templates.SECTIONS, start=1):
+        headings = [text(element) for element in elements
+                    if element.find('w:pPr/w:pStyle[@w:val="Heading1"]', NS) is not None]
+        self.assertEqual(headings, ['Group Members and Contributions', *(
+            f'{index}. {title}' for index, title in enumerate(EXPECTED_SECTIONS, start=1)
+        ), 'References', 'Appendix (Optional)'])
+        for index, title in enumerate(EXPECTED_SECTIONS, start=1):
             heading_index = next(i for i, element in enumerate(elements) if text(element) == f'{index}. {title}')
             self.assertGreater(heading_index, table_index)
+        subheadings = [text(element) for element in elements
+                       if element.find('w:pPr/w:pStyle[@w:val="Heading2"]', NS) is not None]
+        self.assertEqual(subheadings, list(EXPECTED_SUBSECTIONS))
         self.assertEqual(styles.find('.//w:rFonts', NS).get(f'{{{templates.W}}}ascii'), 'Times New Roman')
         self.assertEqual(styles.find('.//w:sz', NS).get(f'{{{templates.W}}}val'), '22')
         self.assertEqual(root.find('.//w:pgSz', NS).get(f'{{{templates.W}}}w'), '11906')
@@ -62,8 +78,36 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertEqual(source.count(r'\url{[HKU-email]}'), 5)
         self.assertIn(r'\urlstyle{same}', source)
         end = source.index(r'\end{tabularx}')
-        for title, _ in templates.SECTIONS:
+        self.assertEqual([title for title, _, _ in templates.SECTIONS], list(EXPECTED_SECTIONS))
+        for title in EXPECTED_SECTIONS:
             self.assertGreater(source.index(f'\\section{{{title}}}'), end)
+        self.assertIn(r'\section*{References}', source)
+        self.assertIn(r'\section*{Appendix (Optional)}', source)
+        for heading in EXPECTED_SUBSECTIONS:
+            self.assertIn('\\subsection{' + heading.split(' ', 1)[1] + '}', source)
+
+    def test_pipeline_figure_precedes_problem_formulation_in_both_templates(self):
+        source = (templates.DESTINATION / 'report-template.tex').read_text()
+        self.assertLess(source.index(r'\section{Methodology}'), source.index(r'\begin{figure}'))
+        self.assertLess(source.index(r'\end{figure}'), source.index(r'\subsection{Problem Formulation}'))
+        self.assertIn(r'\label{fig:pipeline}', source)
+        self.assertIn(templates.PIPELINE_CAPTION, source)
+        with ZipFile(templates.DESTINATION / 'report-template.docx') as archive:
+            root = ET.fromstring(archive.read('word/document.xml'))
+        elements = list(root.find('w:body', NS))
+        tables = root.findall('w:body/w:tbl', NS)
+        self.assertEqual(len(tables), 2)
+        pipeline = tables[1]
+        self.assertIn('Overall pipeline figure', ''.join(pipeline.itertext()))
+        self.assertIn(templates.PIPELINE_PROMPT, ''.join(pipeline.itertext()))
+        self.assertEqual(pipeline.find('.//w:trHeight', NS).get(f'{{{templates.W}}}val'), '1701')
+        texts = [''.join(element.itertext()) for element in elements]
+        self.assertLess(texts.index('3. Methodology'), elements.index(pipeline))
+        self.assertLess(elements.index(pipeline), texts.index('3.1 Problem Formulation'))
+        self.assertIn(f'Figure 1. {templates.PIPELINE_CAPTION}', texts)
+        for detail in ('hyperparameters', 'hardware', 'software configuration', 'random seeds'):
+            self.assertIn(detail, source)
+            self.assertIn(detail, ''.join(root.itertext()))
 
 
 if __name__ == '__main__':

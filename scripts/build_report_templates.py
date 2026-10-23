@@ -7,13 +7,30 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / 'public/group-project'
 SECTIONS = (
-    ('Introduction', 'State the prediction problem and project objectives.'),
-    ('Data and Preprocessing', 'Describe the data, preprocessing and feature engineering.'),
-    ('Methods and Validation', 'Explain the baseline, candidate models, validation design and tuning.'),
-    ('Results and Model Analysis', 'Compare results and analyse model behaviour with tables or figures.'),
-    ('Discussion and Conclusion', 'Summarise findings, limitations and conclusions.'),
-    ('References', 'List the sources, software and other work cited in the report.'),
+    ('Introduction', 'Introduce the motivation, project objectives and main contributions.', ()),
+    ('Related Work', 'Discuss relevant studies and approaches, with citations.', ()),
+    ('Methodology', 'Present your overall pipeline and explain your approach.', (
+        ('Problem Formulation', 'Define the inputs, prediction target, notation and learning objective.'),
+        ('Method Design', 'Describe preprocessing, feature engineering and your model or algorithm design.'),
+    )),
+    ('Experimental Setups', 'Describe the experimental protocol used for all comparisons.', (
+        ('Datasets, Tasks, and Evaluation',
+         'Describe the supplied datasets, prediction task, validation splits, leakage prevention and evaluation metrics.'),
+        ('Baseline Methods', 'Describe the reference methods and how you compare them fairly.'),
+        ('Implementation Details',
+         'Report model hyperparameters, tuning procedure, random seeds, hardware and software configuration.'),
+    )),
+    ('Experimental Results and Analysis',
+     'Present quantitative comparisons and analyse model behaviour, errors and ablations with tables or figures.', ()),
+    ('Discussion', 'Discuss the implications, limitations and potential improvements.', ()),
+    ('Conclusion', 'Summarise the main findings and takeaways.', ()),
 )
+BACK_MATTER = (
+    ('References', 'List the sources, software and other work cited in the report.'),
+    ('Appendix (Optional)', 'Include supplementary results or details, if needed; otherwise remove this section.'),
+)
+PIPELINE_PROMPT = 'Show the flow from data and preprocessing to modelling and predictions.'
+PIPELINE_CAPTION = 'Overall pipeline (replace the placeholder with your figure).'
 HEADERS = ('Full name', 'University ID', 'HKU email', 'Share (%)', 'Work contributed')
 MEMBERS = tuple((f'[Member {i}]', '[University ID]', '[HKU-email]', '20%', '[Work completed]')
                 for i in range(1, 6))
@@ -32,6 +49,24 @@ def latex():
             values[2] = r'\url{' + values[2] + '}'
         return ' & '.join(values) + r' \\ \hline'
 
+    sections = []
+    for title, prompt, subsections in SECTIONS:
+        sections.append(f'\n\\section{{{title}}}\n{prompt}\n')
+        if title == 'Methodology':
+            sections.append(r'''
+\begin{figure}[!ht]
+\centering
+\fbox{\parbox[c][30mm][c]{0.9\linewidth}{\centering
+\textbf{Overall pipeline figure}\\[6pt]
+''' + PIPELINE_PROMPT + r'''}}
+\caption{''' + PIPELINE_CAPTION + r'''}
+\label{fig:pipeline}
+\end{figure}
+''')
+        for subtitle, description in subsections:
+            sections.append(f'\n\\subsection{{{subtitle}}}\n{description}\n')
+    sections.extend(f'\n\\section*{{{title}}}\n{prompt}\n' for title, prompt in BACK_MATTER)
+
     return r'''\documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
 \usepackage{mathptmx,array,tabularx,titlesec,url}
@@ -40,6 +75,8 @@ def latex():
 \setlength{\parskip}{6pt}
 \titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
 \titlespacing*{\section}{0pt}{12pt}{6pt}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
 \begin{document}
 {\fontsize{16}{19}\selectfont\bfseries [Project Title]}\par
 STAT / SDST 3612 -- Fall 2026\par
@@ -59,11 +96,12 @@ STAT / SDST 3612 -- Fall 2026\par
     ) + r'''
 \end{tabularx}
 \endgroup
-''' + ''.join(f'\n\\section{{{title}}}\n{prompt}\n' for title, prompt in SECTIONS) + '\n\\end{document}\n'
+''' + ''.join(sections) + '\n\\end{document}\n'
 
 
 def paragraph(text, style=None):
-    properties = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ''
+    keep = '<w:keepNext/><w:keepLines/>' if style in ('Title', 'Heading1', 'Heading2') else ''
+    properties = f'<w:pPr><w:pStyle w:val="{style}"/>{keep}</w:pPr>' if style else ''
     return f'<w:p>{properties}<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r></w:p>'
 
 
@@ -90,8 +128,24 @@ def document():
                          paragraph(text, 'TableText') + '</w:tc>')
         table.append('</w:tr>')
     body.extend([''.join(table) + '</w:tbl>'])
-    for index, (title, prompt) in enumerate(SECTIONS, start=1):
+    for index, (title, prompt, subsections) in enumerate(SECTIONS, start=1):
         body.extend([paragraph(f'{index}. {title}', 'Heading1'), paragraph(prompt)])
+        if title == 'Methodology':
+            body.append('<w:tbl><w:tblPr><w:tblW w:w="9072" w:type="dxa"/>'
+                        '<w:tblBorders>' + ''.join(
+                            f'<w:{edge} w:val="single" w:sz="4" w:color="000000"/>'
+                            for edge in ('top', 'left', 'bottom', 'right')
+                        ) + '</w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="9072"/>'
+                        '</w:tblGrid><w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="1701" '
+                        'w:hRule="atLeast"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="9072" '
+                        'w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' +
+                        paragraph('Overall pipeline figure', 'FigurePlaceholder') +
+                        paragraph(PIPELINE_PROMPT, 'FigurePlaceholder') + '</w:tc></w:tr></w:tbl>')
+            body.append(paragraph(f'Figure 1. {PIPELINE_CAPTION}', 'Caption'))
+        for subindex, (subtitle, description) in enumerate(subsections, start=1):
+            body.extend([paragraph(f'{index}.{subindex} {subtitle}', 'Heading2'), paragraph(description)])
+    for title, prompt in BACK_MATTER:
+        body.extend([paragraph(title, 'Heading1'), paragraph(prompt)])
     body.append('<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
                 '<w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417"/>'
                 '</w:sectPr>')
@@ -108,8 +162,15 @@ STYLES = f'''<w:styles xmlns:w="{W}">
 <w:pPr><w:keepNext/><w:spacing w:line="380" w:lineRule="exact"/></w:pPr>
 <w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/>
-<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="240" w:line="288" w:lineRule="exact"/><w:outlineLvl w:val="0"/></w:pPr>
+<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120" w:line="288" w:lineRule="exact"/><w:outlineLvl w:val="0"/></w:pPr>
 <w:rPr><w:b/><w:sz w:val="24"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/>
+<w:pPr><w:keepNext/><w:spacing w:before="200" w:after="80"/><w:outlineLvl w:val="1"/></w:pPr>
+<w:rPr><w:b/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="FigurePlaceholder"><w:name w:val="Figure Placeholder"/><w:basedOn w:val="Normal"/>
+<w:pPr><w:jc w:val="center"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/>
+<w:pPr><w:jc w:val="center"/></w:pPr></w:style>
 <w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>
 <w:pPr><w:spacing w:after="80" w:line="240" w:lineRule="exact"/></w:pPr>
 <w:rPr><w:sz w:val="20"/></w:rPr></w:style>
