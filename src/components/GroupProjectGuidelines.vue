@@ -141,6 +141,11 @@ import { courseHref } from '../navigation'
   border-color: var(--line);
   font-weight: 500;
 }
+.project-guidelines th:last-child,
+.project-guidelines td:last-child {
+  width: 80px;
+  white-space: nowrap;
+}
 .project-guidelines code {
   font-size: 0.88em;
   background: var(--soft);

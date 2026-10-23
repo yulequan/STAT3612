@@ -292,6 +292,7 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   }
   await expect(page.locator('iframe')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
+  await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: info.outputPath('group-project-desktop.png'), fullPage: true })
   await page.reload()
   await expect(page).toHaveURL(url)
@@ -306,6 +307,10 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
 
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })
+    await expect(weights.getByRole('columnheader', { name: 'Weight', exact: true })).toHaveCSS(
+      'white-space',
+      'nowrap',
+    )
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       `${width}px project page`,
