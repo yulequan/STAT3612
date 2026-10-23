@@ -6,6 +6,8 @@
 \setlength{\parskip}{6pt}
 \titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
 \titlespacing*{\section}{0pt}{12pt}{6pt}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
 \begin{document}
 {\fontsize{16}{19}\selectfont\bfseries [Project Title]}\par
 STAT / SDST 3612 -- Fall 2026\par
@@ -31,21 +33,54 @@ Total &  &  & 100\% &  \\ \hline
 \endgroup
 
 \section{Introduction}
-State the prediction problem and project objectives.
+Introduce the motivation, project objectives and main contributions.
 
-\section{Data and Preprocessing}
-Describe the data, preprocessing and feature engineering.
+\section{Related Work}
+Discuss relevant studies and approaches, with citations.
 
-\section{Methods and Validation}
-Explain the baseline, candidate models, validation design and tuning.
+\section{Methodology}
+Present your overall pipeline and explain your approach.
 
-\section{Results and Model Analysis}
-Compare results and analyse model behaviour with tables or figures.
+\begin{figure}[!ht]
+\centering
+\fbox{\parbox[c][30mm][c]{0.9\linewidth}{\centering
+\textbf{Overall pipeline figure}\\[6pt]
+Show the flow from data and preprocessing to modelling and predictions.}}
+\caption{Overall pipeline (replace the placeholder with your figure).}
+\label{fig:pipeline}
+\end{figure}
 
-\section{Discussion and Conclusion}
-Summarise findings, limitations and conclusions.
+\subsection{Problem Formulation}
+Define the inputs, prediction target, notation and learning objective.
 
-\section{References}
+\subsection{Method Design}
+Describe preprocessing, feature engineering and your model or algorithm design.
+
+\section{Experimental Setups}
+Describe the experimental protocol used for all comparisons.
+
+\subsection{Datasets, Tasks, and Evaluation}
+Describe the supplied datasets, prediction task, validation splits, leakage prevention and evaluation metrics.
+
+\subsection{Baseline Methods}
+Describe the reference methods and how you compare them fairly.
+
+\subsection{Implementation Details}
+Report model hyperparameters, tuning procedure, random seeds, hardware and software configuration.
+
+\section{Experimental Results and Analysis}
+Present quantitative comparisons and analyse model behaviour, errors and ablations with tables or figures.
+
+\section{Discussion}
+Discuss the implications, limitations and potential improvements.
+
+\section{Conclusion}
+Summarise the main findings and takeaways.
+
+\section*{References}
 List the sources, software and other work cited in the report.
+
+\section*{Appendix (Optional)}
+Include supplementary results or details, if needed; otherwise remove this section.
 
 \end{document}

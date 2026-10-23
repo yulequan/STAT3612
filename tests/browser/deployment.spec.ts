@@ -245,17 +245,32 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   const weights = main.getByRole('table', { name: 'Project grading weights' })
   for (const [component, weight] of [
     ['Proposal', '10%'],
-    ['Performance (public and private leaderboards)', '30%'],
+    ['Performance', '30%'],
     ['Written report', '35%'],
     ['Oral presentation', '25%'],
   ]) {
-    await expect(
-      weights.getByRole('row', { name: `${component} ${weight}`, exact: true }),
-    ).toBeVisible()
+    const row = weights.getByRole('row').filter({
+      has: page.getByRole('rowheader', { name: component, exact: true }),
+    })
+    await expect(row.getByRole('cell').first()).toHaveText(weight)
+    await expect(row.getByRole('cell').last()).not.toBeEmpty()
   }
+  await expect(weights).toContainText('Both public and private leaderboard performance')
+  await expect(main).toContainText('Weights are within the project')
+  await expect(main).toContainText('one Kaggle team per group')
+  await expect(main).toContainText('same name as your Moodle group')
+  await expect(main).toContainText('group_XX')
+  await expect(main).toContainText('One member submits the Moodle deliverables')
   await expect(main).toContainText('GroupID.pdf')
   await expect(main).toContainText('group_02.pdf')
   await expect(main).toContainText('preliminary baseline results on your validation set')
+  await expect(main).toContainText('one PDF directly to the Moodle proposal submission')
+  const submissions = main.getByRole('table', { name: 'Final submission files' })
+  await expect(submissions.getByRole('row')).toHaveCount(4)
+  const report = submissions.getByRole('row').filter({ hasText: 'Final report (PDF)' })
+  await expect(report).toContainText('GroupID.pdf')
+  await expect(report).toContainText('uploaded separately, not inside the ZIP')
+  await expect(submissions).toContainText('submit and select your final entries')
   await expect(main).toContainText('one ZIP')
   await expect(main).toContainText('GroupID.zip')
   await expect(main).toContainText('Final report (PDF)')
@@ -268,13 +283,31 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
     'full name, university ID, HKU email, contribution percentage and work contributed',
   )
   await expect(main).toContainText('exactly 100%')
+  const structure = main.getByRole('table', { name: 'Final report structure' })
+  await expect(structure.getByRole('rowheader')).toHaveText([
+    '1. Introduction',
+    '2. Related Work',
+    '3. Methodology',
+    '4. Experimental Setups',
+    '5. Experimental Results and Analysis',
+    '6. Discussion',
+    '7. Conclusion',
+    'References; Appendix (optional)',
+  ])
+  await expect(structure).toContainText(
+    'Overall pipeline figure; Problem Formulation; Method Design',
+  )
+  await expect(structure).toContainText('hardware and software configuration')
+  await expect(main.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible()
+  await expect(main).toContainText('Use only the data supplied through the course competition')
+  await expect(main).toContainText('No external datasets, labels or pretrained model weights')
   const text = await main.innerText()
   expect(text.match(/12 November 2026/g)).toHaveLength(1)
   expect(text.match(/6 December 2026/g)).toHaveLength(1)
   expect(text.match(/README\.md/g)).toHaveLength(1)
-  expect(text.trim().split(/\s+/).length).toBeLessThan(450)
+  expect(text.trim().split(/\s+/).length).toBeLessThan(850)
   await expect(main).not.toContainText(
-    /invitation|EHR|MIMIC|2025|separate tracks|activity pause|log loss|sample_submission|frequently asked|before you submit/i,
+    /invitation|EHR|MIMIC|2025|separate tracks|activity pause|log loss|sample_submission/i,
   )
   for (const [name, file] of [
     ['LaTeX template (.tex)', 'report-template.tex'],

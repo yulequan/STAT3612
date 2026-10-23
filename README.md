@@ -53,12 +53,17 @@ expected work; chapters are freely navigable.
 
 The public [submission guidelines](https://yulequan.github.io/STAT3612/group-project/submission-guidelines)
 live in `src/components/GroupProjectGuidelines.vue`. The page is the submission reference
-for deadlines, grading and required files; it does not repeat Kaggle documentation.
-Students upload one proposal PDF and one final ZIP to Moodle. The ZIP contains the
-report, slides, video, code and a `README.md` with reproduction instructions.
+for deadlines, grading, required files, group/team naming, integrity rules and FAQs.
+Students upload proposal and final-report PDFs separately to their respective Moodle
+submissions. The final supporting ZIP contains slides, video, code and a `README.md`
+with reproduction instructions, not the report PDF. Predictions go to Kaggle.
 
 Matching LaTeX and Word report templates are served from `public/group-project/`.
 Both use A4, 11-point Times-style text, 25 mm margins and the same section headings.
+The structure covers Introduction, Related Work, Methodology (pipeline figure,
+problem formulation and method design), Experimental Setups (data/task/evaluation,
+baselines and implementation), Experimental Results and Analysis, Discussion,
+Conclusion, References and an optional Appendix.
 The opening contribution table records each member's identity, work and share,
 with shares totaling exactly 100%. Regenerate both downloads using the standard library:
 
