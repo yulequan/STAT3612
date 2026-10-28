@@ -24,7 +24,7 @@ def build(execute=False):
     def code(text):
         cells.append(nbformat.v4.new_code_cell(text.strip()))
 
-    md(f'''# Tutorial 07 · {CONTENT['title']}
+    md(f'''# Tutorial 08 · {CONTENT['title']}
 
 **STAT / SDST 3612 · {CONTENT['subtitle']}**
 
@@ -239,7 +239,7 @@ result does not establish.
 ''')
     code('''record = {"seed": initial["seed"], "counts": initial["counts"],
           "comparison": comparison["rows"], "final": lab.final}
-Path("tutorial07-results.json").write_text(json.dumps(record, indent=2))
+Path("tutorial08-results.json").write_text(json.dumps(record, indent=2))
 print("Recorded candidates:", len(record["comparison"]))
 ''')
 
@@ -269,13 +269,13 @@ from experiment import SEED
         'language_info': {'name': 'python'},
     })
     for index, cell in enumerate(notebook.cells):
-        cell.id = f'tutorial07-{index:03d}'
+        cell.id = f'tutorial08-{index:03d}'
     if execute:
         NotebookClient(notebook, timeout=600,
                        resources={'metadata': {'path': str(HERE)}}).execute()
         # The final record cell is meant for students' extracted folder, not the source tree.
-        (HERE / 'tutorial07-results.json').unlink(missing_ok=True)
-    nbformat.write(notebook, HERE / 'tutorial07.ipynb')
+        (HERE / 'tutorial08-results.json').unlink(missing_ok=True)
+    nbformat.write(notebook, HERE / 'tutorial08.ipynb')
     print(f'Built {len(cells)} cells' + (' with executed outputs.' if execute else '.'))
 
 

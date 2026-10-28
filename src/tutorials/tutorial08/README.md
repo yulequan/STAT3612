@@ -1,4 +1,4 @@
-# Tutorial 07 · Trees, Ensembles and Support Vector Machines
+# Tutorial 08 · Trees, Ensembles and Support Vector Machines
 
 **From axis-aligned splits and bagging to maximum-margin classifiers**
 
@@ -31,14 +31,14 @@ saved outputs, so it can be read before running.
 ## Student package
 
 Extract the complete ZIP and keep `experiment.py`, `curriculum.json` and
-`tutorial07.ipynb` together. Use Python 3.11+ in a virtual environment:
+`tutorial08.ipynb` together. Use Python 3.11+ in a virtual environment:
 
 ```sh
 python -m pip install -r requirements.txt
 python -m jupyter lab
 ```
 
-Open `tutorial07.ipynb` and choose **Restart Kernel and Run All Cells**. All data are
+Open `tutorial08.ipynb` and choose **Restart Kernel and Run All Cells**. All data are
 generated locally with scikit-learn and NumPy; there are no downloads, external files,
 GPUs or project files. The notebook uses NumPy, scikit-learn and Matplotlib only.
 
@@ -65,16 +65,16 @@ the test split is not provided to the browser's editable snippets.
 
 `experiment.py` is the numerical source for both the website and the notebook.
 `curriculum.json` holds the shared text, formulas, chapter order and starter snippets.
-`Tutorial07.vue` renders the web scenes; `build_notebook.py` generates the complete
+`Tutorial08.vue` renders the web scenes; `build_notebook.py` generates the complete
 notebook and copies the public functions into its appendix. Regeneration replaces the
 course notebook; students edit their downloaded copies.
 
 From the repository root:
 
 ```sh
-uv run python src/tutorials/tutorial07/build_notebook.py --execute
+uv run python src/tutorials/tutorial08/build_notebook.py --execute
 npm run build
-uv run python scripts/verify.py tutorial07
+uv run python scripts/verify.py tutorial08
 ```
 
 The website uses Pyodide 0.27.7 with scikit-learn 1.6.1. Native requirements are in
