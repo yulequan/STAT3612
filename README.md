@@ -24,6 +24,15 @@ or see its [setup and teaching notes](src/tutorials/tutorial06/README.md).
 The slides page includes a standalone PDF link for browsers without embedded PDF
 support. PDF, notebook, requirements and instructions are bundled in the offline ZIP.
 
+Tutorial07 compares **decision trees, bagging, random forests, AdaBoost, gradient
+boosting and support vector machines** on three teaching datasets generated locally with
+scikit-learn and NumPy. Two moons expose nonlinear boundaries; iris petals make margins and
+support vectors readable; XOR shows why a kernel is needed. Every chapter combines a
+decision-boundary experiment, the shared Python function and an editable snippet.
+Validation chooses the model; the comparison chapter freezes a written reason before
+one final test. Open [Tutorial07](https://yulequan.github.io/STAT3612/tutorials/tutorial07/overview)
+or see its [student instructions](src/tutorials/tutorial07/README.md).
+
 The course homepage opens at `/` and offers five sections: **Lectures**, **Tutorials**,
 **Group Project**, **Demos** and **Quizzes**. The homepage shows two levels: sections and
 their materials. The sidebar starts at the same depth, with each tutorial's Overview and
@@ -138,8 +147,9 @@ Pull requests run the same build and deployment checks without publishing. Deplo
 use the built-in `GITHUB_TOKEN`; no personal token, API keys or repository secrets are needed.
 The `github-pages` environment must allow deployments from `main`.
 The build job uses Python only to prepare static assets. A separate scientific check job
-installs the locked notebook environment, tests both tutorials and executes both extracted
-student notebooks before publishing. Pyodide wheels are cached and SHA-256 checked on every build.
+installs the locked notebook environment, tests every tutorial’s scientific and evaluation
+contracts, and executes each extracted student notebook before publishing. Pyodide wheels are
+cached and SHA-256 checked on every build.
 
 The build reads the course catalog and automatically emits entry pages for all sections,
 demos, tutorial overviews and chapters. For example,
@@ -156,7 +166,8 @@ The original standalone demo URLs remain valid:
 Course routes follow the material hierarchy:
 
 - `/lectures` — lecture catalog (ready for future materials).
-- `/tutorials` → `/tutorials/tutorial04/overview` → individual chapters.
+- `/tutorials` → `/tutorials/tutorial04/overview` → individual chapters
+  (through Tutorial07, including `/tutorials/tutorial07/compare`).
 - `/group-project` → `/group-project/submission-guidelines` — Fall 2026 deadlines and assessment.
 - `/demos` → `/demos/gradient-descent` or `/demos/gd-vs-sgd`.
 
@@ -207,6 +218,7 @@ src/
       README.md                student instructions
     tutorial05/                spam lesson, shared curriculum, notebook and original UCI data
     tutorial06/                time-series PDF, executed notebook and local setup instructions
+    tutorial07/                tree, ensemble and SVM lesson, curriculum and executed notebook
 public/                        original standalone demos and demo overview
 .github/workflows/             GitHub Pages build, browser checks and deployment
 scripts/                       prepare assets, package, scaffold, verify
@@ -280,14 +292,14 @@ write a reason for their model choice.
 uv run python scripts/verify.py
 ```
 
-Verification checks both tutorials’ scientific behavior and data separation, executes the extracted student
-package (including its opt-in final test cell), checks notebook/source consistency, typechecks
-and builds the site, then runs real-browser tests. WASM and native Python are compared at
-every training epoch. Browser tests cover homepage navigation, all chapter starters, execution
-traces, code editing and recovery, XOR/convolution, downloads, mobile layout, loading
-failure/retry (including an HTML fallback returned for JSON), asset regeneration while the
-development server is running, cancellation, static subdirectory deployment and absence
-of external requests.
+Verification checks each tutorial’s scientific behavior and data separation, executes every
+extracted student package (including its opt-in final test cell), checks notebook/source
+consistency, typechecks and builds the site, then runs real-browser tests. WASM and native
+Python are compared at every training epoch. Browser tests cover homepage navigation, all
+chapter starters, execution traces, code editing and recovery, decision boundaries,
+XOR/convolution, downloads, mobile layout, loading failure/retry (including an HTML fallback
+returned for JSON), asset regeneration while the development server is running, cancellation,
+static subdirectory deployment and absence of external requests.
 
 Demo regression checks compare 123 embedded UI states against values captured from the
 original standalone pages (see `tests/fixtures/README.md`). They cover both modes, parameter
@@ -308,10 +320,10 @@ use this registry; the course homepage never automatically opens a tutorial or d
 ## Add the next tutorial
 
 ```sh
-python3 scripts/new_tutorial.py 7 --title "Your next practical topic"
+python3 scripts/new_tutorial.py 8 --title "Your next practical topic"
 ```
 
-This creates one folder, `src/tutorials/tutorial07/`, with a runnable Vue/Python scaffold.
+This creates one folder, `src/tutorials/tutorial08/`, with a runnable Vue/Python scaffold.
 The registry discovers it automatically. Add its actual content, dataset and notebook before
 sharing it; the scaffold is not a completed lesson. No future topic is assumed.
 
