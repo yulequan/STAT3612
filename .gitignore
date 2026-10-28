@@ -4,6 +4,7 @@
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+src/tutorials/*/*-results.json
 node_modules/
 dist/
 .cache/

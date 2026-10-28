@@ -1,0 +1,237 @@
+{
+  "title": "Trees, Ensembles and Support Vector Machines",
+  "subtitle": "From axis-aligned splits and bagging to maximum-margin classifiers",
+  "task": "Given two measurements, predict a binary label with a flexible nonlinear boundary. Compare a single decision tree, bagged and boosted ensembles, and support vector machines on the same training, validation and test split, then choose one model using validation evidence.",
+  "motivation": "The same prediction can come from very different assumptions: a tree carves the plane into rectangles, bagging averages many unstable trees, boosting corrects errors in sequence, and an SVM chooses the widest separating street. Putting them on the same data makes their inductive biases, failure modes and validation choices concrete.",
+  "stages": [
+    {
+      "title": "Meet the data and the split",
+      "description": "See why two moons need a curved boundary, inspect iris petals for a margin lesson, and reserve train / validation / test rows before fitting anything.",
+      "chapters": ["data"]
+    },
+    {
+      "title": "Grow one tree, then average many",
+      "description": "Control tree depth, compare bagging with random feature selection, and read validation and out-of-bag evidence.",
+      "chapters": ["tree", "forest"]
+    },
+    {
+      "title": "Correct errors in sequence",
+      "description": "Fit AdaBoost and gradient boosting, tune the learning rate, and use staged validation curves to stop adding trees.",
+      "chapters": ["boosting"]
+    },
+    {
+      "title": "Choose a margin and change the geometry",
+      "description": "Read support vectors and soft-margin C on iris petals, then compare linear, polynomial and RBF kernels on two moons and XOR.",
+      "chapters": ["margins", "kernels"]
+    },
+    {
+      "title": "Compare, choose and test once",
+      "description": "Put all candidates on one validation table, inspect errors, freeze a choice with a written reason, and report one final test.",
+      "chapters": ["compare"]
+    }
+  ],
+  "objectives": [
+    "Explain how a decision tree uses axis-aligned splits and how depth and leaf size control overfitting.",
+    "Distinguish bagging from random forests, and interpret validation and out-of-bag evidence for ensemble size and feature randomness.",
+    "Explain how AdaBoost and gradient boosting correct previous errors, and select a learning rate and number of trees using staged validation curves.",
+    "Identify margins, support vectors and the role of C in a soft-margin SVM, and connect the geometry to hinge loss.",
+    "Compare linear, polynomial and RBF kernels, explain the effect of gamma and degree, and recognize when a kernel is needed.",
+    "Select a model on validation data, inspect its confusion matrix, and evaluate the frozen choice once on held-out test data."
+  ],
+  "prerequisites": "Basic Python and NumPy, plus binary classification, accuracy, precision and recall from lecture. No previous tree, ensemble or SVM implementation is required.",
+  "outcome": "An executed notebook with decision-boundary plots, validation comparisons for every model family, one inspected error case, and a justified final test result.",
+  "chapters": [
+    {
+      "id": "data",
+      "title": "Data: Two Moons and Iris Petals",
+      "question": "What makes a boundary nonlinear?",
+      "conceptTitle": "Two geometric problems, one fair split",
+      "idea": "A classifier learns from examples. Here each example has two measurements and a binary label; the boundary is what we want to see.",
+      "points": [
+        "The `two moons` set has 600 points arranged in two interleaving crescents. No straight line separates the classes, so a flexible boundary is necessary.",
+        "The `iris petals` set uses 100 flowers from two species and two measurements: petal length and petal width. It gives a small, interpretable stage for a linear margin.",
+        "We use a stratified 60% / 20% / 20% split with seed 3612. The test rows are hidden from the browser and from editable snippets.",
+        "A model is fitted on training rows, compared on validation rows and tested once. The majority-class baseline is 50% on the balanced moon and iris splits."
+      ],
+      "equation": "\\mathcal{D}=\\{(\\mathbf{x}_i,y_i)\\}_{i=1}^{n},\\qquad \\mathbf{x}_i\\in\\mathbb{R}^{2},\\qquad y_i\\in\\{0,1\\}",
+      "notation": [
+        ["\\mathcal{D}", "The labelled dataset."],
+        ["\\mathbf{x}_i", "Two measured features for example i."],
+        ["y_i", "The binary class: 0 or 1."]
+      ],
+      "starter": "print(\"Moons train / validation:\", X_train.shape, X_val.shape)\nprint(\"Train labels:\", np.bincount(y_train.astype(int)))\nprint(\"Validation labels:\", np.bincount(y_val.astype(int)))\nbaseline = np.zeros(len(y_val), dtype=int)\nprint(\"Always-0 validation accuracy:\", metrics(y_val, baseline)[\"accuracy\"])\nprint(\"Iris train / validation:\", X_iris_train.shape[0], X_iris_val.shape[0])\nprint(\"XOR train / validation:\", X_xor_train.shape[0], X_xor_val.shape[0])",
+      "experiment": "Compare the two scatter plots. Why would a single straight line struggle on two moons but work better on iris petals?",
+      "functions": ["make_teaching_data", "metrics"],
+      "links": [],
+      "activityTitle": "Inspect the data and the baseline",
+      "pythonTitle": "Python: shapes, splits and a baseline"
+    },
+    {
+      "id": "tree",
+      "title": "A Single Decision Tree",
+      "question": "How does one tree carve up the plane?",
+      "conceptTitle": "A tree asks a sequence of yes/no questions",
+      "idea": "A decision tree partitions the plane with axis-aligned splits. Each internal node tests one feature against a threshold; each leaf predicts a class.",
+      "points": [
+        "Each split chooses the feature and threshold that most reduce impurity on the training rows. Gini impurity is one common criterion; entropy is another.",
+        "Depth and minimum leaf size control capacity. A deep tree can chase noisy points and produce a jagged boundary.",
+        "Training accuracy usually increases with depth. Use validation accuracy to choose a tree that generalizes.",
+        "Axis-aligned splits are interpretable, but diagonal or curved boundaries become stair-step approximations."
+      ],
+      "equation": "G(t)=1-\\sum_{k=0}^{1}p_{k}^{2}(t)",
+      "notation": [
+        ["t", "A candidate node in the tree."],
+        ["p_k(t)", "Proportion of class k among training rows reaching node t."],
+        ["G(t)", "Gini impurity; zero means the node is pure."]
+      ],
+      "starter": "for depth in (1, 2, 4, None):\n    model = build_tree(depth=depth).fit(X_train, y_train)\n    train = metrics(y_train, model.predict(X_train))[\"accuracy\"]\n    validation = metrics(y_val, model.predict(X_val))[\"accuracy\"]\n    print(\"depth\", depth, \"| train\", round(train, 3), \"| validation\", round(validation, 3))",
+      "experiment": "Start with depth 1. Increase depth and watch the boundary. When does training accuracy stop being a useful guide?",
+      "functions": ["build_tree", "metrics"],
+      "links": [
+        ["scikit-learn decision trees", "https://scikit-learn.org/stable/modules/tree.html"]
+      ],
+      "activityTitle": "Change the tree depth and watch the boundary",
+      "pythonTitle": "Python: depth, training and validation"
+    },
+    {
+      "id": "forest",
+      "title": "Bagging and Random Forests",
+      "question": "Why average many trees?",
+      "conceptTitle": "Average many unstable trees",
+      "idea": "Bagging trains trees on bootstrap samples and averages their predictions. A random forest adds random feature subsets at each split to decorrelate the trees.",
+      "points": [
+        "Bagging draws rows with replacement. Each tree sees a different sample, so their errors are not identical.",
+        "A random forest also considers only a random subset of features at each split. This prevents one dominant feature from making every tree nearly the same.",
+        "Averaging reduces variance most when individual trees are strong but different. More trees stabilize predictions; gains eventually flatten.",
+        "Out-of-bag rows are omitted from a tree's bootstrap sample. Their score is an internal estimate, not a replacement for the validation split."
+      ],
+      "equation": "\\hat p_{\\mathrm{bag}}(\\mathbf{x})=\\frac{1}{B}\\sum_{b=1}^{B}\\hat p_b(\\mathbf{x})",
+      "notation": [
+        ["B", "Number of trees in the ensemble."],
+        ["\\hat p_b(\\mathbf{x})", "Class-1 probability from tree b."],
+        ["\\hat p_{\\mathrm{bag}}", "Averaged probability used by the ensemble."]
+      ],
+      "starter": "for mode in (\"bagging\", \"forest\"):\n    model = build_forest(mode=mode, n_estimators=100).fit(X_train, y_train)\n    print(mode, \"| OOB\", round(model.oob_score_, 3),\n          \"| validation\", round(metrics(y_val, model.predict(X_val))[\"accuracy\"], 3))",
+      "experiment": "Compare bagging and the random forest at the same number of trees. Does feature randomness change validation accuracy, and how variable is the curve?",
+      "functions": ["build_forest", "metrics"],
+      "links": [
+        ["scikit-learn ensembles", "https://scikit-learn.org/stable/modules/ensemble.html"]
+      ],
+      "activityTitle": "Compare bagging with a random forest",
+      "pythonTitle": "Python: bagging, random forest and OOB"
+    },
+    {
+      "id": "boosting",
+      "title": "Boosting: Learn from Mistakes",
+      "question": "How does a sequence of weak trees become strong?",
+      "conceptTitle": "Build a strong model from weak corrections",
+      "idea": "Boosting fits learners sequentially. AdaBoost increases the weight of misclassified rows; gradient boosting fits each new tree to the current errors.",
+      "points": [
+        "AdaBoost reweights training rows after each weak learner. Gradient boosting fits each new tree to the negative gradient of the loss.",
+        "The learning rate scales each new tree's contribution. A smaller rate often needs more trees; too many trees can still overfit.",
+        "A staged validation curve records accuracy after each added tree, so you can see when extra capacity stops helping.",
+        "Boosting focuses on hard examples, which also makes it sensitive to label noise and outliers.",
+        "Libraries such as XGBoost implement the same additive idea with additional regularization and engineering optimizations. This lesson uses scikit-learn's implementation so every example runs in the browser."
+      ],
+      "equation": "F_m(\\mathbf{x})=F_{m-1}(\\mathbf{x})+\\nu\\,h_m(\\mathbf{x})",
+      "notation": [
+        ["F_m", "The ensemble after m trees."],
+        ["h_m", "The next weak learner fitted to the current errors."],
+        ["\\nu", "Learning rate, also called the shrinkage factor."]
+      ],
+      "starter": "for lr in (0.05, 0.1, 0.5):\n    model = build_boosting(mode=\"gradient\", n_estimators=100, learning_rate=lr)\n    model.fit(X_train, y_train)\n    train = metrics(y_train, model.predict(X_train))[\"accuracy\"]\n    validation = metrics(y_val, model.predict(X_val))[\"accuracy\"]\n    print(\"learning rate\", lr, \"| train\", round(train, 3), \"| validation\", round(validation, 3))",
+      "experiment": "Hold the number of trees fixed and change the learning rate. Which setting reaches a good validation score with fewer trees?",
+      "functions": ["build_boosting", "metrics"],
+      "links": [
+        [
+          "scikit-learn gradient boosting",
+          "https://scikit-learn.org/stable/modules/ensemble.html#gradient-boosting"
+        ]
+      ],
+      "activityTitle": "Tune boosting on validation data",
+      "pythonTitle": "Python: AdaBoost and gradient boosting"
+    },
+    {
+      "id": "margins",
+      "title": "Support Vector Machines: The Widest Street",
+      "question": "Which separating line should we prefer?",
+      "conceptTitle": "Among separating lines, prefer the widest street",
+      "idea": "A linear SVM chooses the separating hyperplane with the largest margin. Points on the margin or inside it are support vectors; they determine the boundary.",
+      "points": [
+        "The margin is the distance between the boundary and the nearest training points. Maximizing it is a geometric regularizer.",
+        "Soft-margin SVM allows violations. C trades margin width against training errors: larger C permits fewer violations and usually a narrower margin.",
+        "The hinge loss is zero beyond the margin and grows linearly for points inside it or on the wrong side.",
+        "Support vectors are the training points that matter. Moving a non-support point slightly may leave the fitted boundary unchanged."
+      ],
+      "equation": "\\min_{\\mathbf{w},b,\\boldsymbol{\\xi}}\\ \\frac{1}{2}\\|\\mathbf{w}\\|^2+C\\sum_i\\xi_i\\quad\\text{s.t.}\\quad y_i(\\mathbf{w}^\\top\\mathbf{x}_i+b)\\ge1-\\xi_i,\\ \\xi_i\\ge0",
+      "notation": [
+        ["\\mathbf{w},b", "Weights and intercept of the separating line."],
+        ["\\xi_i", "Slack for how far point i violates the margin."],
+        ["C", "Penalty for violations. Small C allows a wider, softer margin."]
+      ],
+      "starter": "for C in (0.01, 0.1, 1, 10):\n    model = build_svm(kernel=\"linear\", C=C).fit(X_iris_train, y_iris_train)\n    train = metrics(y_iris_train, model.predict(X_iris_train))[\"accuracy\"]\n    validation = metrics(y_iris_val, model.predict(X_iris_val))[\"accuracy\"]\n    print(\"C\", C, \"| support vectors\", len(model.support_),\n          \"| train\", round(train, 3), \"| validation\", round(validation, 3))",
+      "experiment": "Move C from small to large. What happens to the margin, the number of support vectors, and validation accuracy?",
+      "functions": ["build_svm", "metrics"],
+      "links": [
+        ["scikit-learn support vector machines", "https://scikit-learn.org/stable/modules/svm.html"]
+      ],
+      "activityTitle": "Move the margin with C",
+      "pythonTitle": "Python: support vectors and the C setting"
+    },
+    {
+      "id": "kernels",
+      "title": "Kernels: Change the Geometry",
+      "question": "What if a straight line cannot separate the classes?",
+      "conceptTitle": "Kernels let a linear boundary act in a richer space",
+      "idea": "A kernel computes an inner product in a transformed feature space without explicitly building that space. Polynomial and RBF kernels produce curved boundaries in the original plane.",
+      "points": [
+        "Linear: `K(x,z)=x·z`. Polynomial: `K(x,z)=(γ x·z+r)^d`. RBF: `K(x,z)=exp(-γ||x-z||²)`.",
+        "Gamma controls the reach of each point: small gamma gives smooth, broad boundaries; large gamma gives local, wiggly ones.",
+        "The kernel trick replaces dot products; the SVM still solves the same convex optimization problem.",
+        "XOR has no useful linear split. A linear SVM fails; an RBF kernel can separate the quadrants."
+      ],
+      "equation": "K_{\\mathrm{RBF}}(\\mathbf{x},\\mathbf{z})=\\exp\\!\\left(-\\gamma\\|\\mathbf{x}-\\mathbf{z}\\|^2\\right)",
+      "notation": [
+        ["K(\\mathbf{x},\\mathbf{z})", "Kernel similarity between two examples."],
+        ["\\gamma", "RBF reach: larger values make each point's influence more local."],
+        ["d", "Polynomial degree: larger values add higher-order interactions."]
+      ],
+      "starter": "for kernel in (\"linear\", \"poly\", \"rbf\"):\n    model = build_svm(kernel=kernel, C=1, gamma=1, degree=3)\n    model.fit(X_train, y_train)\n    validation = metrics(y_val, model.predict(X_val))[\"accuracy\"]\n    print(kernel, \"| support vectors\", len(model.support_),\n          \"| validation\", round(validation, 3))\nfor kernel in (\"linear\", \"rbf\"):\n    model = build_svm(kernel=kernel, C=1, gamma=1).fit(X_xor_train, y_xor_train)\n    print(\"XOR\", kernel, \"| validation\", round(metrics(y_xor_val, model.predict(X_xor_val))[\"accuracy\"], 3))",
+      "experiment": "Switch between moons and XOR. Which kernel can bend enough for each dataset? What does a very large gamma do?",
+      "functions": ["build_svm", "metrics"],
+      "links": [
+        [
+          "scikit-learn kernel SVM",
+          "https://scikit-learn.org/stable/modules/svm.html#kernel-functions"
+        ]
+      ],
+      "activityTitle": "Compare kernels on two moons and XOR",
+      "pythonTitle": "Python: linear, polynomial and RBF kernels"
+    },
+    {
+      "id": "compare",
+      "title": "Compare, Choose, Test",
+      "question": "Which model deserves the final test?",
+      "conceptTitle": "Validation chooses; test reports",
+      "idea": "Each family has a different inductive bias. Compare their validation performance and errors, choose one, and evaluate it once on the test split.",
+      "points": [
+        "Every candidate uses the same training rows and the same validation rows. Changing the split changes the comparison.",
+        "Validation accuracy is a starting point. Inspect the confusion matrix and individual errors before choosing.",
+        "A more flexible model can win on training data and lose on validation. The test set does not help you choose.",
+        "Record a reason before the final test. Once evaluated, the test decision is frozen."
+      ],
+      "equation": "m^{\\star}=\\arg\\max_{m}\\ \\mathrm{Acc}_{\\mathrm{val}}(m)",
+      "notation": [
+        ["m", "One candidate model and its fitted settings."],
+        ["\\mathrm{Acc}_{\\mathrm{val}}", "Accuracy on the validation rows."],
+        ["m^{\\star}", "The candidate selected before seeing test results."]
+      ],
+      "starter": "rows = compare_models()[\"rows\"]\nfor row in rows:\n    print(row[\"name\"], \"| validation\", round(row[\"validation\"][\"accuracy\"], 3))\nbest = max(rows, key=lambda row: row[\"validation\"][\"accuracy\"])\nprint(\"Selected on validation:\", best[\"name\"])\nprint(\"Write a reason before running the final test cell.\")",
+      "experiment": "Inspect the validation table and at least one confusion matrix. Choose a model for a reason other than 'it is first'.",
+      "functions": ["metrics"],
+      "links": [],
+      "activityTitle": "Select on validation and evaluate test once",
+      "pythonTitle": "Python: compare candidates and freeze a choice"
+    }
+  ]
+}
