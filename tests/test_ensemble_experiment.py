@@ -1,4 +1,4 @@
-"""Regression checks for Tutorial07's scientific and evaluation contracts."""
+"""Regression checks for Tutorial08's scientific and evaluation contracts."""
 import ast
 import importlib.util
 import json
@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDER = ROOT / 'src/tutorials/tutorial07'
+FOLDER = ROOT / 'src/tutorials/tutorial08'
 spec = importlib.util.spec_from_file_location('ensemble_experiment', FOLDER / 'experiment.py')
 science = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(science)
@@ -169,7 +169,7 @@ class EnsembleExperimentTests(unittest.TestCase):
     def test_notebook_functions_starters_and_figures_match_the_sources(self):
         functions = {n.name: ast.dump(n) for n in ast.parse((FOLDER / 'experiment.py').read_text()).body
                      if isinstance(n, ast.FunctionDef)}
-        notebook = json.loads((FOLDER / 'tutorial07.ipynb').read_text())
+        notebook = json.loads((FOLDER / 'tutorial08.ipynb').read_text())
         seen = set()
         code_cells = []
         for cell in notebook['cells']:

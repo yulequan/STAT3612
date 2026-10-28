@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
-const curriculum = JSON.parse(readFileSync('src/tutorials/tutorial07/curriculum.json', 'utf8')) as {
+const curriculum = JSON.parse(readFileSync('src/tutorials/tutorial08/curriculum.json', 'utf8')) as {
   chapters: { id: string; title: string }[]
 }
 
@@ -17,7 +17,7 @@ async function chapter(page: Page, id: string) {
 const runPython = (page: Page) => page.getByRole('button', { name: 'Run Python →', exact: true })
 
 test('overview introduces the comparison and packages the notebook', async ({ page }) => {
-  await page.goto('/tutorials/tutorial07/overview')
+  await page.goto('/tutorials/tutorial08/overview')
   await expect(
     page.getByRole('heading', { name: 'Learning objectives', exact: true }),
   ).toBeVisible()
@@ -51,7 +51,7 @@ test('all model families connect boundaries, validation evidence and Python', as
     if (/^https?:/.test(r.url()) && new URL(r.url()).hostname !== '127.0.0.1')
       external.push(r.url())
   })
-  await page.goto('/tutorials/tutorial07/data')
+  await page.goto('/tutorials/tutorial08/data')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
   await expect(
     page.getByRole('img', { name: 'Two moons · train + validation', exact: true }),
@@ -77,7 +77,7 @@ test('all model families connect boundaries, validation evidence and Python', as
   await page.getByLabel('Maximum depth').selectOption('1')
   await fitTree.click()
   await expect(page.getByRole('img', { name: 'Decision tree · decision boundary' })).toBeVisible()
-  await page.screenshot({ path: info.outputPath('tutorial07-tree.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-tree.png'), fullPage: true })
 
   await chapter(page, 'forest')
   await page.getByRole('button', { name: 'Fit ensemble', exact: true }).click()
@@ -88,7 +88,7 @@ test('all model families connect boundaries, validation evidence and Python', as
     page.getByRole('img', { name: 'accuracy versus number of trees', exact: true }),
   ).toBeVisible()
   await expect(page.getByText('Out-of-bag score', { exact: true })).toBeVisible()
-  await page.screenshot({ path: info.outputPath('tutorial07-forest.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-forest.png'), fullPage: true })
 
   await chapter(page, 'boosting')
   await page.getByRole('button', { name: 'Fit boosting model', exact: true }).click()
@@ -97,7 +97,7 @@ test('all model families connect boundaries, validation evidence and Python', as
   ).toBeVisible({ timeout: 90_000 })
   await expect(page.getByRole('heading', { name: 'Staged validation curve' })).toBeVisible()
   await expect(page.getByText('Best staged validation tree', { exact: true })).toBeVisible()
-  await page.screenshot({ path: info.outputPath('tutorial07-boosting.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-boosting.png'), fullPage: true })
 
   await chapter(page, 'margins')
   await page.getByRole('button', { name: 'Fit linear SVM', exact: true }).click()
@@ -106,7 +106,7 @@ test('all model families connect boundaries, validation evidence and Python', as
   ).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText('Support vectors', { exact: true })).toBeVisible()
   await expect(page.getByText('margin f=+1', { exact: true })).toBeVisible()
-  await page.screenshot({ path: info.outputPath('tutorial07-margins.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-margins.png'), fullPage: true })
 
   await chapter(page, 'kernels')
   await page.getByLabel('Dataset').selectOption('xor')
@@ -122,7 +122,7 @@ test('all model families connect boundaries, validation evidence and Python', as
     page.getByRole('img', { name: 'SVM · rbf · decision boundary', exact: true }),
   ).toBeVisible({ timeout: 60_000 })
   await expect(page.locator('.metric-row').last()).toContainText('XOR quadrants')
-  await page.screenshot({ path: info.outputPath('tutorial07-kernels.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-kernels.png'), fullPage: true })
 
   await chapter(page, 'compare')
   const compare = page.getByRole('button', { name: 'Run validation comparison', exact: true })
@@ -158,7 +158,7 @@ test('all model families connect boundaries, validation evidence and Python', as
   ).toBeVisible({ timeout: 60_000 })
   await expect(page.getByRole('table', { name: 'Final test confusion matrix' })).toBeVisible()
   await expect(page.getByText('Test accuracy', { exact: true })).toBeVisible()
-  await page.screenshot({ path: info.outputPath('tutorial07-final.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-final.png'), fullPage: true })
   const exported = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export experiment record ↓', exact: true }).click()
   const record = JSON.parse(readFileSync((await (await exported).path())!, 'utf8'))
@@ -173,7 +173,7 @@ test('plots, tables and the editable snippet remain usable on a narrow screen', 
 }, info) => {
   test.setTimeout(180_000)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/tutorials/tutorial07/tree')
+  await page.goto('/tutorials/tutorial08/tree')
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
   await page.getByRole('button', { name: 'Fit decision tree', exact: true }).click()
   await expect(
@@ -186,7 +186,7 @@ test('plots, tables and the editable snippet remain usable on a narrow screen', 
       id,
     ).toBeTruthy()
   }
-  await page.screenshot({ path: info.outputPath('tutorial07-mobile.png'), fullPage: true })
+  await page.screenshot({ path: info.outputPath('tutorial08-mobile.png'), fullPage: true })
   await chapter(page, 'tree')
   const editor = page.getByRole('textbox', { name: 'Editable Python experiment' })
   await editor.fill('print("before error")\nraise ValueError("visible error")')
@@ -203,7 +203,7 @@ test('generated data and runtime work from a static subdirectory', async ({ page
   const base = `http://127.0.0.1:${process.env.TEST_STATIC_PORT || '4174'}/dist/`
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto(`${base}tutorials/tutorial07/kernels`)
+  await page.goto(`${base}tutorials/tutorial08/kernels`)
   await expect(runPython(page)).toBeEnabled({ timeout: 60_000 })
   await page.getByRole('button', { name: 'Fit kernel SVM', exact: true }).click()
   await expect(

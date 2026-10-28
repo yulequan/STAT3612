@@ -1,4 +1,4 @@
-"""Scientific source shared by Tutorial07's browser and student notebook.
+"""Scientific source shared by Tutorial08's browser and student notebook.
 
 The lesson keeps three small teaching datasets in memory:
 

@@ -75,7 +75,7 @@ const props = defineProps<{ chapter: string }>()
 const section = computed(
   () => curriculum.chapters.find((c) => c.id === props.chapter) ?? curriculum.chapters[0]!,
 )
-const runtime = createPython('tutorial07')
+const runtime = createPython('tutorial08')
 const { ready, status } = runtime
 const initial = ref<Initial>()
 const error = ref('')
@@ -291,7 +291,7 @@ function exportRecord() {
   )
   const a = document.createElement('a')
   a.href = url
-  a.download = 'tutorial07-experiment.json'
+  a.download = 'tutorial08-experiment.json'
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -867,7 +867,7 @@ onUnmounted(() => {
             the complete notebook from the sidebar or the overview.
           </p>
         </div>
-        <a class="button" :href="courseHref('tutorials/tutorial07/overview')">Open overview →</a>
+        <a class="button" :href="courseHref('tutorials/tutorial08/overview')">Open overview →</a>
       </div>
     </section>
   </div>

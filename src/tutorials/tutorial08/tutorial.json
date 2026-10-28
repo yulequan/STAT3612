@@ -1,12 +1,12 @@
 {
-  "id": "tutorial07",
+  "id": "tutorial08",
   "title": "Trees, Ensembles and Support Vector Machines",
   "subtitle": "From axis-aligned splits and bagging to maximum-margin classifiers",
   "experiment": "experiment.py",
   "python_packages": ["numpy", "scipy", "scikit-learn"],
   "web_assets": ["experiment.py"],
   "student_files": [
-    "tutorial07.ipynb",
+    "tutorial08.ipynb",
     "experiment.py",
     "curriculum.json",
     "requirements.txt",
