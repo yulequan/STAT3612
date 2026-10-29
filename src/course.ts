@@ -36,6 +36,14 @@ export const demos: Demo[] = [
     href: courseHref('demos/svm'),
     file: 'svm-explorations.html',
   },
+  {
+    id: 'tree-lab',
+    title: 'Decision Trees & Ensemble Learning',
+    description:
+      'Build regression and classification trees, compare impurity criteria, prune by cost complexity and explore tree ensembles.',
+    href: courseHref('demos/tree-lab'),
+    file: 'tree-lab.html',
+  },
 ]
 
 export const quizzes: CourseItem[] = [
@@ -121,3 +129,4 @@ export function matchesCourseItem(item: CourseItem, query: string): boolean {
     Boolean(item.children?.some((child) => matchesCourseItem(child, query)))
   )
 }
+
