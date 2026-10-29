@@ -29,6 +29,8 @@ test('Tutorial 07 is discoverable and offers the deck as its only material', asy
       .subarray(0, 5)
       .toString(),
   ).toBe('%PDF-')
+  // Slides only: no notebook, README or ZIP package.
+  await expect(page.locator('a[href$="student.zip"]')).toHaveCount(0)
   expect(page.workers()).toHaveLength(0)
   await page.goto(`${base}tutorials`)
   await expect(page.getByRole('main').getByRole('link', { name: /Tutorial 07/ })).toBeVisible()
@@ -70,12 +72,9 @@ test('the slide-only deck embeds on a direct static subdirectory visit', async (
     `/dist/tutorials/tutorial07/${deck}`,
   )
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('main').getByRole('link', { name: 'Slides + README (ZIP)' }).click()
-  expect(
-    readFileSync((await (await downloaded).path())!)
-      .subarray(0, 2)
-      .toString(),
-  ).toBe('PK')
+  await page.getByRole('main').getByRole('link', { name: 'Download slides (PDF)' }).click()
+  expect((await downloaded).suggestedFilename()).toBe(deck)
+  await expect(page.locator('a[href$="student.zip"]')).toHaveCount(0)
   await page.reload()
   await expect(page).toHaveURL(`${tutorial}slides`)
   await expect(page).toHaveTitle('Review slides · STAT3612')

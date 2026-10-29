@@ -81,7 +81,10 @@ def prepare(public):
             src, out = folder / relative, destination / relative
             out.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, out)
-        shutil.copy2(package(folder), destination / 'student.zip')
+        # Tutorials that publish only slides keep their direct PDF download.
+        archive = package(folder)
+        if archive:
+            shutil.copy2(archive, destination / 'student.zip')
     print(f'Local runtime ready: Pyodide {version}; no CDN requests in class.')
 
 
