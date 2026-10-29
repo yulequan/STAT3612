@@ -24,8 +24,14 @@ or see its [setup and teaching notes](src/tutorials/tutorial06/README.md).
 The slides page includes a standalone PDF link for browsers without embedded PDF
 support. PDF, notebook, requirements and instructions are bundled in the offline ZIP.
 
-Tutorial07 is reserved for the **midterm review**; its slides will be published when available,
-so the public tutorial list currently continues with Tutorial08.
+Tutorial07 publishes the **midterm review** as a 33-slide embedded PDF (69 pages with
+step-by-step answer reveals) with no notebook. It covers the exam format, the conceptual
+distinctions, and fully worked problems from Practice Paper 1, Practice Paper 2 and
+Midterm 2022. Open
+[Tutorial07](https://yulequan.github.io/STAT3612/tutorials/tutorial07/overview)
+or see its [student notes](src/tutorials/tutorial07/README.md).
+The slides page includes a standalone PDF link for browsers without embedded PDF
+support; the deck and its README are bundled in the offline ZIP.
 
 Tutorial08 compares **decision trees, bagging, random forests, AdaBoost, gradient
 boosting and support vector machines** on three teaching datasets generated locally with
@@ -170,7 +176,8 @@ Course routes follow the material hierarchy:
 
 - `/lectures` — lecture catalog (ready for future materials).
 - `/tutorials` → `/tutorials/tutorial04/overview` → individual chapters
-  (through Tutorial08, including `/tutorials/tutorial08/compare`).
+  (through Tutorial08, including `/tutorials/tutorial07/slides` and
+  `/tutorials/tutorial08/compare`).
 - `/group-project` → `/group-project/submission-guidelines` — Fall 2026 deadlines and assessment.
 - `/demos` → `/demos/gradient-descent` or `/demos/gd-vs-sgd`.
 
@@ -221,6 +228,7 @@ src/
       README.md                student instructions
     tutorial05/                spam lesson, shared curriculum, notebook and original UCI data
     tutorial06/                time-series PDF, executed notebook and local setup instructions
+    tutorial07/                midterm-review PDF, tutorial metadata and student notes
     tutorial08/                tree, ensemble and SVM lesson, curriculum and executed notebook
 public/                        original standalone demos and demo overview
 .github/workflows/             GitHub Pages build, browser checks and deployment
