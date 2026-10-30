@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full:
+        description: Also run the Pyodide browser workflows (about 6 minutes)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -70,28 +75,49 @@ jobs:
         with:
           path: dist
 
-  # Browser checks are minutes of real Pyodide computation, so they run as two
-  # parallel shards instead of one serial job. Tutorial 05 alone is as long as
-  # everything else; keep it on its own shard. The site under test is the built
-  # artifact, never a second build.
+  # The gate for every push: the built site, its navigation and the slide decks.
+  # These checks are seconds, because none of them boots Pyodide.
   browser:
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: tutorial05 workflows
-            specs: tests/browser/tutorial05.spec.ts
-          - name: course shell, decks and remaining tutorials
-            specs: >-
-              tests/browser/deployment.spec.ts
-              tests/browser/demo-parity.spec.ts
-              tests/browser/runtime-assets.spec.ts
-              tests/browser/tutorial06.spec.ts
-              tests/browser/tutorial07.spec.ts
-              tests/browser/tutorial08.spec.ts
-    name: browser (${{ matrix.name }})
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Download the built site
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+      - name: Check the course shell and the slide decks
+        run: >-
+          npx playwright test
+          tests/browser/deployment.spec.ts
+          tests/browser/tutorial06.spec.ts
+          tests/browser/tutorial07.spec.ts
+
+  # Tutorial UI workflows boot a real Pyodide worker per test, so they take
+  # minutes. Run them before a release or a teaching session:
+  #   gh workflow run deploy-pages.yml -f full=true
+  # The science job above already runs their experiments and notebooks on
+  # every push, so this is a UI check, not the only check.
+  browser-full:
+    if: github.event_name == 'workflow_dispatch' && inputs.full
+    needs: build
+    runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -111,6 +137,13 @@ jobs:
         with:
           path: .cache/pyodide
           key: pyodide-${{ runner.os }}-${{ hashFiles('package-lock.json', 'src/tutorials/**/tutorial.json') }}
+      - name: Cache the Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
       - name: Download the built site
         uses: actions/download-artifact@v4
         with:
@@ -118,15 +151,14 @@ jobs:
           path: dist
       - name: Prepare assets served by the development server
         run: npm run prepare:assets
-      - name: Cache the Playwright browser
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install browser for deployment checks
-        run: npx playwright install --with-deps chromium
-      - name: Run the browser checks
-        run: npx playwright test ${{ matrix.specs }}
+      - name: Check every tutorial workflow, the demos and asset preparation
+        run: >-
+          npx playwright test
+          tests/browser/tutorial04.spec.ts
+          tests/browser/tutorial05.spec.ts
+          tests/browser/tutorial08.spec.ts
+          tests/browser/demo-parity.spec.ts
+          tests/browser/runtime-assets.spec.ts
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

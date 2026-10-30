@@ -157,6 +157,23 @@ installs the locked notebook environment, tests every tutorial’s scientific an
 contracts, and executes each extracted student notebook before publishing. Pyodide wheels are
 cached and SHA-256 checked on every build.
 
+Every push therefore gates on three things in about two minutes: the scientific checks, the
+build, and a browser pass over the course shell and both slide decks. Tutorial UI workflows
+boot a real Pyodide worker per test and take minutes, so they are on demand:
+
+```sh
+gh workflow run deploy-pages.yml -f full=true   # tutorials 04/05/08, demos and asset preparation
+```
+
+They stay in the same workflow and run against the same `dist/` artifact. Run them before a
+release or a teaching session; `npm run test:web` runs the same specs locally.
+
+**Pages source must be GitHub Actions.** With the legacy `main`-branch source still enabled,
+GitHub also publishes the repository root on every push, so routes such as
+`/tutorials/tutorial07/slides` return 404 for a minute or two until this workflow redeploys
+`dist/`. Switching the source removes that window. It needs repository administrator access
+and cannot be changed from a workflow token.
+
 The build reads the course catalog and automatically emits entry pages for all sections,
 demos, tutorial overviews and chapters. For example,
 **https://yulequan.github.io/STAT3612/tutorials/tutorial04/prepare** opens the preparation
@@ -311,9 +328,10 @@ npm run test:web:fast                                  # course shell and decks,
 npm run test:web                                       # everything, about 4 min locally
 ```
 
-Files run four at a time locally (`workers` in `playwright.config.ts`). CI runs the same
-specs as two parallel shards against the exact `dist/` artifact that gets deployed, so
-feedback arrives in a few minutes instead of one long serial job.
+Files run four at a time locally (`workers` in `playwright.config.ts`). CI gates every push
+on the scientific checks, the build and the course-shell/deck specs only — about two minutes —
+and tests the exact `dist/` artifact that gets deployed. The Pyodide tutorial workflows run on
+demand (`gh workflow run deploy-pages.yml -f full=true`).
 
 Verification checks each tutorial’s scientific behavior and data separation, executes every
 extracted student package (including its opt-in final test cell), checks notebook/source
