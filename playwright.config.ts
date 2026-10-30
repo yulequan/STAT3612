@@ -9,7 +9,10 @@ export default defineConfig({
   testDir: './tests/browser',
   timeout: 120_000,
   expect: { timeout: 15_000 },
-  workers: 1,
+  // Every Python test boots a browser Pyodide worker, so a full run is minutes of
+  // real computation. Parallel files keep local runs short; CI shards the same
+  // files across separate runners instead, where one worker per runner is fastest.
+  workers: process.env.CI ? 1 : 4,
   use: {
     actionTimeout: 15_000,
     baseURL: `http://127.0.0.1:${previewPort}`,
@@ -27,19 +30,20 @@ export default defineConfig({
     {
       command: `npx vite --host 127.0.0.1 --port ${devPort} --strictPort`,
       url: `http://127.0.0.1:${devPort}`,
-      reuseExistingServer: false,
+      // Reuse a server left over from the previous local run instead of failing.
+      reuseExistingServer: !process.env.CI,
     },
     {
       command: `npm run preview -- --port ${previewPort} --strictPort`,
       url: `http://127.0.0.1:${previewPort}`,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
     {
       // Serve the built site at /dist/ to verify subdirectory deployment with
       // an ordinary static server, independently of Vite's development behavior.
       command: `python3 -m http.server ${staticPort} --bind 127.0.0.1`,
       url: `http://127.0.0.1:${staticPort}/dist/`,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       stderr: 'ignore',
     },
   ],
