@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def package(folder):
     spec = json.loads((folder / 'tutorial.json').read_text())
+    if not spec['student_files']:
+        return None
     output = ROOT / '.cache/packages' / f"{spec['id']}-student.zip"
     output.parent.mkdir(parents=True, exist_ok=True)
     with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
@@ -23,4 +25,4 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('tutorial', nargs='?', default='tutorial04')
     args = parser.parse_args()
-    print(package(ROOT / 'src/tutorials' / args.tutorial))
+    print(package(ROOT / 'src/tutorials' / args.tutorial) or 'No student package for this tutorial.')
