@@ -18,14 +18,17 @@ def main():
     parser.add_argument('tutorial', nargs='?',
                         choices=sorted(p.name for p in (ROOT / 'src/tutorials').glob('tutorial*')),
                         help='Notebook to execute; other checks cover all course materials.')
+    parser.add_argument('--fast', action='store_true',
+                        help='Skip notebook execution and the Pyodide-heavy tutorials (about a minute).')
     args = parser.parse_args()
     python = ROOT / '.venv/bin/python'
     if not python.exists():
         python = Path(sys.executable)
     run(python, '-m', 'unittest', 'discover', '-s', 'tests', '-v')
-    run(python, 'scripts/check_notebook.py', *([args.tutorial] if args.tutorial else []))
+    if not args.fast:
+        run(python, 'scripts/check_notebook.py', *([args.tutorial] if args.tutorial else []))
     run('npm', 'run', 'build')
-    run('npm', 'run', 'test:web')
+    run('npm', 'run', 'test:web:fast' if args.fast else 'test:web')
     print('\nAll checks passed.')
 
 

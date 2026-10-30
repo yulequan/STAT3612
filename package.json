@@ -9,6 +9,7 @@
     "build": "npm run prepare:assets && npm run typecheck && vite build && node scripts/build_routes.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test:web": "playwright test",
+    "test:web:fast": "playwright test tests/browser/deployment.spec.ts tests/browser/tutorial06.spec.ts tests/browser/tutorial07.spec.ts",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\" index.html vite.config.ts tsconfig.json tests/browser playwright.config.ts"
   },
   "dependencies": {

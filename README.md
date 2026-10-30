@@ -297,8 +297,23 @@ write a reason for their model choice.
 ## Verify
 
 ```sh
-uv run python scripts/verify.py
+python3 scripts/verify.py          # unit tests, notebook execution, build, every browser check
+python3 scripts/verify.py --fast   # about a minute: unit tests, build, course shell and decks
 ```
+
+A browser check boots a real Pyodide worker, so the full suite is minutes of computation
+rather than seconds. Run only the specs a change touches after `npm run build`; the browser
+tests read the built `dist/`:
+
+```sh
+npx playwright test tests/browser/tutorial07.spec.ts   # slide deck page, about 10 s
+npm run test:web:fast                                  # course shell and decks, about 30 s
+npm run test:web                                       # everything, about 4 min locally
+```
+
+Files run four at a time locally (`workers` in `playwright.config.ts`). CI runs the same
+specs as two parallel shards against the exact `dist/` artifact that gets deployed, so
+feedback arrives in a few minutes instead of one long serial job.
 
 Verification checks each tutorial’s scientific behavior and data separation, executes every
 extracted student package (including its opt-in final test cell), checks notebook/source
@@ -318,6 +333,8 @@ Tests use `/usr/bin/google-chrome` when available; set `CHROME_BIN` or run
 checks rather than silently skipping them. Screenshots/traces remain disposable test output.
 If the default test ports (4173, 4174 and 4175) are occupied, set `TEST_PREVIEW_PORT`,
 `TEST_STATIC_PORT` and `TEST_DEV_PORT` to available ports when running verification or browser tests.
+A server left by an interrupted run is reused when it answers; if Playwright reports
+`Port ... is already in use`, stop the leftover process (`pkill -f 'vite --host'`) and rerun.
 
 ## Add course materials
 
@@ -348,7 +365,9 @@ The small authoring contract:
   includes this structure for every new tutorial.
 - `tutorial.json` declares `python_packages`, `web_assets` and `student_files`, plus
   `experiment` and an optional `dataset` for Python-runtime lessons. Static PDF lessons
-  use an empty package list and need no experiment. The build packages every discovered tutorial.
+  use an empty package list and need no experiment; an empty `student_files` publishes the
+  files in `web_assets` as direct downloads instead of a generated student ZIP. Only
+  tutorials with student files are packaged.
 - The Python module exports `Experiment(path)` with `dispatch(action, params)` returning a
   JSON string. `initialize` supplies starting data; other actions are lesson-specific.
 - Training lessons may implement `fit(config, progress_callback)`. Progress is a JSON record,
