@@ -128,10 +128,13 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Set up Python for the development server
-        uses: actions/setup-python@v5
+      - name: Set up notebook environment
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.13'
+          python-version: '3.14'
+          enable-cache: true
+      - name: Install scientific dependencies
+        run: uv sync --locked
       - name: Cache verified Python wheels
         uses: actions/cache@v4
         with:
