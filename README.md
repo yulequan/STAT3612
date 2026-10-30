@@ -333,6 +333,8 @@ Tests use `/usr/bin/google-chrome` when available; set `CHROME_BIN` or run
 checks rather than silently skipping them. Screenshots/traces remain disposable test output.
 If the default test ports (4173, 4174 and 4175) are occupied, set `TEST_PREVIEW_PORT`,
 `TEST_STATIC_PORT` and `TEST_DEV_PORT` to available ports when running verification or browser tests.
+A server left by an interrupted run is reused when it answers; if Playwright reports
+`Port ... is already in use`, stop the leftover process (`pkill -f 'vite --host'`) and rerun.
 
 ## Add course materials
 
