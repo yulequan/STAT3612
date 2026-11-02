@@ -71,7 +71,7 @@ import { courseHref } from '../navigation'
     <section aria-labelledby="project-proposal">
       <h2 id="project-proposal">Proposal</h2>
       <p class="deadline">
-        <time datetime="2026-11-12T23:59:00+08:00">12 November 2026, 23:59 HKT (UTC+8)</time>
+        <time datetime="2026-11-15T23:59:00+08:00">15 November 2026, 23:59 HKT (UTC+8)</time>
       </p>
       <p>
         Upload <strong>one PDF directly to the Moodle proposal submission</strong>, named

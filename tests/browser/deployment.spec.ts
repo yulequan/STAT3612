@@ -234,12 +234,12 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main).toContainText('4–5 students')
   await expect(main).toContainText('40% of your final course grade')
   await expect(main.locator('time')).toHaveText([
-    '12 November 2026, 23:59 HKT (UTC+8)',
+    '15 November 2026, 23:59 HKT (UTC+8)',
     '6 December 2026, 23:59 HKT (UTC+8)',
   ])
   await expect(main.locator('time').first()).toHaveAttribute(
     'datetime',
-    '2026-11-12T23:59:00+08:00',
+    '2026-11-15T23:59:00+08:00',
   )
   await expect(main.locator('time').last()).toHaveAttribute('datetime', '2026-12-06T23:59:00+08:00')
   const weights = main.getByRole('table', { name: 'Project grading weights' })
@@ -329,7 +329,7 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
     /probing|recover test labels|Compare them with simpler baselines/i,
   )
   const text = await main.innerText()
-  expect(text.match(/12 November 2026/g)).toHaveLength(1)
+  expect(text.match(/15 November 2026/g)).toHaveLength(1)
   expect(text.match(/6 December 2026/g)).toHaveLength(1)
   expect(text.match(/README\.md/g)).toHaveLength(1)
   expect(text.trim().split(/\s+/).length).toBeLessThan(850)
