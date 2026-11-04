@@ -33,11 +33,11 @@ class Tutorial08MaterialsTests(unittest.TestCase):
         notebook = json.loads((FOLDER / 'ensemble_svm_tutorial.ipynb').read_text())
         self.assertEqual(notebook['nbformat'], 4)
         cells = [cell for cell in notebook['cells'] if cell['cell_type'] == 'code']
-        self.assertEqual(len(cells), 25)
+        self.assertEqual(len(cells), 28)
         self.assertTrue(all(isinstance(cell['execution_count'], int) for cell in cells))
         outputs = [output for cell in cells for output in cell['outputs']]
         self.assertFalse(any(output['output_type'] == 'error' for output in outputs))
-        self.assertEqual(sum('image/png' in output.get('data', {}) for output in outputs), 13)
+        self.assertEqual(sum('image/png' in output.get('data', {}) for output in outputs), 14)
 
 
 if __name__ == '__main__':

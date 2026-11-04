@@ -16,13 +16,13 @@ export default {
       {
         title: 'Read the slides',
         description:
-          '17 slides cover bagging vs. boosting, single-tree overfitting, Bagging, Random Forest, AdaBoost, Gradient Boosting, XGBoost, SVM margins/support vectors, kernel comparison on Iris and XOR, and Assignment 3 code patterns. Designed for a crisp 30-minute walkthrough.',
+          '23 slides cover high-level ensemble and SVM design intuition, DecisionTree depth diagnostics, Bagging (oob_score), Random Forest, AdaBoost, Gradient Boosting, XGBoost, SVM margins/kernels, (C, gamma) sensitivity, and a two-slide Final Group Project starter baseline.',
         chapters: ['slides'],
       },
       {
         title: 'Run the companion notebook in Jupyter',
         description:
-          'Download and extract the ZIP below for the companion notebook and setup files. The notebook includes saved outputs, 25 code cells and 13 figures. All datasets (make_moons, Iris, XOR) are generated locally with scikit-learn and NumPy.',
+          'Download and extract the ZIP below for the companion notebook and setup files. The notebook includes saved outputs, 28 code cells and 14 figures, plus a self-contained Final Group Project starter pipeline (multi-table feature aggregation, GroupKFold and log_loss evaluation).',
         chapters: ['slides'],
       },
     ],
