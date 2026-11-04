@@ -1,14 +1,12 @@
 {
   "id": "tutorial08",
-  "title": "Trees, Ensembles and Support Vector Machines",
-  "subtitle": "From axis-aligned splits and bagging to maximum-margin classifiers",
-  "experiment": "experiment.py",
-  "python_packages": ["numpy", "scipy", "scikit-learn"],
-  "web_assets": ["experiment.py"],
+  "title": "Ensemble Learning and Support Vector Machines",
+  "subtitle": "From Decision Trees, Bagging and Boosting to Maximum-Margin Kernel Classifiers",
+  "python_packages": [],
+  "web_assets": ["ensemble_svm_slides.pdf"],
   "student_files": [
-    "tutorial08.ipynb",
-    "experiment.py",
-    "curriculum.json",
+    "ensemble_svm_slides.pdf",
+    "ensemble_svm_tutorial.ipynb",
     "requirements.txt",
     "README.md"
   ]

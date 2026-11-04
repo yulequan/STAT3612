@@ -30,14 +30,13 @@ from Practice Paper 1, Practice Paper 2 and Midterm 2022. It is slides only, so 
 the single download: no notebook, README or ZIP. Open
 [Tutorial07](https://yulequan.github.io/STAT3612/tutorials/tutorial07/overview).
 
-Tutorial08 compares **decision trees, bagging, random forests, AdaBoost, gradient
-boosting and support vector machines** on three teaching datasets generated locally with
-scikit-learn and NumPy. Two moons expose nonlinear boundaries; iris petals make margins and
-support vectors readable; XOR shows why a kernel is needed. Every chapter combines a
-decision-boundary experiment, the shared Python function and an editable snippet.
-Validation chooses the model; the comparison chapter freezes a written reason before
-one final test. Open [Tutorial08](https://yulequan.github.io/STAT3612/tutorials/tutorial08/overview)
-or see its [student instructions](src/tutorials/tutorial08/README.md).
+Tutorial08 publishes **Ensemble Learning and Support Vector Machines** as a 17-slide
+embedded PDF with a complete companion notebook ZIP download (`ensemble_svm_tutorial.ipynb`,
+25 code cells and 13 figures). It covers single decision trees, Bagging, Random Forests,
+AdaBoost, Gradient Boosting and XGBoost on `make_moons`, followed by SVM margins, support
+vectors and kernel comparison (`linear`, `poly`, `rbf`, `sigmoid`) on Iris and `XOR`.
+Open [Tutorial08](https://yulequan.github.io/STAT3612/tutorials/tutorial08/overview)
+or see its [setup and teaching notes](src/tutorials/tutorial08/README.md).
 
 The course homepage opens at `/` and offers five sections: **Lectures**, **Tutorials**,
 **Group Project**, **Demos** and **Quizzes**. The homepage shows two levels: sections and

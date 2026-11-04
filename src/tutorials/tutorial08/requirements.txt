@@ -1,7 +1,12 @@
-# Student notebook environment, Python 3.11+. Browser packages are pinned separately by Pyodide.
-numpy>=2.0,<3
-scipy>=1.14,<2
-scikit-learn>=1.6,<1.9
-matplotlib>=3.9,<4
+# Python 3.10+; CPU only. All datasets are built into scikit-learn / NumPy.
+numpy>=1.26,<3
+pandas>=2.2,<3
+matplotlib>=3.8,<4
+seaborn>=0.13,<1
+scikit-learn>=1.5,<2
+xgboost>=2.0,<4
 jupyterlab>=4,<5
-ipykernel>=6.29,<8
+ipykernel>=6,<8
+nbformat>=5.10,<6
+nbclient>=0.10,<0.12
+nbconvert>=7,<8
