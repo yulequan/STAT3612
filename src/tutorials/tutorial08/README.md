@@ -4,7 +4,7 @@
 
 Tutor: Yinghao Zhu · yhzhu99@connect.hku.hk
 
-A 23-slide English Beamer walkthrough designed for a concise 30-minute classroom session, paired with an executable Jupyter notebook (`ensemble_svm_tutorial.ipynb`) containing 28 code cells, 14 decision-boundary figures, and a runnable starter baseline for the Final Group Project.
+A 28-slide English Beamer walkthrough designed for a concise 30-minute classroom session, paired with an executable Jupyter notebook (`ensemble_svm_tutorial.ipynb`) containing 28 code cells, 14 decision-boundary figures, and a runnable starter baseline for the Final Group Project.
 
 ## Learning route
 

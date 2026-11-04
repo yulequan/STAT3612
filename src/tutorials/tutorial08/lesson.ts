@@ -16,7 +16,7 @@ export default {
       {
         title: 'Read the slides',
         description:
-          '23 slides cover high-level ensemble and SVM design intuition, DecisionTree depth diagnostics, Bagging (oob_score), Random Forest, AdaBoost, Gradient Boosting, XGBoost, SVM margins/kernels, (C, gamma) sensitivity, and a two-slide Final Group Project starter baseline.',
+          '28 slides cover parallel vs. sequential ensemble visual intuition, SVM margin and 2D-to-3D kernel-trick diagrams, experimental roadmaps for make_moons and Iris/XOR, DecisionTree depth diagnostics, Bagging (oob_score), Random Forest, AdaBoost, Gradient Boosting, XGBoost, SVM kernels, (C, gamma) sensitivity, and a two-slide Final Group Project starter baseline.',
         chapters: ['slides'],
       },
       {
