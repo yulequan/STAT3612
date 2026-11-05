@@ -1,0 +1,13 @@
+{
+  "id": "tutorial11",
+  "title": "From Transformer to LLMs, Agentic AI and Hugging Face",
+  "subtitle": "Self-Attention, Vision Transformers, Post-Training RL (RLHF/GRPO), ReAct Agents and Hugging Face Pipelines",
+  "python_packages": [],
+  "web_assets": ["transformer_slides.pdf"],
+  "student_files": [
+    "transformer_slides.pdf",
+    "transformer_tutorial.ipynb",
+    "requirements.txt",
+    "README.md"
+  ]
+}

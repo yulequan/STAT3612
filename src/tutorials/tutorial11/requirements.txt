@@ -1,0 +1,13 @@
+# Python 3.10+; CPU or GPU.
+numpy>=1.26,<3
+pandas>=2.2,<3
+matplotlib>=3.8,<4
+scikit-learn>=1.5,<2
+torch>=2.2
+einops>=0.7,<1
+transformers>=4.40
+jupyterlab>=4,<5
+ipykernel>=6,<8
+nbformat>=5.10,<6
+nbclient>=0.10,<0.12
+nbconvert>=7,<8
