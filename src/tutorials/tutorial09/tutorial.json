@@ -1,0 +1,13 @@
+{
+  "id": "tutorial09",
+  "title": "Unsupervised Learning: Dimensionality Reduction and Clustering",
+  "subtitle": "From PCA, Kernel PCA and t-SNE to K-Means, Hierarchical Clustering, DBSCAN and Gaussian Mixtures",
+  "python_packages": [],
+  "web_assets": ["unsupervised_learning_slides.pdf"],
+  "student_files": [
+    "unsupervised_learning_slides.pdf",
+    "unsupervised_learning_tutorial.ipynb",
+    "requirements.txt",
+    "README.md"
+  ]
+}
