@@ -9,8 +9,8 @@ const slides = asset('pytorch_intro_slides.pdf')
 <template>
   <article class="pytorch-intro-materials">
     <p>
-      Deep Learning I: Neural Networks and Introduction to PyTorch. Read the 25-slide deck here and
-      download the executable companion notebook for Jupyter.
+      Introduction to PyTorch. Read the 25-slide deck here and download the executable companion
+      notebook for Jupyter.
     </p>
     <div class="material-actions" aria-label="Tutorial downloads">
       <a class="button" :href="slides" target="_blank" rel="noopener">Open PDF in a new tab</a>
@@ -29,8 +29,9 @@ const slides = asset('pytorch_intro_slides.pdf')
       <p>
         The notebook includes saved outputs, 20 code cells and 7 figures covering PyTorch tensor
         operations, <code>einops.rearrange</code>, <code>autograd</code>, <code>Dataset</code> /
-        <code>DataLoader</code>, training an <code>MLPClassifier</code> and 2D CNN, and blending a
-        PyTorch Tabular MLP with <code>XGBoost</code>. Download and extract the ZIP, then run:
+        <code>DataLoader</code>, training an <code>MLPClassifier</code> and 2D CNN, binary
+        classification with <code>BCEWithLogitsLoss</code>, and saving/loading checkpoints via
+        <code>state_dict()</code>. Download and extract the ZIP, then run:
       </p>
       <pre><code>python3 -m venv .venv
 source .venv/bin/activate

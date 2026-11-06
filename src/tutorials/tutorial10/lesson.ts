@@ -4,7 +4,7 @@ import type { Lesson } from '..'
 export default {
   id: 'tutorial10',
   number: '10',
-  title: 'Deep Learning I: Neural Networks and Introduction to PyTorch',
+  title: 'Introduction to PyTorch',
   subtitle: 'From Tensors, einops and Automatic Differentiation to End-to-End MLP and CNN Training',
   tutor: { name: 'Yinghao Zhu', email: 'yhzhu99@connect.hku.hk' },
   materials: [{ title: 'Notebook + setup (ZIP)', file: 'student.zip' }],
@@ -16,13 +16,13 @@ export default {
       {
         title: 'Read the slides',
         description:
-          '25 slides cover PyTorch vs. NumPy, tensor attributes, device management, matrix multiplication (@) vs. elementwise product (*), reductions along dim, reshape/permute/squeeze/unsqueeze, einops.rearrange, reverse-mode autograd, why optimizer.zero_grad() is mandatory, Dataset/DataLoader, nn.Module MLPs, activation functions, SGD vs. Adam, 2D CNNs, and a Group Project tabular MLP starter.',
+          '25 slides cover PyTorch vs. NumPy, tensor attributes, device management, matrix multiplication (@) vs. elementwise product (*), reductions along dim, reshape/permute/squeeze/unsqueeze, einops.rearrange, reverse-mode autograd, why optimizer.zero_grad() is mandatory, Dataset/DataLoader, nn.Module MLPs, activation functions, SGD vs. Adam, 2D CNNs, and saving/loading model checkpoints (state_dict).',
         chapters: ['slides'],
       },
       {
         title: 'Run the companion notebook in Jupyter',
         description:
-          'Download and extract the ZIP below for the companion notebook (20 code cells, 7 plots) covering PyTorch tensors, einops, autograd, MLP and CNN training, and blending a PyTorch Tabular MLP with XGBoost.',
+          'Download and extract the ZIP below for the companion notebook (20 code cells, 7 plots) covering PyTorch tensors, einops, autograd, MLP and CNN training, binary classification with BCEWithLogitsLoss, and checkpoint serialization via state_dict().',
         chapters: ['slides'],
       },
     ],
@@ -30,12 +30,12 @@ export default {
       'Manipulate PyTorch tensors across devices, reductions along dim, reshape/permute, and einops.rearrange.',
       'Trace forward and backward passes with requires_grad=True, .backward(), optimizer.zero_grad(), and torch.no_grad().',
       'Build custom Dataset/DataLoader pipelines and train nn.Module MLPs and 2D CNNs using CrossEntropyLoss and Adam.',
-      'Train a calibrated Tabular MLP with BCEWithLogitsLoss inside GroupKFold and blend probabilities with tree ensembles.',
+      'Train binary classifiers with BCEWithLogitsLoss and save/reload trained weights via torch.save(model.state_dict(), ...).',
     ],
     prerequisites:
       'Basic Python, NumPy and linear algebra. To run the notebook locally, use Python 3.10+ and install PyTorch and einops from requirements.txt.',
     outcome:
-      'An executed companion notebook covering PyTorch tensors, autograd, MLP/CNN training, and a tabular neural baseline for the Final Group Project.',
+      'An executed companion notebook covering PyTorch tensors, autograd, end-to-end MLP/CNN training, and checkpoint persistence.',
     format:
       'Read the PDF slides here, then use Jupyter locally for the executable companion notebook. Python does not run inside this tutorial page.',
   },

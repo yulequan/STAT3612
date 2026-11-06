@@ -16,13 +16,13 @@ export default {
       {
         title: 'Read the slides',
         description:
-          '24 slides cover PCA geometry, why StandardScaler is mandatory before PCA, scree plots (explained_variance_ratio_), 2D/3D Iris projections, PCA vs. LDA, RBF KernelPCA on concentric circles, t-SNE on 64D digits, K-Means elbow and silhouette diagnostics, Ward dendrograms, Gaussian Mixtures, Assignment 3 (Q3), and leak-free Group Project features.',
+          '24 slides cover PCA geometry, why StandardScaler is mandatory before PCA, scree plots (explained_variance_ratio_), 2D/3D Iris projections, PCA vs. LDA, RBF KernelPCA on concentric circles, t-SNE on 64D digits, K-Means elbow and silhouette diagnostics, Ward dendrograms, Gaussian Mixtures, and practical end-to-end PCA + KNN and PCA + Clustering pipelines.',
         chapters: ['slides'],
       },
       {
         title: 'Run the companion notebook in Jupyter',
         description:
-          'Download and extract the ZIP below for the companion notebook (20 code cells, 12 plots) covering PCA, KernelPCA, t-SNE, KMeans, AgglomerativeClustering, DBSCAN, GaussianMixture, Assignment 3 (Q3) PCA + KNN, and Final Group Project behavioral profiling.',
+          'Download and extract the ZIP below for the companion notebook (20 code cells, 12 plots) covering PCA, KernelPCA, t-SNE, KMeans, AgglomerativeClustering, DBSCAN, GaussianMixture, PCA + KNeighborsClassifier denoising, and high-dimensional PCA + KMeans pipelines.',
         chapters: ['slides'],
       },
     ],
@@ -30,12 +30,12 @@ export default {
       'Standardize features with StandardScaler and select the number of principal components using scree plots and cumulative explained_variance_ratio_.',
       'Contrast unsupervised PCA against supervised LinearDiscriminantAnalysis (LDA), non-linear KernelPCA, and manifold TSNE.',
       'Select the optimal cluster count K using the inertia elbow and silhouette_score, and diagnose K-Means failure modes on non-convex or elongated clusters.',
-      'Apply PCA + KNeighborsClassifier for Assignment 3 (Q3) and engineer leak-free PCA/KMeans features inside GroupKFold for the Final Group Project.',
+      'Combine Standardized PCA with KNeighborsClassifier and high-dimensional KMeans/GMM clustering in leak-free pipelines.',
     ],
     prerequisites:
       'Basic Python, NumPy, SciPy and scikit-learn. Reading the slides and saved notebook outputs requires no execution. To run the notebook locally, use Python 3.10+ and install the supplied requirements.',
     outcome:
-      'An executed companion notebook covering dimensionality reduction and clustering, ready to adapt for Assignment 3 (Q3) and the Final Group Project.',
+      'An executed companion notebook covering dimensionality reduction, clustering, and practical unsupervised learning pipelines.',
     format:
       'Read the PDF slides here, then use Jupyter locally for the executable companion notebook. Python does not run inside this tutorial page.',
   },

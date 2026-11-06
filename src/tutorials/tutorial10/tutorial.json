@@ -1,6 +1,6 @@
 {
   "id": "tutorial10",
-  "title": "Deep Learning I: Neural Networks and Introduction to PyTorch",
+  "title": "Introduction to PyTorch",
   "subtitle": "From Tensors, einops and Automatic Differentiation to End-to-End MLP and CNN Training",
   "python_packages": [],
   "web_assets": ["pytorch_intro_slides.pdf"],

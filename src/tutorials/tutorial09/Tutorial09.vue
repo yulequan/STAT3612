@@ -31,8 +31,9 @@ const slides = asset('unsupervised_learning_slides.pdf')
         <code>StandardScaler</code> + <code>PCA</code> scree plots, <code>PCA</code> vs.
         <code>LDA</code>, <code>KernelPCA</code>, <code>TSNE</code>, <code>KMeans</code>,
         <code>AgglomerativeClustering</code> dendrograms, <code>DBSCAN</code>,
-        <code>GaussianMixture</code>, Assignment 3 (Q3), and leak-free Group Project behavioral
-        features. Download and extract the ZIP, then run:
+        <code>GaussianMixture</code>, <code>PCA</code> + <code>KNeighborsClassifier</code> denoising,
+        and high-dimensional <code>PCA</code> + clustering pipelines. Download and extract the ZIP,
+        then run:
       </p>
       <pre><code>python3 -m venv .venv
 source .venv/bin/activate

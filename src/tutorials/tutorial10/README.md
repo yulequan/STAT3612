@@ -1,10 +1,10 @@
 # STAT3612 · Fall 2026 · Tutorial 10
 
-**Deep Learning I: Neural Networks and Introduction to PyTorch**
+**Introduction to PyTorch**
 
 Tutor: Yinghao Zhu · yhzhu99@connect.hku.hk
 
-A 25-slide English Beamer walkthrough paired with an executable Jupyter notebook (`pytorch_intro_tutorial.ipynb`) containing 20 code cells, 7 figures, end-to-end MLP and 2D CNN training loops, and a Group Project Tabular MLP starter.
+A 25-slide English Beamer walkthrough paired with an executable Jupyter notebook (`pytorch_intro_tutorial.ipynb`) containing 20 code cells, 7 figures, end-to-end MLP and 2D CNN training loops, binary classification with `BCEWithLogitsLoss`, and checkpoint persistence via `state_dict()`.
 
 ## Run the companion notebook
 
