@@ -96,7 +96,23 @@ import { courseHref } from '../navigation'
         <tbody>
           <tr>
             <th scope="row">Final report (PDF)</th>
-            <td>Moodle: <code>GroupID.pdf</code>, uploaded separately, not inside the ZIP.</td>
+            <td>
+              <strong>Strictly 8-page limit for the main content</strong>, with
+              <strong>unlimited pages for references and the appendix</strong>. Moodle:
+              <code>GroupID.pdf</code>, uploaded separately, not inside the ZIP.
+              <ul>
+                <li>
+                  Keep the main content <strong>self-contained</strong>, and clearly state the
+                  <strong>motivation for your method design</strong> and why your approach is
+                  preferred.
+                </li>
+                <li>
+                  <strong>No AI-rate detection; AI tools are encouraged</strong>, but please ensure
+                  you <strong>understand all AI-generated outputs</strong> and can
+                  <strong>explain them clearly</strong>.
+                </li>
+              </ul>
+            </td>
           </tr>
           <tr>
             <th scope="row">Supporting files (one ZIP)</th>
@@ -136,12 +152,6 @@ import { courseHref } from '../navigation'
         Use either template below. Keep its font size, margins and section headings, and export your
         report as a PDF. For LaTeX, we recommend
         <a href="https://www.overleaf.com/" target="_blank" rel="noopener noreferrer">Overleaf</a>.
-      </p>
-      <p>
-        The main content is limited to <strong>8 pages</strong>, with
-        <strong>unlimited pages for references and the appendix</strong>. The main content must be
-        <strong>self-contained</strong> and clearly state the motivation for your method design and
-        why your approach is preferred.
       </p>
       <p>
         At the start of the report, include every member's
