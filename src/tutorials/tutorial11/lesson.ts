@@ -4,7 +4,7 @@ import type { Lesson } from '..'
 export default {
   id: 'tutorial11',
   number: '11',
-  title: 'From Transformer to LLMs, Agentic AI and Hugging Face',
+  title: 'From Transformer to LLMs and Agentic AI',
   subtitle: 'Self-Attention, Vision Transformers, Post-Training RL (RLHF/GRPO), ReAct Agents and Hugging Face Pipelines',
   tutor: { name: 'Yinghao Zhu', email: 'yhzhu99@connect.hku.hk' },
   materials: [{ title: 'Notebook + setup (ZIP)', file: 'student.zip' }],
@@ -16,7 +16,7 @@ export default {
       {
         title: 'Read the slides',
         description:
-          '24 slides cover the RNN bottleneck vs. parallel Self-Attention, Query/Key/Value lookup, 1/sqrt(d_k) scaling, PyTorch Scaled Dot-Product Attention, Multi-Head Attention, Bidirectional (BERT) vs. Causal (GPT) masking, Vision Transformer (ViT) patchification, scaling laws, 3-stage post-training (Pre-training -> SFT -> RLHF/GRPO), ReAct Coding & DeepResearch Agents, Hugging Face pipelines/tokenizers/models, and a full-course synthesis.',
+          '25 slides cover the RNN bottleneck vs. parallel Self-Attention, Query/Key/Value lookup, 1/sqrt(d_k) scaling, PyTorch Scaled Dot-Product Attention, Multi-Head Attention, Bidirectional (BERT) vs. Causal (GPT) masking, Vision Transformer (ViT) patchification, scaling laws, 3-stage post-training (Pre-training -> SFT -> RLHF/GRPO), ReAct Coding & DeepResearch Agents, Hugging Face pipelines/tokenizers/models, full-course synthesis, and recommended Stanford/Berkeley open courses.',
         chapters: ['slides'],
       },
       {

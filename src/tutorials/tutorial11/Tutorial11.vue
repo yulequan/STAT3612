@@ -9,8 +9,8 @@ const slides = asset('transformer_slides.pdf')
 <template>
   <article class="transformer-materials">
     <p>
-      From Transformer to LLMs, Agentic AI and Hugging Face. Read the 24-slide deck here and
-      download the executable companion notebook for Jupyter.
+      From Transformer to LLMs and Agentic AI. Read the 25-slide deck here and download the
+      executable companion notebook for Jupyter.
     </p>
     <div class="material-actions" aria-label="Tutorial downloads">
       <a class="button" :href="slides" target="_blank" rel="noopener">Open PDF in a new tab</a>
