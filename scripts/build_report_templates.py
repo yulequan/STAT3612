@@ -14,7 +14,7 @@ SECTIONS = (
     ('Methodology', 'Present your overall pipeline and explain your approach.', (
         ('Problem Formulation', 'Define the inputs, prediction target, notation and learning objective.'),
         ('Method Design',
-         'Describe preprocessing, feature engineering and your model or algorithm design, clearly stating the motivation for your design and why your approach is preferred.'),
+         'Describe preprocessing, feature engineering and your model or algorithm design, clearly explaining the motivation behind why you designed your approach.'),
     )),
     ('Experimental Setups', 'Describe the experimental protocol used for all comparisons.', (
         ('Datasets, Tasks, and Evaluation',

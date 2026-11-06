@@ -110,7 +110,7 @@ class ReportTemplateTests(unittest.TestCase):
         for detail in (
             '8-page limit',
             'self-contained',
-            'why your approach is preferred',
+            'motivation behind why you designed your approach',
             'unlimited pages',
             'hyperparameters',
             'hardware',

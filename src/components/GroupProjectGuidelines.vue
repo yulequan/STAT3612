@@ -102,8 +102,8 @@ import { courseHref } from '../navigation'
               <code>GroupID.pdf</code>, uploaded separately, not inside the ZIP.
               <ul>
                 <li>
-                  Keep the main content <strong>self-contained</strong>, and clearly state the
-                  <strong>motivation for your method design</strong> and why your approach is
+                  Keep the main content <strong>self-contained</strong>; reports that clearly
+                  explain the <strong>motivation behind why you designed your approach</strong> are
                   preferred.
                 </li>
                 <li>
@@ -186,8 +186,8 @@ import { courseHref } from '../navigation'
           <tr>
             <th scope="row">3. Methodology</th>
             <td>
-              Overall pipeline figure; Problem Formulation; Method Design (clearly state the
-              motivation for your design and why your approach is preferred).
+              Overall pipeline figure; Problem Formulation; Method Design (clearly explain the
+              motivation behind why you designed your approach).
             </td>
           </tr>
           <tr>
