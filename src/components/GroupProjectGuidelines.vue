@@ -99,19 +99,9 @@ import { courseHref } from '../navigation'
             <td>
               <strong>Strictly 8-page limit for the main content</strong>, with
               <strong>unlimited pages for references and the appendix</strong>. Moodle:
-              <code>GroupID.pdf</code>, uploaded separately, not inside the ZIP.
-              <ul>
-                <li>
-                  Keep the main content <strong>self-contained</strong>; reports that clearly
-                  explain the <strong>motivation behind why you designed your approach</strong> are
-                  preferred.
-                </li>
-                <li>
-                  <strong>No AI-rate detection; AI tools are encouraged</strong>, but please ensure
-                  you <strong>understand all AI-generated outputs</strong> and can
-                  <strong>explain them clearly</strong>.
-                </li>
-              </ul>
+              <code>GroupID.pdf</code>, uploaded separately, not inside the ZIP. Keep the main
+              content <strong>self-contained</strong>; reports that clearly explain the
+              <strong>motivation behind why you designed your approach</strong> are preferred.
             </td>
           </tr>
           <tr>
@@ -233,17 +223,18 @@ import { courseHref } from '../navigation'
           Do not share solutions or prediction files across groups. Keep course data within the
           course and Kaggle notebooks containing it private. Cite any reused code or ideas.
         </li>
-        <li>
-          We do <strong>not</strong> use AI-rate detection and encourage using AI tools in your
-          workflow, but please ensure you <strong>understand all AI-generated outputs</strong> and
-          can <strong>explain them clearly</strong> in your report and presentation.
-        </li>
       </ul>
     </section>
 
     <section aria-labelledby="project-faq">
       <h2 id="project-faq">Frequently asked questions</h2>
       <dl>
+        <dt>Can we use AI tools?</dt>
+        <dd>
+          Yes, we encourage using AI tools in your workflow, but please ensure you
+          <strong>understand all AI-generated outputs</strong> and can
+          <strong>explain them clearly</strong> in your report and presentation.
+        </dd>
         <dt>Can we use deep neural networks?</dt>
         <dd>
           Yes. We recommend using

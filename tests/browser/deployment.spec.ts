@@ -275,9 +275,6 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(report).toContainText('self-contained')
   await expect(report).toContainText('motivation behind why you designed your approach')
   await expect(report).toContainText('are preferred')
-  await expect(report).toContainText('No AI-rate detection; AI tools are encouraged')
-  await expect(report).toContainText('understand all AI-generated outputs')
-  await expect(report).toContainText('explain them clearly')
   await expect(submissions).toContainText('submit and select your final entries')
   await expect(main).toContainText('one ZIP')
   await expect(main).toContainText('GroupID.zip')
@@ -318,12 +315,13 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   )
   await expect(structure).toContainText('hardware and software configuration')
   await expect(main.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible()
-  await expect(main).toContainText('Use only the data supplied through the course competition')
-  await expect(main).toContainText('No external datasets, labels or pretrained model weights')
-  await expect(main).toContainText('do not use AI-rate detection')
+  await expect(main).toContainText('Can we use AI tools?')
   await expect(main).toContainText('encourage using AI tools')
   await expect(main).toContainText('understand all AI-generated outputs')
   await expect(main).toContainText('explain them clearly')
+  await expect(main).not.toContainText(/AI-rate|AI rate/i)
+  await expect(main).toContainText('Use only the data supplied through the course competition')
+  await expect(main).toContainText('No external datasets, labels or pretrained model weights')
   await expect(main.getByRole('link', { name: 'Overleaf', exact: true })).toHaveAttribute(
     'href',
     'https://www.overleaf.com/',
