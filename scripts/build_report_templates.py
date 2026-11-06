@@ -7,11 +7,14 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / 'public/group-project'
 SECTIONS = (
-    ('Introduction', 'Introduce the motivation, project objectives and main contributions.', ()),
+    ('Introduction',
+     'Introduce the motivation, project objectives and main contributions. Keep the main content (up to Conclusion) self-contained and within the 8-page limit.',
+     ()),
     ('Related Work', 'Discuss relevant studies and approaches, with citations.', ()),
     ('Methodology', 'Present your overall pipeline and explain your approach.', (
         ('Problem Formulation', 'Define the inputs, prediction target, notation and learning objective.'),
-        ('Method Design', 'Describe preprocessing, feature engineering and your model or algorithm design.'),
+        ('Method Design',
+         'Describe preprocessing, feature engineering and your model or algorithm design, clearly stating the motivation for your design and why your approach is preferred.'),
     )),
     ('Experimental Setups', 'Describe the experimental protocol used for all comparisons.', (
         ('Datasets, Tasks, and Evaluation',
@@ -26,8 +29,10 @@ SECTIONS = (
     ('Conclusion', 'Summarise the main findings and takeaways.', ()),
 )
 BACK_MATTER = (
-    ('References', 'List the sources, software and other work cited in the report.'),
-    ('Appendix (Optional)', 'Include supplementary results or details, if needed; otherwise remove this section.'),
+    ('References',
+     'List the sources, software and other work cited in the report (unlimited pages, outside the 8-page main content limit).'),
+    ('Appendix (Optional)',
+     'Include supplementary results or details, if needed (unlimited pages, outside the 8-page main content limit; keep the main report self-contained); otherwise remove this section.'),
 )
 CITATION_EXAMPLE = (
     'Cite sources as [1], [2], etc., numbered in order of first citation. '

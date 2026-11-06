@@ -107,7 +107,16 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertLess(texts.index('3. Methodology'), elements.index(pipeline))
         self.assertLess(elements.index(pipeline), texts.index('3.1 Problem Formulation'))
         self.assertIn(f'Figure 1. {templates.PIPELINE_CAPTION}', texts)
-        for detail in ('hyperparameters', 'hardware', 'software configuration', 'random seeds'):
+        for detail in (
+            '8-page limit',
+            'self-contained',
+            'why your approach is preferred',
+            'unlimited pages',
+            'hyperparameters',
+            'hardware',
+            'software configuration',
+            'random seeds',
+        ):
             self.assertIn(detail, source)
             self.assertIn(detail, ''.join(root.itertext()))
 

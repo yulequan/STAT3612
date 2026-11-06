@@ -138,6 +138,12 @@ import { courseHref } from '../navigation'
         <a href="https://www.overleaf.com/" target="_blank" rel="noopener noreferrer">Overleaf</a>.
       </p>
       <p>
+        The main content is limited to <strong>8 pages</strong>, with
+        <strong>unlimited pages for references and the appendix</strong>. The main content must be
+        <strong>self-contained</strong> and clearly state the motivation for your method design and
+        why your approach is preferred.
+      </p>
+      <p>
         At the start of the report, include every member's
         <strong
           >full name, university ID, HKU email, contribution percentage and work contributed</strong
@@ -169,7 +175,10 @@ import { courseHref } from '../navigation'
           </tr>
           <tr>
             <th scope="row">3. Methodology</th>
-            <td>Overall pipeline figure; Problem Formulation; Method Design.</td>
+            <td>
+              Overall pipeline figure; Problem Formulation; Method Design (clearly state the
+              motivation for your design and why your approach is preferred).
+            </td>
           </tr>
           <tr>
             <th scope="row">4. Experimental Setups</th>
@@ -193,8 +202,9 @@ import { courseHref } from '../navigation'
           <tr>
             <th scope="row">References; Appendix (optional)</th>
             <td>
-              References numbered in order of first citation (LaTeX: BibTeX with
-              <code>unsrt</code>); supplementary results or details, if needed.
+              Unlimited pages (outside the 8-page main content limit). References numbered in order
+              of first citation (LaTeX: BibTeX with <code>unsrt</code>); supplementary results or
+              details, if needed.
             </td>
           </tr>
         </tbody>
@@ -212,6 +222,11 @@ import { courseHref } from '../navigation'
         <li>
           Do not share solutions or prediction files across groups. Keep course data within the
           course and Kaggle notebooks containing it private. Cite any reused code or ideas.
+        </li>
+        <li>
+          We do <strong>not</strong> use AI-rate detection and encourage using AI tools in your
+          workflow, but please ensure you <strong>understand all AI-generated outputs</strong> and
+          can <strong>explain them clearly</strong> in your report and presentation.
         </li>
       </ul>
     </section>

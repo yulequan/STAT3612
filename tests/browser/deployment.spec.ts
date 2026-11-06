@@ -290,6 +290,10 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(video).toContainText('Upload to YouTube as Unlisted')
   await expect(video).toContainText('put the link at the start of your report')
   await expect(main).not.toContainText(/Alternatively|contents listed below|video file in your ZIP/)
+  await expect(main).toContainText('limited to 8 pages')
+  await expect(main).toContainText('unlimited pages for references and the appendix')
+  await expect(main).toContainText('self-contained')
+  await expect(main).toContainText('why your approach is preferred')
   await expect(main).toContainText(
     'full name, university ID, HKU email, contribution percentage and work contributed',
   )
@@ -312,6 +316,10 @@ test('Fall 2026 project guidelines publish deadlines, formats and grading in the
   await expect(main.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible()
   await expect(main).toContainText('Use only the data supplied through the course competition')
   await expect(main).toContainText('No external datasets, labels or pretrained model weights')
+  await expect(main).toContainText('do not use AI-rate detection')
+  await expect(main).toContainText('encourage using AI tools')
+  await expect(main).toContainText('understand all AI-generated outputs')
+  await expect(main).toContainText('explain them clearly')
   await expect(main.getByRole('link', { name: 'Overleaf', exact: true })).toHaveAttribute(
     'href',
     'https://www.overleaf.com/',
