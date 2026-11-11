@@ -44,6 +44,14 @@ export const demos: Demo[] = [
     href: courseHref('demos/tree-lab'),
     file: 'tree-lab.html',
   },
+  {
+    id: 'unsupervised-learning-lab',
+    title: 'Unsupervised Learning Lab',
+    description:
+      'Explore PCA, K-means on selectable samples, hierarchical clustering, Isomap and t-SNE.',
+    href: courseHref('demos/unsupervised-learning-lab'),
+    file: 'unsupervised-learning-lab.html',
+  },
 ]
 
 export const quizzes: CourseItem[] = [
